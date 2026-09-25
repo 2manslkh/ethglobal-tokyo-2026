@@ -39,7 +39,9 @@ public static class BuildIos
         serialized.FindProperty("activeInputHandler").intValue = 2;
         serialized.ApplyModifiedPropertiesWithoutUndo();
         PlayerSettings.iOS.cameraUsageDescription = "Use the camera to place and find tagtag stickers in AR.";
+        PlayerSettings.iOS.locationUsageDescription = "Use your location to find nearby tagtag stickers and verify discoveries.";
         PlayerSettings.iOS.targetOSVersionString = "15.0";
+        PlayerSettings.iOS.targetDevice = iOSTargetDevice.iPhoneOnly;
         EditorUtility.SetDirty(settings);
         EditorUtility.SetDirty(manager);
         AssetDatabase.SaveAssets();
