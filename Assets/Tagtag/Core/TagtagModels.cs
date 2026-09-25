@@ -80,11 +80,19 @@ namespace Tagtag
         bool IsTracking { get; }
         bool CanPublish { get; }
         bool CanCollect { get; }
+        bool HasPlacementSurface { get; }
+        bool HasPlacementPreview { get; }
+        bool PlacementBusy { get; }
+        float PlacementWidthMeters { get; }
+        float PlacementRotationDegrees { get; }
         string Status { get; }
         void Enter();
         void Exit();
         void SelectPreset(string presetId);
         void CancelPlacement();
+        void SetCameraInteraction(Rect cameraScreenRect, bool blocked);
+        void Place(Vector2 screenPoint);
+        void AdjustPlacement(float widthMeters, float rotationDegrees, Vector2? screenPoint = null);
         void Capture(Action<SpatialSnapshot> success, Action<string> failure);
         void Recover(RecoveryData recovery);
     }

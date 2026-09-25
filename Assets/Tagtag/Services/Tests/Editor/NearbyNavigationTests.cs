@@ -134,11 +134,19 @@ namespace Tagtag.Services.Tests
             public bool IsTracking => false;
             public bool CanPublish => false;
             public bool CanCollect => false;
+            public bool HasPlacementSurface => false;
+            public bool HasPlacementPreview => false;
+            public bool PlacementBusy => false;
+            public float PlacementWidthMeters => .2f;
+            public float PlacementRotationDegrees => 0f;
             public string Status => "";
             public void Enter() { }
             public void Exit() { }
             public void SelectPreset(string id) { }
             public void CancelPlacement() { }
+            public void SetCameraInteraction(Rect rect, bool blocked) { }
+            public void Place(Vector2 point) { }
+            public void AdjustPlacement(float width, float rotation, Vector2? point = null) { }
             public void Capture(Action<SpatialSnapshot> success, Action<string> failure) { }
             public void Recover(RecoveryData recovery) { }
         }

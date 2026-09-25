@@ -334,14 +334,26 @@ namespace Tagtag.Tests
             public event Action Changed { add { } remove { } }
             public event Action<string> StickerTapped { add { } remove { } }
             public CameraPresentationState CameraPresentation { get; set; } = CameraPresentationState.Preparing;
-            public bool IsTracking => false;
+            public bool IsTracking { get; set; }
             public bool CanPublish { get; set; }
             public bool CanCollect => false;
+            public bool HasPlacementSurface { get; set; }
+            public bool HasPlacementPreview { get; set; }
+            public bool PlacementBusy { get; set; }
+            public float PlacementWidthMeters { get; private set; } = .2f;
+            public float PlacementRotationDegrees { get; private set; }
+            public bool InteractionBlocked { get; private set; }
+            public Rect CameraRect { get; private set; }
+            public int PlaceCalls { get; private set; }
             public string Status => "Move slowly to scan the surroundings.";
             public void Enter() { CameraPresentation = CameraPresentationState.Preparing; }
             public void Exit() { CameraPresentation = CameraPresentationState.Inactive; }
-            public void SelectPreset(string presetId) { }
-            public void CancelPlacement() { }
+            public void SelectPreset(string presetId) { HasPlacementPreview = false; }
+            public void CancelPlacement() { HasPlacementPreview = false; }
+            public void SetCameraInteraction(Rect rect, bool blocked) { CameraRect = rect; InteractionBlocked = blocked; }
+            public void Place(Vector2 point) { PlaceCalls++; HasPlacementPreview = true; }
+            public void AdjustPlacement(float width, float rotation, Vector2? point = null)
+            { PlacementWidthMeters = width; PlacementRotationDegrees = rotation; }
             public void Capture(Action<SpatialSnapshot> success, Action<string> failure) { failure("Review fixture"); }
             public void Recover(RecoveryData recovery) { }
         }
