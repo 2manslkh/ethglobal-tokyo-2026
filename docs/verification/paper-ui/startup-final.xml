@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<test-run id="2" testcasecount="1" result="Passed" total="1" passed="1" failed="0" inconclusive="0" skipped="0" asserts="0" engine-version="3.5.0.0" clr-version="4.0.30319.42000" start-time="2026-09-25 19:44:21Z" end-time="2026-09-25 19:44:21Z" duration="0.6862402">
+  <test-suite type="TestSuite" id="1010" name="tagtag" fullname="tagtag" runstate="Runnable" testcasecount="2" result="Passed" start-time="2026-09-25 19:44:21Z" end-time="2026-09-25 19:44:21Z" duration="0.686240" total="1" passed="1" failed="0" inconclusive="0" skipped="0" asserts="0">
+    <properties>
+      <property name="platform" value="PlayMode" />
+    </properties>
+    <test-suite type="Assembly" id="1005" name="Tagtag.Startup.Tests.dll" fullname="/private/tmp/tagtag-paper-ui/Library/ScriptAssemblies/Tagtag.Startup.Tests.dll" runstate="Runnable" testcasecount="2" result="Passed" start-time="2026-09-25 19:44:21Z" end-time="2026-09-25 19:44:21Z" duration="0.681988" total="1" passed="1" failed="0" inconclusive="0" skipped="0" asserts="0">
+      <properties>
+        <property name="_PID" value="55171" />
+        <property name="_APPDOMAIN" value="Unity Child Domain" />
+        <property name="platform" value="PlayMode" />
+        <property name="EditorOnly" value="False" />
+      </properties>
+      <test-suite type="TestSuite" id="1006" name="Tagtag" fullname="Tagtag" runstate="Runnable" testcasecount="2" result="Passed" start-time="2026-09-25 19:44:21Z" end-time="2026-09-25 19:44:21Z" duration="0.681484" total="1" passed="1" failed="0" inconclusive="0" skipped="0" asserts="0">
+        <properties />
+        <test-suite type="TestSuite" id="1007" name="Tests" fullname="Tagtag.Tests" runstate="Runnable" testcasecount="2" result="Passed" start-time="2026-09-25 19:44:21Z" end-time="2026-09-25 19:44:21Z" duration="0.681129" total="1" passed="1" failed="0" inconclusive="0" skipped="0" asserts="0">
+          <properties />
+          <test-suite type="TestFixture" id="1003" name="StartupTests" fullname="Tagtag.Tests.StartupTests" classname="Tagtag.Tests.StartupTests" runstate="Runnable" testcasecount="1" result="Passed" start-time="2026-09-25 19:44:21Z" end-time="2026-09-25 19:44:21Z" duration="0.680256" total="1" passed="1" failed="0" inconclusive="0" skipped="0" asserts="0">
+            <properties />
+            <test-case id="1004" name="EntrySceneRendersHomeOnFirstLaunch" fullname="Tagtag.Tests.StartupTests.EntrySceneRendersHomeOnFirstLaunch" methodname="EntrySceneRendersHomeOnFirstLaunch" classname="Tagtag.Tests.StartupTests" runstate="Runnable" seed="757784800" result="Passed" start-time="2026-09-25 19:44:21Z" end-time="2026-09-25 19:44:21Z" duration="0.665962" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+              <output><![CDATA[tagtag startup screenshot: /var/folders/_r/65qcktj96mgb6y7948nn9g9m0000gn/T/tagtag/tagtag/tagtag-startup.png
+Saving results to: /private/tmp/tagtag-paper-invitation-green.xml
+]]></output>
+            </test-case>
+          </test-suite>
+        </test-suite>
+      </test-suite>
+    </test-suite>
+  </test-suite>
+</test-run>

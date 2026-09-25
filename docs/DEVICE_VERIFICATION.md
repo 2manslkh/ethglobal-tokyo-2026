@@ -50,3 +50,33 @@ Record device/iOS/build, observed result, and screenshot paths for each check:
 ## Current limits
 
 No successful two-device AR recovery, live provider sign-in, or current-build hardware launch is claimed until the checks above are recorded. Budget alerts warn about spend; they are not a spending cap.
+
+## Paper UI pass — 2026-09-26
+
+The UI pass adapts self-contained paper components, Bricolage/Instrument fonts, mounted screen updates, keyboard-safe sheets, die-cut map pins, and camera presentation states. The fixed collection layout remains five rows by four columns. Authentication, service contracts, discovery distance, and direct-tap requirements remain in force.
+
+- Final Edit Mode: 66/66 passed (`/private/tmp/tagtag-paper-edit-delivery.xml`).
+- Integrated Play Mode: 2/2 passed (`/private/tmp/tagtag-paper-play-final.xml`), covering startup, mounted draft/caret/selection/scroll preservation, sign-in return, duplicate activation, synced note revocation, publication draft clearing, and compact long-clue geometry.
+- Built macOS player: both local NUnit callbacks passed at 2026-09-25 19:32:19 UTC. The editor/player test connection still does not complete reliably on this Mac; local test results provide the evidence. No physical-camera result is implied.
+- Source review identified an additional return-focus case when sync replaces the originating book cell. The expanded regression reproduced it in `/private/tmp/tagtag-paper-focus-red.xml`; the ID-based repair passed the final full Play Mode run, 2/2 (`/private/tmp/tagtag-paper-final-green.xml`). The reviewer closed all findings.
+- [31 settled screen/sheet captures](verification/paper-ui/contact-sheet.png) use deterministic content at 390×844 and 320×568, with enlarged text, reduced motion, long Japanese/Latin notes, and disabled/error states. Native imagery is absent from the fixture; its neutral camera background is simulated. Individual captures and the [Edit Mode](verification/paper-ui/edit-mode.xml) / [Play Mode](verification/paper-ui/play-mode.xml) results are retained alongside the contact sheet.
+- Separate ARKit preparation and iOS export succeeded. Export includes `libUnityARKit.a`, `ARKit.framework`, four native Taggi pin PNGs, and Instrument Semibold registered in `UIAppFonts`.
+- Unsigned Xcode compilation and automatic development signing both succeeded, then passed again for the final copy correction (`/private/tmp/tagtag-paper-xcode-unsigned-delivery.log`, `/private/tmp/tagtag-paper-xcode-signed-delivery.log`). The device build is `/private/tmp/tagtag-paper-ui/Build/DerivedData/Build/Products/Debug-iphoneos/tagtag.app`.
+- Updated Dawg. (iPhone 15 Pro Max, iOS 26.6.1 / 23G83) through USB with `ios-deploy`; the final installation returned `InstallComplete` (`/private/tmp/tagtag-paper-install-delivery.log`) without uninstalling or changing the signing team. Device owner was notified to open the new build and perform the camera checks below.
+- Isolated arm64 simulator preparation, export, and Xcode build succeeded in `/private/tmp/tagtag-paper-simulator`. Installed and launched on iPhone 17 Pro, iOS 26.2. The [native startup capture](verification/paper-ui/simulator-home.png) verifies bundled typography, safe areas, and the paper layout. The first checkpoint exposed a duplicate initial Home status invitation; the final actual-scene regression passed 1/1 after suppressing only that redundant notice while preserving errors. The Simulator desktop application is absent from this Mac, so interactive native-map and software-keyboard verification could not be completed through the UI tooling.
+
+### Physical camera recording
+
+The device owner has offered to test the iPhone once the new build is installed. Record a device video and its path, then mark each observed result:
+
+| Case | Expected observation | Current result |
+| --- | --- | --- |
+| Cold start → STICK | Paper/Taggi remains visible until the first valid camera frame; no blank scene | Pending |
+| Camera permission denied → Settings → return | Truthful recovery prompt; fresh preparation before live imagery | Pending |
+| Home/Explore/STICK switching | Paper screens remain opaque; camera restarts without stale imagery | Pending |
+| Background/interruption → resume | Cover returns immediately; camera reveals only after a new frame | Pending |
+| Tracking loss with live imagery | Camera remains visible with tracking guidance | Pending |
+| Note editing with keyboard | Fields and actions remain reachable; draft and selection survive status updates | Pending |
+| Explore → sheet → Explore | Map hides under the overlay and restores the same viewport | Pending |
+
+Video has not yet been recorded. Hardware startup, camera permissions/lifecycle, software-keyboard clearance, and native-map interaction are unverified for this pass until device results are entered here.
