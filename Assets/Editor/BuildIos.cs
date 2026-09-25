@@ -1,19 +1,54 @@
+using System;
 using System.IO;
-using StickerHunt;
+using Tagtag;
 using UnityEditor;
 using UnityEditor.Build;
 using UnityEditor.Build.Reporting;
+using UnityEditor.Callbacks;
 using UnityEditor.SceneManagement;
+using UnityEditor.iOS.Xcode;
+using UnityEditor.XR.Management;
+using UnityEditor.XR.Management.Metadata;
 using UnityEngine;
+using UnityEngine.XR.Management;
 
 public static class BuildIos
 {
-    private const string ScenePath = "Assets/Scenes/StickerHunt.unity";
+    private const string ScenePath = "Assets/Scenes/Tagtag.unity";
     private const string OutputPath = "Build/iOS";
+
+    [MenuItem("tagtag/Prepare ARKit")]
+    public static void PrepareArKit()
+    {
+        var ids = AssetDatabase.FindAssets("t:XRGeneralSettingsPerBuildTarget");
+        XRGeneralSettingsPerBuildTarget settings;
+        if (ids.Length == 0)
+        {
+            Directory.CreateDirectory("Assets/XR");
+            settings = ScriptableObject.CreateInstance<XRGeneralSettingsPerBuildTarget>();
+            AssetDatabase.CreateAsset(settings, "Assets/XR/TagtagXRSettings.asset");
+        }
+        else settings = AssetDatabase.LoadAssetAtPath<XRGeneralSettingsPerBuildTarget>(AssetDatabase.GUIDToAssetPath(ids[0]));
+        EditorBuildSettings.AddConfigObject(XRGeneralSettings.k_SettingsKey, settings, true);
+        if (!settings.HasManagerSettingsForBuildTarget(BuildTargetGroup.iOS))
+            settings.CreateDefaultManagerSettingsForBuildTarget(BuildTargetGroup.iOS);
+        var manager = settings.ManagerSettingsForBuildTarget(BuildTargetGroup.iOS);
+        if (!XRPackageMetadataStore.AssignLoader(manager, "UnityEngine.XR.ARKit.ARKitLoader", BuildTargetGroup.iOS))
+            throw new InvalidOperationException("Could not assign the ARKit loader to iOS.");
+        var serialized = new SerializedObject(Unsupported.GetSerializedAssetInterfaceSingleton("PlayerSettings"));
+        serialized.FindProperty("activeInputHandler").intValue = 2;
+        serialized.ApplyModifiedPropertiesWithoutUndo();
+        PlayerSettings.iOS.cameraUsageDescription = "Use the camera to place and find tagtag stickers in AR.";
+        PlayerSettings.iOS.targetOSVersionString = "15.0";
+        EditorUtility.SetDirty(settings);
+        EditorUtility.SetDirty(manager);
+        AssetDatabase.SaveAssets();
+    }
 
     [MenuItem("tagtag/Build iOS")]
     public static void Build()
     {
+        PrepareArKit();
         EnsureScene();
         PlayerSettings.companyName = "tagtag";
         PlayerSettings.productName = "tagtag";
@@ -35,7 +70,7 @@ public static class BuildIos
         if (report.summary.result != BuildResult.Succeeded ||
             !File.Exists(Path.Combine(OutputPath, "Unity-iPhone.xcodeproj/project.pbxproj")))
         {
-            throw new System.Exception("iOS export did not produce an Xcode project: " + report.summary.result);
+            throw new InvalidOperationException("iOS export did not produce an Xcode project: " + report.summary.result);
         }
         Debug.Log("iOS Xcode project exported to " + Path.GetFullPath(OutputPath));
     }
@@ -43,12 +78,63 @@ public static class BuildIos
     private static void EnsureScene()
     {
         Directory.CreateDirectory("Assets/Scenes");
-        var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
-        var cameraObject = new GameObject("Camera", typeof(Camera));
-        cameraObject.tag = "MainCamera";
-        cameraObject.GetComponent<Camera>().backgroundColor = new Color32(15, 21, 37, 255);
-        new GameObject("tagtag", typeof(StickerHuntScreen));
-        EditorSceneManager.SaveScene(scene, ScenePath);
+        var scene = File.Exists(ScenePath)
+            ? EditorSceneManager.OpenScene(ScenePath, OpenSceneMode.Single)
+            : EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
+        if (UnityEngine.Object.FindFirstObjectByType<TagtagApplication>() == null)
+        {
+            new GameObject("tagtag", typeof(TagtagApplication));
+            EditorSceneManager.SaveScene(scene, ScenePath);
+        }
         EditorBuildSettings.scenes = new[] { new EditorBuildSettingsScene(ScenePath, true) };
+    }
+
+    [PostProcessBuild(995)]
+    public static void ConfigureNativeProject(BuildTarget target, string output)
+    {
+        if (target != BuildTarget.iOS) return;
+        var path = PBXProject.GetPBXProjectPath(output);
+        var project = new PBXProject();
+        project.ReadFromFile(path);
+        var main = project.GetUnityMainTargetGuid();
+        var framework = project.GetUnityFrameworkTargetGuid();
+        project.AddFrameworkToProject(framework, "MapKit.framework", false);
+        project.AddFrameworkToProject(framework, "CoreLocation.framework", false);
+        project.AddFrameworkToProject(framework, "AuthenticationServices.framework", false);
+        project.AddFrameworkToProject(framework, "Security.framework", false);
+        project.SetBuildProperty(main, "DEVELOPMENT_TEAM", "D6JZUB3XBH");
+        project.SetBuildProperty(framework, "CLANG_ENABLE_MODULES", "YES");
+        project.WriteToFile(path);
+
+        var infoPath = Path.Combine(output, "Info.plist");
+        var info = new PlistDocument();
+        info.ReadFromFile(infoPath);
+        info.root.SetString("NSCameraUsageDescription", "Use the camera to place and find tagtag stickers in AR.");
+        info.root.SetString("NSLocationWhenInUseUsageDescription", "Use your location to find nearby tagtag stickers and verify discoveries.");
+        info.root.SetBoolean("UIRequiresFullScreen", true);
+        var googleScheme = Environment.GetEnvironmentVariable("TAGTAG_GOOGLE_REVERSED_CLIENT_ID");
+        if (string.IsNullOrWhiteSpace(googleScheme))
+        {
+            const string configPath = "Assets/Resources/Tagtag/ServiceConfiguration.json";
+            if (File.Exists(configPath))
+            {
+                try
+                {
+                    var config = JsonUtility.FromJson<ServiceConfiguration>(File.ReadAllText(configPath));
+                    googleScheme = config?.googleReversedClientId;
+                }
+                catch (Exception) { Debug.LogWarning("tagtag service configuration could not be read for iOS URL schemes."); }
+            }
+        }
+        if (!string.IsNullOrWhiteSpace(googleScheme))
+        {
+            var urls = info.root.values.ContainsKey("CFBundleURLTypes")
+                ? info.root["CFBundleURLTypes"].AsArray() : info.root.CreateArray("CFBundleURLTypes");
+            urls.AddDict().CreateArray("CFBundleURLSchemes").AddString(googleScheme.Trim());
+        }
+        info.WriteToFile(infoPath);
+        var capabilities = new ProjectCapabilityManager(path, "Tagtag.entitlements", null, main);
+        capabilities.AddSignInWithApple();
+        capabilities.WriteToFile();
     }
 }
