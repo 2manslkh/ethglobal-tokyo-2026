@@ -1,5 +1,9 @@
 {
   "dependencies": {
+    "com.unity.xr.arfoundation": "file:ThirdParty/com.unity.xr.arfoundation-6.5.1.tgz",
+    "com.unity.xr.arkit": "file:ThirdParty/com.unity.xr.arkit-6.5.1.tgz",
+    "com.unity.inputsystem": "file:ThirdParty/com.unity.inputsystem-1.20.0.tgz",
+    "com.unity.test-framework": "1.4.6",
     "com.unity.ugui": "2.5.0",
     "com.unity.multiplayer.center": "1.0.1",
     "com.unity.modules.accessibility": "1.0.0",

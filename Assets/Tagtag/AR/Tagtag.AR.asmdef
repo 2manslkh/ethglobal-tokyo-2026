@@ -1,0 +1,1 @@
+{"name":"Tagtag.AR","rootNamespace":"Tagtag.AR","references":["Tagtag.Core","Unity.XR.ARFoundation","Unity.XR.ARSubsystems","Unity.XR.ARKit","Unity.XR.CoreUtils","Unity.InputSystem","Unity.Collections"],"includePlatforms":[],"excludePlatforms":[],"allowUnsafeCode":false}

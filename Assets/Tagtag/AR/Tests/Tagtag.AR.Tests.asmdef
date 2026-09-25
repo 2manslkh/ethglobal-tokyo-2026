@@ -1,0 +1,1 @@
+{"name":"Tagtag.AR.Tests","rootNamespace":"Tagtag.AR.Tests","references":["Tagtag.AR","Tagtag.Core"],"optionalUnityReferences":["TestAssemblies"],"includePlatforms":["Editor"],"defineConstraints":["UNITY_INCLUDE_TESTS"]}
