@@ -393,15 +393,19 @@ namespace Tagtag.UI
                 }
                 else
                 {
-                    Button publish = Action(content, state.busy ? "Publishing…" : "Publish sticker", () =>
+                    Button publish = Action(content, state.busy ? "Publishing…" : state.hasPendingPublication ? "Retry publish" : "Publish sticker", () =>
                     {
                         controller.SetDraft(draftPlace, draftTeaser, draftNote);
                         controller.Publish();
                     });
                     publish.style.marginTop = 12f;
-                    SetDisabled(publish, state.busy || controller.Ar == null || !controller.Ar.CanPublish ||
+                    SetDisabled(publish, state.busy || (!state.hasPendingPublication && (controller.Ar == null || !controller.Ar.CanPublish)) ||
                         string.IsNullOrWhiteSpace(draftPlace) || string.IsNullOrWhiteSpace(draftTeaser) || string.IsNullOrWhiteSpace(draftNote));
-                    if (controller.Ar != null && !controller.Ar.CanPublish)
+                    if (state.hasPendingPublication)
+                    {
+                        Text(content, "Your saved placement is ready to retry. Your note is still here.", 13, false, Muted);
+                    }
+                    else if (controller.Ar != null && !controller.Ar.CanPublish)
                     {
                         Text(content, "Publishing becomes available after tracking and location are ready.", 13, false, Muted);
                     }
