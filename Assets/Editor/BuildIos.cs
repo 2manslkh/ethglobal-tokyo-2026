@@ -112,7 +112,7 @@ public static class BuildIos
         project.AddFrameworkToProject(framework, "CoreLocation.framework", false);
         project.AddFrameworkToProject(framework, "AuthenticationServices.framework", false);
         project.AddFrameworkToProject(framework, "Security.framework", false);
-        project.SetBuildProperty(main, "DEVELOPMENT_TEAM", "D6JZUB3XBH");
+        project.SetBuildProperty(main, "DEVELOPMENT_TEAM", "5Y6QUA9GA6");
         project.SetBuildProperty(framework, "CLANG_ENABLE_MODULES", "YES");
         project.WriteToFile(path);
 
