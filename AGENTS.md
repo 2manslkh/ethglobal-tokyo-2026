@@ -18,7 +18,7 @@ There is no test framework or coverage target in this repository. Add Unity Test
 
 ## Commit & Pull Request Guidelines
 
-Recent commits include `feat: update README` and `docs: add figma link`, alongside earlier short descriptive messages. Prefer a concise `type: summary` subject, such as `feat: add sticker placement`, using `docs`, `fix`, or `test` where appropriate. Make each commit atomic: include one coherent change and its related documentation or tests. Commit completed work and push it to the remote whenever possible. Pull requests should explain the change, link the relevant issue or design, list verification performed, and include screenshots or a short capture for visible Unity or AR changes. Call out required configuration without committing secrets.
+Recent commits include `feat: update README` and `docs: add figma link`, alongside earlier short descriptive messages. Prefer a concise `type: summary` subject, such as `feat: add sticker placement`, using `docs`, `fix`, or `test` where appropriate. Keep every commit small and atomic: include one coherent change and its related documentation or tests. Split larger work into independently reviewable commits instead of accumulating a large commit with multiple changes. Commit completed work and push it to the remote whenever possible. Pull requests should explain the change, link the relevant issue or design, list verification performed, and include screenshots or a short capture for visible Unity or AR changes. Call out required configuration without committing secrets.
 
 ## Versioning
 
