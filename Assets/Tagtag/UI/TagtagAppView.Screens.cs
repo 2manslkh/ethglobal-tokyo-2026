@@ -211,6 +211,7 @@ namespace Tagtag.UI
             explorePreviewContents.Reset();
             VisualElement page = Column(screenHost);
             page.style.flexGrow = 1f;
+            page.style.flexShrink = 1f;
             page.style.minHeight = 0f;
             page.style.backgroundColor = Paper;
             VisualElement heading = Row(page);
@@ -260,12 +261,10 @@ namespace Tagtag.UI
         private void RefreshExplore(AppState state)
         {
             if (explorePreview == null) return;
-            exploreLocationNotice.text = !state.servicesConfigured ?
-                "Nearby stickers need a configured service." : !HasLocation(state) ?
-                "Allow location access to see stickers near you." : "";
+            NearbyStatus nearbyStatus = PaperFlow.Nearby(state, controller.Map != null);
+            exploreLocationNotice.text = nearbyStatus.LocationNotice;
             exploreLocationNotice.style.display = string.IsNullOrEmpty(exploreLocationNotice.text) ? DisplayStyle.None : DisplayStyle.Flex;
-            exploreMapMessage.text = controller.Map == null ? "Map is unavailable on this device." :
-                state.location == null ? (state.busy ? "Finding your location…" : "Location is unavailable.") : "";
+            exploreMapMessage.text = nearbyStatus.MapMessage;
             exploreMapMessage.style.display = string.IsNullOrEmpty(exploreMapMessage.text) ? DisplayStyle.None : DisplayStyle.Flex;
             StickerSummary selected = state.selected;
             string key = selected == null ? "none:" + (state.nearby.Count == 0) : selected.id + ":" + selected.revision;
@@ -303,9 +302,12 @@ namespace Tagtag.UI
                 }
             }
             if (exploreFindButton != null) SetDisabled(exploreFindButton, state.busy);
-            if (exploreRefreshButton != null) SetDisabled(exploreRefreshButton, state.busy);
-            if (exploreEmptyTitle != null) exploreEmptyTitle.text = state.busy ? "Looking for nearby stickers" :
-                state.nearby.Count == 0 ? "No stickers in view yet" : "Tap a sticker on the map";
+            if (exploreRefreshButton != null)
+            {
+                exploreRefreshButton.text = nearbyStatus.CanRefresh ? "Refresh nearby" : "Refreshing nearby…";
+                SetDisabled(exploreRefreshButton, !nearbyStatus.CanRefresh);
+            }
+            if (exploreEmptyTitle != null) exploreEmptyTitle.text = nearbyStatus.EmptyTitle;
         }
 
         private void UpdateMapLayout()

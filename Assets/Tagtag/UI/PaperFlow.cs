@@ -18,6 +18,22 @@ namespace Tagtag.UI
         }
     }
 
+    public readonly struct NearbyStatus
+    {
+        public readonly string EmptyTitle;
+        public readonly string MapMessage;
+        public readonly string LocationNotice;
+        public readonly bool CanRefresh;
+
+        public NearbyStatus(string emptyTitle, string mapMessage, string locationNotice, bool canRefresh)
+        {
+            EmptyTitle = emptyTitle;
+            MapMessage = mapMessage;
+            LocationNotice = locationNotice;
+            CanRefresh = canRefresh;
+        }
+    }
+
     public static class PaperFlow
     {
         public const string EmptyBookInvitation = "Your next little discovery is out there.";
@@ -28,6 +44,23 @@ namespace Tagtag.UI
             if (!string.IsNullOrWhiteSpace(state.error)) return state.error;
             string message = state.status ?? "";
             return invitationAlreadyShown && message == EmptyBookInvitation ? "" : message;
+        }
+
+        public static NearbyStatus Nearby(AppState state, bool hasMap)
+        {
+            bool loading = state != null && state.nearbyLoading;
+            bool hasLocation = state?.location != null && state.location.accuracyMeters > 0f;
+            int nearbyCount = state?.nearby?.Count ?? 0;
+            string title = loading ? "Looking for nearby stickers" :
+                nearbyCount == 0 ? "No stickers in view yet" : "Tap a sticker on the map";
+            string mapMessage = !hasMap ? "Map is unavailable on this device." :
+                !hasLocation ? loading ? "Finding your location…" : "Location is unavailable." : "";
+            string locationNotice = state != null && !state.servicesConfigured ?
+                "Nearby stickers need a configured service." :
+                state != null && !hasLocation && !loading &&
+                string.IsNullOrWhiteSpace(state?.error) ?
+                "Location is not ready yet. Try refreshing nearby." : "";
+            return new NearbyStatus(title, mapMessage, locationNotice, !loading);
         }
 
         public static CameraMessage Camera(CameraPresentationState state)

@@ -17,3 +17,5 @@ The UI components in this directory were adapted on 2026-09-26 from the user's l
 | `Resources/Playable.uss` | `36cfb85ef5c4ee11ae8220794fc64c720798b5c4380ae37dec438da4ad1484b7` | `Resources/Tagtag/UI/Paper.uss`: state styles mapped to tagtag paper, ink and yellow |
 
 The source checkout did not contain a root code license notice. The font files and their SIL Open Font License notices are documented in `Assets/Resources/Tagtag/Fonts/README.md`.
+
+The later device UI pass uses the project-generated Taggi artwork at `Resources/Tagtag/Navigation/{home,stick,explore}.png` for tabs and the official Google Fonts Shadows Into Light face for display/title text. Its source, checksum, and license are recorded in the font README. Instrument Sans remains the readable body/control font.

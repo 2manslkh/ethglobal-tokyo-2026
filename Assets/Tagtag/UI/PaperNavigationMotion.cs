@@ -7,6 +7,19 @@ namespace Tagtag.UI
 {
     public enum AppNavigationReason { Automatic, Refresh, Initial, TopLevel, Forward, Back, Overlay }
 
+    public static class PaperNavigationArt
+    {
+        public static string ResourcePath(AppPage page)
+        {
+            switch (page)
+            {
+                case AppPage.Home: return "Tagtag/Navigation/home";
+                case AppPage.Stick: return "Tagtag/Navigation/stick";
+                default: return "Tagtag/Navigation/explore";
+            }
+        }
+    }
+
     // Tracks destinations, never render counts, selected filters, loading or save state.
     // It owns presentation history only; application navigation remains authoritative.
     public sealed class PaperNavigationMotion

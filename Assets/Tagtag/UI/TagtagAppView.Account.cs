@@ -314,6 +314,7 @@ namespace Tagtag.UI
                 () => FocusSheetTrigger(openedSheet) : openedSheet == Sheet.Collected ?
                 () => FocusCollectedCell(collectedId) : null;
             sheetView = new PaperSheet(title, CloseSheet, reducedMotion, returnFocus, "Close");
+            sheetView.Q<Label>(className: "sheet-title").style.unityFont = HeadingFont;
             sheetView.style.bottom = SheetBottom();
             ApplySheetHeight();
             overlayHost.Add(sheetView);

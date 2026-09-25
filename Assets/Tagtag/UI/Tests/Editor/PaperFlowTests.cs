@@ -1,4 +1,5 @@
 using NUnit.Framework;
+using UnityEngine;
 
 namespace Tagtag.UI.Tests
 {
@@ -103,6 +104,51 @@ namespace Tagtag.UI.Tests
             Assert.AreEqual(state.status, PaperFlow.StatusMessage(state, true));
             state.error = "Could not load your book";
             Assert.AreEqual(state.error, PaperFlow.StatusMessage(state, true));
+        }
+
+        [Test]
+        public void NearbyReadStateDrivesExploreMessagesAndRetryWithoutBlockingDiscovery()
+        {
+            AppState state = new AppState { page = AppPage.Explore, nearbyLoading = true,
+                servicesConfigured = true };
+            NearbyStatus loading = PaperFlow.Nearby(state, true);
+            Assert.AreEqual("Looking for nearby stickers", loading.EmptyTitle);
+            Assert.AreEqual("Finding your location…", loading.MapMessage);
+            Assert.AreEqual("", loading.LocationNotice);
+            Assert.IsFalse(loading.CanRefresh);
+
+            state.nearbyLoading = false;
+            state.busy = true;
+            NearbyStatus writing = PaperFlow.Nearby(state, true);
+            Assert.AreEqual("No stickers in view yet", writing.EmptyTitle);
+            Assert.AreEqual("Location is unavailable.", writing.MapMessage);
+            Assert.AreEqual("Location is not ready yet. Try refreshing nearby.", writing.LocationNotice);
+            Assert.IsTrue(writing.CanRefresh);
+
+            state.error = "Location access was denied.";
+            Assert.AreEqual("", PaperFlow.Nearby(state, true).LocationNotice);
+            state.error = "";
+            state.location = new LocationFix { accuracyMeters = 0f };
+            Assert.AreEqual("Location is not ready yet. Try refreshing nearby.", PaperFlow.Nearby(state, true).LocationNotice);
+            state.location.accuracyMeters = 10f;
+            Assert.AreEqual("", PaperFlow.Nearby(state, true).LocationNotice);
+
+            state.nearby.Add(new StickerSummary { id = "river" });
+            Assert.AreEqual("Tap a sticker on the map", PaperFlow.Nearby(state, true).EmptyTitle);
+            Assert.AreEqual("Map is unavailable on this device.", PaperFlow.Nearby(state, false).MapMessage);
+            state.servicesConfigured = false;
+            Assert.AreEqual("Nearby stickers need a configured service.", PaperFlow.Nearby(state, true).LocationNotice);
+        }
+
+        [Test]
+        public void NavigationUsesDedicatedTaggiArtworkResources()
+        {
+            Assert.AreEqual("Tagtag/Navigation/home", PaperNavigationArt.ResourcePath(AppPage.Home));
+            Assert.AreEqual("Tagtag/Navigation/stick", PaperNavigationArt.ResourcePath(AppPage.Stick));
+            Assert.AreEqual("Tagtag/Navigation/explore", PaperNavigationArt.ResourcePath(AppPage.Explore));
+            Assert.IsNotNull(Resources.Load<Texture2D>(PaperNavigationArt.ResourcePath(AppPage.Home)));
+            Assert.IsNotNull(Resources.Load<Texture2D>(PaperNavigationArt.ResourcePath(AppPage.Stick)));
+            Assert.IsNotNull(Resources.Load<Texture2D>(PaperNavigationArt.ResourcePath(AppPage.Explore)));
         }
     }
 }

@@ -17,11 +17,11 @@ namespace Tagtag.UI
         private static readonly Color Line = new Color32(226, 224, 215, 255);
         private static readonly Color Soft = new Color32(246, 245, 239, 255);
         private static readonly Color Yellow = new Color32(255, 225, 90, 255);
-        private Font bodyFont, semiboldFont, headingFont, displayFont;
+        private Font bodyFont, semiboldFont, headingFont;
         private Font BodyFont => bodyFont ?? (bodyFont = Resources.Load<Font>("Tagtag/Fonts/InstrumentRegular"));
         private Font SemiboldFont => semiboldFont ?? (semiboldFont = Resources.Load<Font>("Tagtag/Fonts/InstrumentSemibold"));
-        private Font HeadingFont => headingFont ?? (headingFont = Resources.Load<Font>("Tagtag/Fonts/BricolageBold"));
-        private Font DisplayFont => displayFont ?? (displayFont = Resources.Load<Font>("Tagtag/Fonts/BricolageExtraBold"));
+        private Font HeadingFont => headingFont ?? (headingFont = Resources.Load<Font>("Tagtag/Fonts/ShadowsIntoLight"));
+        private Font DisplayFont => HeadingFont;
         private static readonly string[] Presets = { "taggi-1", "taggi-2", "taggi-3", "taggi-4" };
         private static readonly string[] ReportReasons = { "Harassment or hate", "Unsafe place", "Private information", "Spam or misleading", "Something else" };
 
@@ -220,10 +220,13 @@ namespace Tagtag.UI
                 safeRoot.style.flexGrow = 1f;
                 safeRoot.style.minHeight = 0f;
                 topHost = Column(safeRoot);
+                topHost.style.flexShrink = 0f;
                 screenHost = Column(safeRoot);
                 screenHost.style.flexGrow = 1f;
+                screenHost.style.flexShrink = 1f;
                 screenHost.style.minHeight = 0f;
                 navHost = Column(safeRoot);
+                navHost.style.flexShrink = 0f;
                 overlayHost = new VisualElement { pickingMode = PickingMode.Ignore };
                 overlayHost.style.position = Position.Absolute;
                 overlayHost.style.left = 0f;
@@ -440,8 +443,7 @@ namespace Tagtag.UI
             bar.style.alignItems = Align.Center;
             bar.style.justifyContent = Justify.SpaceBetween;
             bar.style.backgroundColor = Paper;
-            Label brand = Text(bar, "tagtag", 26, true, Ink);
-            brand.style.letterSpacing = -1f;
+            Text(bar, "tagtag", 26, true, Ink);
             Button profile = Action(bar, SignedIn(state) ? "Account" : "Sign in", () =>
             {
                 accountScreen = SignedIn(controller.State) ? AccountScreen.Overview : AccountScreen.SignIn;
@@ -455,7 +457,8 @@ namespace Tagtag.UI
         {
             VisualElement bar = Row(navHost);
             bar.AddToClassList("paper-nav");
-            bar.style.height = 70f;
+            bar.style.minHeight = 80f;
+            bar.style.flexShrink = 0f;
             bar.style.paddingLeft = 16f;
             bar.style.paddingRight = 16f;
             bar.style.borderTopWidth = 1f;
@@ -474,14 +477,22 @@ namespace Tagtag.UI
                 sheet = Sheet.None;
                 controller.Navigate(page);
             }, PaperButtonKind.Quiet);
-            tab.tooltip = title;
+            tab.tooltip = "Go to " + title;
             tab.name = "Tab " + title;
             tab.AddToClassList("paper-nav-item");
             tab.AddToClassList(selected ? "nav-selected" : "nav-unselected");
             if (page == AppPage.Stick) tab.AddToClassList("nav-stick");
-            tab.Add(new PaperIcon(page == AppPage.Home ? "home" : page == AppPage.Stick ? "stick" : "explore", 22));
+            Texture2D navigationTexture = Resources.Load<Texture2D>(PaperNavigationArt.ResourcePath(page));
+            if (navigationTexture == null)
+                throw new InvalidOperationException("Missing Taggi navigation art: " + PaperNavigationArt.ResourcePath(page));
+            Image icon = new Image { image = navigationTexture, scaleMode = ScaleMode.ScaleToFit,
+                pickingMode = PickingMode.Ignore };
+            icon.name = "Taggi " + title + " navigation icon";
+            icon.AddToClassList("nav-art");
+            tab.Add(icon);
             var label = new Label(title);
             label.AddToClassList("nav-label");
+            label.style.unityFont = SemiboldFont;
             tab.Add(label);
             if (selected && page != AppPage.Stick)
             {
@@ -493,7 +504,7 @@ namespace Tagtag.UI
             tab.style.flexGrow = 1f;
             tab.style.marginLeft = 4f;
             tab.style.marginRight = 4f;
-            tab.style.minHeight = 48f;
+            tab.style.minHeight = 68f;
         }
 
         private void UpdateStatus(AppState state)
@@ -622,9 +633,13 @@ namespace Tagtag.UI
         private Label Text(VisualElement parent, string value, int size, bool bold = false, Color? color = null)
         {
             Label label = new Label(value);
-            label.userData = size;
-            label.style.unityFont = size >= 30 && bold ? DisplayFont : size >= 20 && bold ? HeadingFont : bold ? SemiboldFont : BodyFont;
-            label.style.fontSize = Mathf.RoundToInt(size * textScale);
+            PaperTextRole role = PaperTypography.Role(size, bold);
+            int pointSize = PaperTypography.PointSize(size, role);
+            label.userData = pointSize;
+            label.style.unityFont = role == PaperTextRole.Display ? DisplayFont :
+                role == PaperTextRole.Heading ? HeadingFont :
+                role == PaperTextRole.Emphasis ? SemiboldFont : BodyFont;
+            label.style.fontSize = Mathf.RoundToInt(pointSize * textScale);
             label.style.color = color ?? Ink;
             label.style.unityFontStyleAndWeight = FontStyle.Normal;
             label.style.whiteSpace = WhiteSpace.Normal;
@@ -656,7 +671,8 @@ namespace Tagtag.UI
                 if (element.userData is int baseSize) element.style.fontSize = Mathf.RoundToInt(baseSize * textScale);
             });
             root.Query<PaperField>().ForEach(field => field.ApplyScale(textScale));
-            root.Query<Label>(className: "sheet-title").ForEach(label => label.style.fontSize = Mathf.RoundToInt(22f * textScale));
+            root.Query<Label>(className: "sheet-title").ForEach(label => label.style.fontSize =
+                Mathf.RoundToInt(PaperTypography.PointSize(22, PaperTextRole.Heading) * textScale));
             root.Query<Label>(className: "nav-label").ForEach(label => label.style.fontSize = Mathf.RoundToInt(12f * textScale));
         }
 

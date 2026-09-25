@@ -1,4 +1,5 @@
 using NUnit.Framework;
+using UnityEngine;
 using UnityEngine.UIElements;
 
 namespace Tagtag.UI.Tests
@@ -38,6 +39,20 @@ namespace Tagtag.UI.Tests
             Assert.AreEqual(22f, field.Q<Label>(className: "unity-base-field__label").style.fontSize.value.value);
             Assert.AreEqual(18f, field.Q<Label>("field-counter").style.fontSize.value.value);
             Assert.AreEqual(18f, field.Q<Label>(className: "field-helper").style.fontSize.value.value);
+        }
+
+        [Test]
+        public void HandwrittenFontIsReservedForTitlesAndBodyFacesRemainAvailable()
+        {
+            Assert.AreEqual(PaperTextRole.Display, PaperTypography.Role(30, true));
+            Assert.AreEqual(PaperTextRole.Heading, PaperTypography.Role(21, true));
+            Assert.AreEqual(PaperTextRole.Emphasis, PaperTypography.Role(18, true));
+            Assert.AreEqual(PaperTextRole.Body, PaperTypography.Role(16, false));
+            Assert.AreEqual(34, PaperTypography.PointSize(30, PaperTextRole.Display));
+            Assert.AreEqual(18, PaperTypography.PointSize(18, PaperTextRole.Emphasis));
+            Assert.IsNotNull(Resources.Load<Font>("Tagtag/Fonts/ShadowsIntoLight"));
+            Assert.IsNotNull(Resources.Load<Font>("Tagtag/Fonts/InstrumentRegular"));
+            Assert.IsNotNull(Resources.Load<Font>("Tagtag/Fonts/InstrumentSemibold"));
         }
 
         [TestCase(100f, 0f, false)]

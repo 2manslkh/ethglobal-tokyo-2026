@@ -5,6 +5,23 @@ using UnityEngine.UIElements;
 namespace Tagtag.UI
 {
     public enum PaperButtonKind { Primary, Secondary, Quiet, Destructive }
+    public enum PaperTextRole { Body, Emphasis, Heading, Display }
+
+    public static class PaperTypography
+    {
+        public static PaperTextRole Role(int size, bool bold)
+        {
+            if (!bold) return PaperTextRole.Body;
+            if (size >= 30) return PaperTextRole.Display;
+            return size >= 20 ? PaperTextRole.Heading : PaperTextRole.Emphasis;
+        }
+
+        public static int PointSize(int size, PaperTextRole role)
+        {
+            return role == PaperTextRole.Heading || role == PaperTextRole.Display ?
+                Mathf.RoundToInt(size * 1.12f) : size;
+        }
+    }
 
     // Adapted from sticker-app PrimitiveControls: native Button activation and focus
     // remain in charge, while a one-frame latch prevents duplicate submissions.
