@@ -29,6 +29,8 @@ Run behavior tests from the repository root:
 
 Backend commands are documented in [backend/README.md](backend/README.md). Live infrastructure and maintenance are recorded in [deployment](docs/DEPLOYMENT.md).
 
+The startup regression lives in `Assets/Tagtag/Application/PlayModeTests/`. Use `-testPlatform PlayMode -testFilter Tagtag.Tests.StartupTests` with the Unity test command to check the real entry scene and rendered Home pixels. For a macOS player check, use `-buildTarget StandaloneOSX -testPlatform StandaloneOSX`; its test-only callback also writes `tagtag-startup-result.xml` beside the screenshot in `Application.temporaryCachePath` if the player cannot return results to the editor. Editor rendering alone does not verify that player builds contain the required UI text resources.
+
 ## iPhone build
 
 Prepare ARKit in a separate invocation so its loader settings are imported before export:
@@ -62,6 +64,21 @@ xcrun devicectl device process launch --device YOUR_DEVICE_ID com.kenk.tagtag
 ```
 
 If CoreDevice cannot see a trusted USB phone, the verified installation fallback is `ios-deploy --id YOUR_USB_UDID --no-wifi --bundle Build/DerivedData/Build/Products/Debug-iphoneos/tagtag.app`. Open tagtag manually if the debugging service cannot launch it. Changing signing teams may require removing the previous installation, which deletes its local data; obtain the device owner's approval first.
+
+## iPhone simulator
+
+Build in a new temporary review project so device ARKit settings remain intact:
+
+```sh
+scripts/build-ios-simulator.sh /private/tmp/tagtag-simulator-review
+xcrun simctl list devices available
+xcrun simctl boot YOUR_SIMULATOR_ID
+xcrun simctl install YOUR_SIMULATOR_ID \
+  /private/tmp/tagtag-simulator-review/Build/DerivedDataSimulator/Build/Products/Debug-iphonesimulator/tagtag.app
+xcrun simctl launch YOUR_SIMULATOR_ID com.kenk.tagtag
+```
+
+This arm64 simulator build retains the native map and identity bridges, and disables the device-only ARKit loader in the review copy. Use it for startup and layout checks; physical iPhones are required for AR placement and shared recovery. The script accepts only a new directory under `/private/tmp` and leaves preparation, export, and Xcode logs there.
 
 ## Verification
 
