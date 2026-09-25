@@ -2,11 +2,11 @@
 
 ## Project Structure & Module Organization
 
-This repository is currently in the planning stage. `README.md` describes the proposed Unity AR sticker hunt and links to the Figma design. `docs/handwritten-notes/` contains photographed planning notes. There is no Unity project, application source, test suite, or asset pipeline yet. When adding the Unity project, keep its standard `Assets/`, `Packages/`, and `ProjectSettings/` directories together at the repository root, and document any added services or smart contracts in the README.
+This repository is in the planning stage. `README.md` describes the proposed Unity AR sticker hunt and links to Figma. `docs/handwritten-notes/` contains planning photos. There is no Unity project or test suite yet. When adding Unity, keep `Assets/`, `Packages/`, and `ProjectSettings/` together at the root, and document added services or smart contracts in the README.
 
 ## Build, Test, and Development Commands
 
-No build, run, formatting, or test command is configured yet. Review the project brief with `cat README.md` and inspect tracked files with `git ls-files`. Once executable code is added, document the exact Unity Editor version, platform setup, and reproducible build and test commands here and in the README. Do not assume a command works until its required project files are committed.
+No build, run, formatting, or test command is configured yet. Read the brief with `cat README.md` and inspect tracked files with `git ls-files`. Once code is added, document the Unity Editor version, platform setup, and reproducible build and test commands here and in the README.
 
 ## Coding Style & Naming Conventions
 
@@ -18,4 +18,8 @@ There is no test framework or coverage target in this repository. Add Unity Test
 
 ## Commit & Pull Request Guidelines
 
-Recent commits include `feat: update README` and `docs: add figma link`, alongside earlier short descriptive messages. Prefer a concise `type: summary` subject, such as `feat: add sticker placement`, using `docs`, `fix`, or `test` where appropriate. Pull requests should explain the change, link the relevant issue or design, list verification performed, and include screenshots or a short capture for visible Unity or AR changes. Call out required configuration without committing secrets.
+Recent commits include `feat: update README` and `docs: add figma link`, alongside earlier short descriptive messages. Prefer a concise `type: summary` subject, such as `feat: add sticker placement`, using `docs`, `fix`, or `test` where appropriate. Make each commit atomic: include one coherent change and its related documentation or tests. Commit completed work and push it to the remote whenever possible. Pull requests should explain the change, link the relevant issue or design, list verification performed, and include screenshots or a short capture for visible Unity or AR changes. Call out required configuration without committing secrets.
+
+## Versioning
+
+Use Semantic Versioning for releases: `MAJOR.MINOR.PATCH`. Increment `MAJOR` for incompatible changes, `MINOR` for backward-compatible features, and `PATCH` for backward-compatible fixes. Tag releases as `vX.Y.Z` and record the version in the release notes once a releasable application exists.
