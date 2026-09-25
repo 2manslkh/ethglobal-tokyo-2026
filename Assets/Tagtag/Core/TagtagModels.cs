@@ -5,6 +5,7 @@ using UnityEngine;
 namespace Tagtag
 {
     public enum AppPage { Home, Stick, Explore }
+    public enum CameraPresentationState { Inactive, Preparing, Live, PermissionDenied, Unavailable, Interrupted, Failed }
     [Serializable] public sealed class LocationFix
     {
         public double latitude, longitude;
