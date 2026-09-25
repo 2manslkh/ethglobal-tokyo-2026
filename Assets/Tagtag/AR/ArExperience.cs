@@ -20,6 +20,7 @@ namespace Tagtag.AR
         public event Action Changed;
         public event Action<string> StickerTapped;
         public string Status { get; private set; } = "Open STICK to scan a surface.";
+        public CameraPresentationState CameraPresentation => presentation.State;
         public bool IsTracking => active && !paused && ARSession.state == ARSessionState.SessionTracking &&
             cameraFrameAt > 0 && Time.realtimeSinceStartupAsDouble - cameraFrameAt < 1.5;
         public bool CanPublish => ArGates.CanPublish(IsTracking, anchor != null && anchor.trackingState == TrackingState.Tracking,
@@ -31,6 +32,7 @@ namespace Tagtag.AR
         private XROrigin origin;
         private ARSession session;
         private ARCameraManager cameraManager;
+        private ARCameraBackground cameraBackground;
         private ARRaycastManager raycasts;
         private ARPlaneManager planes;
         private ARAnchorManager anchors;
@@ -62,6 +64,10 @@ namespace Tagtag.AR
         private float gestureDistance;
         private float gestureAngle;
         private int cameraFrameNumber;
+        private readonly CameraPresentation presentation = new CameraPresentation();
+        private readonly CameraSuspension suspension = new CameraSuspension();
+        private Coroutine permissionRoutine;
+        private int cameraGeneration;
 #if UNITY_IOS
         private ARWorldMapRequest? mapRequest;
         private ARKitSessionSubsystem ArKit => session != null ? session.subsystem as ARKitSessionSubsystem : null;
@@ -75,23 +81,31 @@ namespace Tagtag.AR
         {
             if (rig == null) CreateRig();
             active = true;
-            paused = false;
-            rig.SetActive(true);
-            SetStatus(string.IsNullOrEmpty(presetId) ? "Look around to discover a sticker." :
-                "Move slowly until a surface appears, then tap to place.");
+            if (paused)
+            {
+                CancelOperations();
+                ResetCameraContent();
+                presentation.Begin(Time.realtimeSinceStartupAsDouble);
+                presentation.Interrupt();
+                SetStatus("Camera interrupted. Return to tagtag to scan again.");
+            }
+            else
+            {
+                StartCamera();
+                SetStatus(string.IsNullOrEmpty(presetId) ? "Look around to discover a sticker." :
+                    "Move slowly until a surface appears, then tap to place.");
+            }
         }
 
         public void Exit()
         {
             active = false;
+            StopCameraPermissionRequest();
             CancelOperations();
-            if (recovered)
-            {
-                ClearPlacement();
-                recovered = false;
-                recoveredStickerId = null;
-            }
+            ResetCameraContent();
             if (rig != null) rig.SetActive(false);
+            cameraFrameAt = 0d;
+            presentation.Exit();
             SetStatus("Open STICK to scan a surface.");
         }
 
@@ -167,13 +181,14 @@ namespace Tagtag.AR
             camera = cameraObject.AddComponent<Camera>();
             camera.tag = "MainCamera";
             camera.clearFlags = CameraClearFlags.SolidColor;
-            camera.backgroundColor = Color.clear;
+            camera.backgroundColor = new Color32(255, 254, 250, 255);
             camera.depth = 10;
             camera.nearClipPlane = 0.05f;
             camera.farClipPlane = 30f;
             cameraManager = cameraObject.AddComponent<ARCameraManager>();
-            cameraObject.AddComponent<ARCameraBackground>();
+            cameraBackground = cameraObject.AddComponent<ARCameraBackground>();
             cameraManager.frameReceived += OnCameraFrame;
+            presentation.Changed += OnCameraPresentationChanged;
             var driver = cameraObject.AddComponent<TrackedPoseDriver>();
             positionInput = new InputAction("AR position", binding: "<HandheldARInputDevice>/devicePosition");
             rotationInput = new InputAction("AR rotation", binding: "<HandheldARInputDevice>/deviceRotation");
@@ -193,6 +208,8 @@ namespace Tagtag.AR
         private void Update()
         {
             if (!active || rig == null) return;
+            presentation.ObserveSession(ARSession.state);
+            presentation.Tick(Time.realtimeSinceStartupAsDouble);
             var tracking = IsTracking;
             var mapped = MapReady;
             var anchorTracking = anchor != null && anchor.trackingState == TrackingState.Tracking;
@@ -417,6 +434,7 @@ namespace Tagtag.AR
             { SetStatus("Spatial recovery is unavailable on this iPhone."); busy = false; yield break; }
             session.Reset();
             cameraFrameAt = 0;
+            presentation.ResetFrame(Time.realtimeSinceStartupAsDouble);
             yield return null;
             yield return null;
             started = Time.realtimeSinceStartup;
@@ -432,6 +450,7 @@ namespace Tagtag.AR
             }
             appliedMap = true;
             cameraFrameAt = 0;
+            presentation.ResetFrame(Time.realtimeSinceStartupAsDouble);
             SetStatus("Scan the original spot. The sticker appears only after its anchor matches.");
             var gate = new RecoveryGate();
             started = Time.realtimeSinceStartup;
@@ -478,24 +497,129 @@ namespace Tagtag.AR
 
         private void OnCameraFrame(ARCameraFrameEventArgs frame)
         {
-            if (!paused)
-            {
-                cameraFrameAt = Time.realtimeSinceStartupAsDouble;
-                cameraFrameNumber++;
-            }
+            if (!active || paused) return;
+            var textures = frame.textures;
+            var validTextures = textures != null && frame.propertyNameIds != null &&
+                frame.propertyNameIds.Count == textures.Count;
+            if (validTextures)
+                foreach (var texture in textures)
+                    if (texture == null || texture.width <= 0 || texture.height <= 0)
+                    { validTextures = false; break; }
+            var displayable = Tagtag.AR.CameraPresentation.CanDisplayFrame(textures == null ? 0 : textures.Count,
+                validTextures, cameraBackground != null && cameraBackground.backgroundRenderingEnabled,
+                cameraBackground != null && cameraBackground.material != null,
+                cameraBackground != null && cameraBackground.currentRenderingMode != XRCameraBackgroundRenderingMode.None);
+            if (!displayable) cameraFrameAt = 0d;
+            presentation.ObserveFrame(Time.realtimeSinceStartupAsDouble, displayable);
+            if (!displayable || presentation.State != CameraPresentationState.Live) return;
+            cameraFrameAt = Time.realtimeSinceStartupAsDouble;
+            cameraFrameNumber++;
         }
 
         private void OnApplicationPause(bool value)
         {
-            paused = value;
-            cameraFrameAt = 0;
-            if (value)
+            suspension.SetPaused(value);
+            UpdateCameraSuspension();
+        }
+
+        private void OnApplicationFocus(bool focused)
+        {
+            suspension.SetFocused(focused);
+            UpdateCameraSuspension();
+        }
+
+        private void UpdateCameraSuspension()
+        {
+            var suspended = suspension.IsSuspended;
+            if (suspended == paused) return;
+            paused = suspended;
+            if (suspended)
             {
+                cameraFrameAt = 0d;
+                StopCameraPermissionRequest();
                 CancelOperations();
-                recovered = false;
-                if (visual != null) visual.SetActive(false);
-                SetStatus("Camera interrupted. Scan the area again.");
+                ResetCameraContent();
+                if (rig != null) rig.SetActive(false);
+                presentation.Interrupt();
+                if (active) SetStatus("Camera interrupted. Scan the area again.");
             }
+            else if (active) StartCamera();
+        }
+
+        private void StartCamera()
+        {
+            StopCameraPermissionRequest();
+            CancelOperations();
+            ResetCameraContent();
+            if (rig != null) rig.SetActive(false);
+            cameraFrameAt = 0d;
+            presentation.Begin(Time.realtimeSinceStartupAsDouble);
+            permissionRoutine = StartCoroutine(PrepareCamera());
+        }
+
+        private IEnumerator PrepareCamera()
+        {
+            var attempt = cameraGeneration;
+            yield return ARSession.CheckAvailability();
+            if (attempt != cameraGeneration || !active || paused) yield break;
+            presentation.ObserveSession(ARSession.state);
+            if (presentation.State == CameraPresentationState.Unavailable)
+            {
+                permissionRoutine = null;
+                yield break;
+            }
+            if (!Application.HasUserAuthorization(UserAuthorization.WebCam))
+                yield return Application.RequestUserAuthorization(UserAuthorization.WebCam);
+            if (attempt != cameraGeneration || !active || paused) yield break;
+            permissionRoutine = null;
+            if (Application.HasUserAuthorization(UserAuthorization.WebCam)) StartAuthorizedCamera();
+            else
+            {
+                presentation.PermissionDenied();
+                SetStatus("Allow camera access to find stickers in AR. Open Settings to allow access.");
+            }
+        }
+
+        private void StartAuthorizedCamera()
+        {
+            if (!active || paused) return;
+            presentation.PermissionGranted(Time.realtimeSinceStartupAsDouble);
+            rig.SetActive(true);
+        }
+
+        private void StopCameraPermissionRequest()
+        {
+            cameraGeneration++;
+            if (permissionRoutine == null) return;
+            StopCoroutine(permissionRoutine);
+            permissionRoutine = null;
+        }
+
+        private void OnCameraPresentationChanged()
+        {
+            switch (presentation.State)
+            {
+                case CameraPresentationState.Unavailable:
+                    SetStatus("AR camera is unavailable on this device.");
+                    return;
+                case CameraPresentationState.Failed:
+                    SetStatus("Camera could not start. Try again.");
+                    return;
+                case CameraPresentationState.Interrupted:
+                    SetStatus("Camera feed stopped. Try again.");
+                    return;
+                case CameraPresentationState.Live:
+                    if (Status.StartsWith("Camera feed stopped", StringComparison.Ordinal) ||
+                        Status.StartsWith("Camera interrupted", StringComparison.Ordinal) ||
+                        Status.StartsWith("Camera could not start", StringComparison.Ordinal))
+                    {
+                        SetStatus(string.IsNullOrEmpty(presetId) ? "Look around to discover a sticker." :
+                            "Move slowly until a surface appears, then tap to place.");
+                        return;
+                    }
+                    break;
+            }
+            Changed?.Invoke();
         }
 
         private void CancelOperations()
@@ -512,6 +636,7 @@ namespace Tagtag.AR
                 ArKit.ApplyWorldMap(default);
                 session.Reset();
                 cameraFrameAt = 0;
+                presentation.ResetFrame(Time.realtimeSinceStartupAsDouble);
             }
             appliedMap = false;
 #endif
@@ -537,6 +662,13 @@ namespace Tagtag.AR
             anchor = null;
         }
 
+        private void ResetCameraContent()
+        {
+            ClearPlacement();
+            recovered = false;
+            recoveredStickerId = null;
+        }
+
         private void SetStatus(string value)
         {
             Status = value;
@@ -557,8 +689,10 @@ namespace Tagtag.AR
 
         private void OnDestroy()
         {
+            StopCameraPermissionRequest();
             CancelOperations();
             if (cameraManager != null) cameraManager.frameReceived -= OnCameraFrame;
+            presentation.Changed -= OnCameraPresentationChanged;
             ClearPlacement();
             if (rig != null) Destroy(rig);
             positionInput?.Dispose();

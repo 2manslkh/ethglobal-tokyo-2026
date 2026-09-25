@@ -76,6 +76,7 @@ namespace Tagtag
     {
         event Action Changed;
         event Action<string> StickerTapped;
+        CameraPresentationState CameraPresentation { get; }
         bool IsTracking { get; }
         bool CanPublish { get; }
         bool CanCollect { get; }
