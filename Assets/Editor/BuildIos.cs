@@ -11,13 +11,13 @@ public static class BuildIos
     private const string ScenePath = "Assets/Scenes/StickerHunt.unity";
     private const string OutputPath = "Build/iOS";
 
-    [MenuItem("Sticker Hunt/Build iOS")]
+    [MenuItem("tagtag/Build iOS")]
     public static void Build()
     {
         EnsureScene();
-        PlayerSettings.companyName = "Sticker Hunt";
-        PlayerSettings.productName = "Sticker Hunt";
-        PlayerSettings.SetApplicationIdentifier(NamedBuildTarget.iOS, "com.kenk.stickerhunt");
+        PlayerSettings.companyName = "tagtag";
+        PlayerSettings.productName = "tagtag";
+        PlayerSettings.SetApplicationIdentifier(NamedBuildTarget.iOS, "com.kenk.tagtag");
         PlayerSettings.defaultInterfaceOrientation = UIOrientation.Portrait;
         PlayerSettings.allowedAutorotateToLandscapeLeft = false;
         PlayerSettings.allowedAutorotateToLandscapeRight = false;
@@ -47,7 +47,7 @@ public static class BuildIos
         var cameraObject = new GameObject("Camera", typeof(Camera));
         cameraObject.tag = "MainCamera";
         cameraObject.GetComponent<Camera>().backgroundColor = new Color32(15, 21, 37, 255);
-        new GameObject("Sticker Hunt", typeof(StickerHuntScreen));
+        new GameObject("tagtag", typeof(StickerHuntScreen));
         EditorSceneManager.SaveScene(scene, ScenePath);
         EditorBuildSettings.scenes = new[] { new EditorBuildSettingsScene(ScenePath, true) };
     }

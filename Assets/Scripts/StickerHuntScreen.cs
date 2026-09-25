@@ -27,7 +27,7 @@ namespace StickerHunt
                 DontDestroyOnLoad(events);
             }
 
-            GameObject canvasObject = new GameObject("Sticker Hunt UI", typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
+            GameObject canvasObject = new GameObject("tagtag UI", typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
             Canvas canvas = canvasObject.GetComponent<Canvas>();
             canvas.renderMode = RenderMode.ScreenSpaceOverlay;
             CanvasScaler scaler = canvasObject.GetComponent<CanvasScaler>();
@@ -58,7 +58,7 @@ namespace StickerHunt
 
         private void BuildContent()
         {
-            Text brand = Label(safeArea, "STICKER HUNT", 15, FontStyle.Bold, Mint,
+            Text brand = Label(safeArea, "tagtag", 22, FontStyle.Bold, Mint,
                 new Vector2(0, 1), new Vector2(1, 1), new Vector2(24, -64), new Vector2(-24, -32));
             brand.alignment = TextAnchor.MiddleLeft;
 
@@ -76,10 +76,10 @@ namespace StickerHunt
             Text icon = Label(feature, "✦", 72, FontStyle.Normal, Mint,
                 new Vector2(0, 0.37f), new Vector2(1, 1), Vector2.zero, Vector2.zero);
             icon.alignment = TextAnchor.MiddleCenter;
-            Text featureTitle = Label(feature, "Your next discovery awaits", 21, FontStyle.Bold, White,
+            Text featureTitle = Label(feature, "Meet Taggi", 21, FontStyle.Bold, White,
                 new Vector2(0, 0.19f), new Vector2(1, 0.37f), new Vector2(16, 0), new Vector2(-16, 0));
             featureTitle.alignment = TextAnchor.MiddleCenter;
-            Text featureNote = Label(feature, "Start exploring to reveal a sticker", 14, FontStyle.Normal, Muted,
+            Text featureNote = Label(feature, "Your sticker hunting companion", 14, FontStyle.Normal, Muted,
                 new Vector2(0, 0.06f), new Vector2(1, 0.19f), new Vector2(12, 0), new Vector2(-12, 0));
             featureNote.alignment = TextAnchor.MiddleCenter;
 
