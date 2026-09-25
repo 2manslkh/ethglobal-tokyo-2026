@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Runtime.InteropServices;
 using Unity.Collections;
 using Unity.XR.CoreUtils;
 using UnityEngine;
@@ -17,6 +18,11 @@ namespace Tagtag.AR
 {
     public sealed class ArExperience : MonoBehaviour, IArExperience
     {
+#if UNITY_IOS && !UNITY_EDITOR
+        [DllImport("__Internal")] private static extern int TagtagCameraAuthorizationStatus();
+        [DllImport("__Internal")] private static extern void TagtagCameraRequestAccess();
+#endif
+
         public event Action Changed;
         public event Action<string> StickerTapped;
         public string Status { get; private set; } = "Open STICK to scan a surface.";
@@ -568,6 +574,42 @@ namespace Tagtag.AR
                 permissionRoutine = null;
                 yield break;
             }
+#if UNITY_IOS && !UNITY_EDITOR
+            var nativeStatus = ReadNativeCameraAuthorization();
+            var decision = ObserveCameraAuthorization(nativeStatus, "before-request");
+            if (decision.Action == CameraAuthorizationAction.Request)
+            {
+                try { TagtagCameraRequestAccess(); }
+                catch (EntryPointNotFoundException exception)
+                {
+                    Debug.LogError("[TagtagCameraPermission] Native request bridge is missing: " + exception.Message);
+                    nativeStatus = -1;
+                }
+                while (nativeStatus == 0)
+                {
+                    yield return null;
+                    if (attempt != cameraGeneration || !active || paused) yield break;
+                    nativeStatus = ReadNativeCameraAuthorization();
+                }
+                decision = ObserveCameraAuthorization(nativeStatus, "after-request");
+            }
+            permissionRoutine = null;
+            switch (decision.Action)
+            {
+                case CameraAuthorizationAction.Start:
+                    StartAuthorizedCamera();
+                    break;
+                case CameraAuthorizationAction.Deny:
+                    presentation.PermissionDenied();
+                    SetStatus(nativeStatus == 1 ? "Camera access is restricted on this device." :
+                        "Allow camera access to find stickers in AR. Open Settings to allow access.");
+                    break;
+                default:
+                    presentation.StartupFailed();
+                    SetStatus("Camera permission could not be checked. Try again.");
+                    break;
+            }
+#else
             if (!Application.HasUserAuthorization(UserAuthorization.WebCam))
                 yield return Application.RequestUserAuthorization(UserAuthorization.WebCam);
             if (attempt != cameraGeneration || !active || paused) yield break;
@@ -578,7 +620,30 @@ namespace Tagtag.AR
                 presentation.PermissionDenied();
                 SetStatus("Allow camera access to find stickers in AR. Open Settings to allow access.");
             }
+#endif
         }
+
+#if UNITY_IOS && !UNITY_EDITOR
+        private static int ReadNativeCameraAuthorization()
+        {
+            try { return TagtagCameraAuthorizationStatus(); }
+            catch (EntryPointNotFoundException exception)
+            {
+                Debug.LogError("[TagtagCameraPermission] Native status bridge is missing: " + exception.Message);
+                return -1;
+            }
+        }
+
+        private static CameraAuthorizationDecision ObserveCameraAuthorization(int nativeStatus, string phase)
+        {
+            var unityAuthorized = Application.HasUserAuthorization(UserAuthorization.WebCam);
+            var decision = CameraAuthorizationPolicy.Decide(nativeStatus, unityAuthorized);
+            Debug.Log("[TagtagCameraPermission] phase=" + phase + " native=" + nativeStatus +
+                " unity=" + unityAuthorized + " disagree=" + decision.UnityDisagrees +
+                " app=" + Application.identifier + " ar=" + ARSession.state);
+            return decision;
+        }
+#endif
 
         private void StartAuthorizedCamera()
         {

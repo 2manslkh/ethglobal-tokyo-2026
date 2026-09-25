@@ -3,6 +3,36 @@ using UnityEngine.XR.ARFoundation;
 
 namespace Tagtag.AR
 {
+    public enum CameraAuthorizationAction { Request, Start, Deny, Fail }
+
+    public readonly struct CameraAuthorizationDecision
+    {
+        public CameraAuthorizationAction Action { get; }
+        public bool UnityDisagrees { get; }
+
+        public CameraAuthorizationDecision(CameraAuthorizationAction action, bool unityDisagrees)
+        {
+            Action = action;
+            UnityDisagrees = unityDisagrees;
+        }
+    }
+
+    public static class CameraAuthorizationPolicy
+    {
+        // Native values are normalized in TagtagCameraPermission.mm to Apple's four video authorization states.
+        public static CameraAuthorizationDecision Decide(int nativeStatus, bool unityAuthorized)
+        {
+            switch (nativeStatus)
+            {
+                case 0: return new CameraAuthorizationDecision(CameraAuthorizationAction.Request, unityAuthorized);
+                case 1:
+                case 2: return new CameraAuthorizationDecision(CameraAuthorizationAction.Deny, unityAuthorized);
+                case 3: return new CameraAuthorizationDecision(CameraAuthorizationAction.Start, !unityAuthorized);
+                default: return new CameraAuthorizationDecision(CameraAuthorizationAction.Fail, false);
+            }
+        }
+    }
+
     // iOS permission sheets can change focus and pause in either order.
     public sealed class CameraSuspension
     {
@@ -71,6 +101,14 @@ namespace Tagtag.AR
             permissionGranted = false;
             lastFrameAt = 0d;
             SetState(CameraPresentationState.PermissionDenied);
+        }
+
+        public void StartupFailed()
+        {
+            if (State == CameraPresentationState.Inactive) return;
+            permissionGranted = false;
+            lastFrameAt = 0d;
+            SetState(CameraPresentationState.Failed);
         }
 
         public void ObserveSession(ARSessionState sessionState)

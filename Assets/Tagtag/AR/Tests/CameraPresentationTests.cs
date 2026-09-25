@@ -135,6 +135,34 @@ namespace Tagtag.AR.Tests
             Assert.IsFalse(suspension.IsSuspended);
         }
 
+        [Test]
+        public void NativeAuthorizedCameraDoesNotBecomePermissionDeniedWhenUnityDisagrees()
+        {
+            var decision = CameraAuthorizationPolicy.Decide(3, false);
+            Assert.AreEqual(CameraAuthorizationAction.Start, decision.Action);
+            Assert.IsTrue(decision.UnityDisagrees);
+        }
+
+        [Test]
+        public void OnlyNativeDenialOrRestrictionProducesPermissionDenied()
+        {
+            Assert.AreEqual(CameraAuthorizationAction.Deny, CameraAuthorizationPolicy.Decide(2, true).Action);
+            Assert.AreEqual(CameraAuthorizationAction.Deny, CameraAuthorizationPolicy.Decide(1, true).Action);
+            Assert.AreEqual(CameraAuthorizationAction.Request, CameraAuthorizationPolicy.Decide(0, false).Action);
+            Assert.AreEqual(CameraAuthorizationAction.Fail, CameraAuthorizationPolicy.Decide(-1, false).Action);
+        }
+
+        [Test]
+        public void UnresolvedNativePermissionFailureIsNotReportedAsDenial()
+        {
+            var presentation = new CameraPresentation();
+            presentation.Begin(1d);
+            presentation.StartupFailed();
+            Assert.AreEqual(CameraPresentationState.Failed, presentation.State);
+            presentation.ObserveFrame(2d, true);
+            Assert.AreEqual(CameraPresentationState.Failed, presentation.State);
+        }
+
         private static CameraPresentation LivePresentation()
         {
             var presentation = new CameraPresentation();
