@@ -62,6 +62,7 @@ namespace Tagtag.AR
         private bool gestureActive;
         private float gestureDistance;
         private float gestureAngle;
+        private int cameraFrameNumber;
 #if UNITY_IOS
         private ARWorldMapRequest? mapRequest;
         private ARKitSessionSubsystem ArKit => session != null ? session.subsystem as ARKitSessionSubsystem : null;
@@ -436,29 +437,40 @@ namespace Tagtag.AR
             SetStatus("Scan the original spot. The sticker appears only after its anchor matches.");
             var gate = new RecoveryGate();
             started = Time.realtimeSinceStartup;
+            var observedFrameNumber = cameraFrameNumber;
+            var observedFrameAt = 0d;
             while (Time.realtimeSinceStartup - started < 45f)
             {
                 if (attempt != generation) yield break;
                 if (data.expiresAt <= DateTimeOffset.UtcNow.ToUnixTimeSeconds())
                 { busy = false; SetStatus("This discovery expired. Choose the sticker again."); yield break; }
                 var candidate = anchors.GetAnchor(anchorId);
-                if (gate.Observe(candidate != null && candidate.trackingState == TrackingState.Tracking,
-                    IsTracking, cameraFrameAt > 0 && Time.realtimeSinceStartupAsDouble - cameraFrameAt < 0.5,
-                    Time.unscaledDeltaTime))
+                var nextFrame = cameraFrameNumber != observedFrameNumber &&
+                    cameraFrameAt > 0 && Time.realtimeSinceStartupAsDouble - cameraFrameAt < 0.5;
+                if (nextFrame)
                 {
-                    anchor = candidate;
-                    CreateVisual(data.sticker.presetId);
-                    visual.transform.SetParent(anchor.transform, false);
-                    visual.transform.localPosition = snapshot.position;
-                    visual.transform.localRotation = snapshot.rotation;
-                    visual.transform.localScale = Vector3.one * snapshot.widthMeters;
-                    widthMeters = snapshot.widthMeters;
-                    recoveredStickerId = data.sticker.id;
-                    recovered = true;
-                    busy = false;
-                    SetStatus("Sticker found. Tap it within three metres to unlock its note.");
-                    yield break;
+                    var frameInterval = observedFrameAt == 0d ? 0f : (float)(cameraFrameAt - observedFrameAt);
+                    observedFrameAt = cameraFrameAt;
+                    observedFrameNumber = cameraFrameNumber;
+                    if (gate.Observe(candidate != null && candidate.trackingState == TrackingState.Tracking,
+                        IsTracking, frameInterval <= 0.2f, frameInterval))
+                    {
+                        anchor = candidate;
+                        CreateVisual(data.sticker.presetId);
+                        visual.transform.SetParent(anchor.transform, false);
+                        visual.transform.localPosition = snapshot.position;
+                        visual.transform.localRotation = snapshot.rotation;
+                        visual.transform.localScale = Vector3.one * snapshot.widthMeters;
+                        widthMeters = snapshot.widthMeters;
+                        recoveredStickerId = data.sticker.id;
+                        recovered = true;
+                        busy = false;
+                        SetStatus("Sticker found. Tap it within three metres to unlock its note.");
+                        yield break;
+                    }
                 }
+                else if (cameraFrameAt == 0 || Time.realtimeSinceStartupAsDouble - cameraFrameAt > 0.5)
+                    gate.Observe(false, false, false, 0f);
                 yield return null;
             }
             busy = false;
@@ -468,7 +480,11 @@ namespace Tagtag.AR
 
         private void OnCameraFrame(ARCameraFrameEventArgs frame)
         {
-            if (!paused) cameraFrameAt = Time.realtimeSinceStartupAsDouble;
+            if (!paused)
+            {
+                cameraFrameAt = Time.realtimeSinceStartupAsDouble;
+                cameraFrameNumber++;
+            }
         }
 
         private void OnApplicationPause(bool value)
