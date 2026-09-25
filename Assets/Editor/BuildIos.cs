@@ -35,6 +35,8 @@ public static class BuildIos
         var manager = settings.ManagerSettingsForBuildTarget(BuildTargetGroup.iOS);
         if (!XRPackageMetadataStore.AssignLoader(manager, "UnityEngine.XR.ARKit.ARKitLoader", BuildTargetGroup.iOS))
             throw new InvalidOperationException("Could not assign the ARKit loader to iOS.");
+        manager.automaticLoading = true;
+        manager.automaticRunning = true;
         var serialized = new SerializedObject(Unsupported.GetSerializedAssetInterfaceSingleton("PlayerSettings"));
         serialized.FindProperty("activeInputHandler").intValue = 2;
         serialized.ApplyModifiedPropertiesWithoutUndo();
@@ -98,6 +100,12 @@ public static class BuildIos
         var path = PBXProject.GetPBXProjectPath(output);
         var project = new PBXProject();
         project.ReadFromFile(path);
+        var arKitLibraries = Path.Combine(output, "Libraries/com.unity.xr.arkit");
+        if (!Directory.Exists(arKitLibraries) ||
+            Directory.GetFiles(arKitLibraries, "libUnityARKit.a", SearchOption.AllDirectories).Length == 0 ||
+            !File.ReadAllText(path).Contains("libUnityARKit.a") ||
+            !File.ReadAllText(path).Contains("ARKit.framework"))
+            throw new InvalidOperationException("ARKit native libraries are missing. Run BuildIos.PrepareArKit in a separate Unity invocation before BuildIos.Build.");
         var main = project.GetUnityMainTargetGuid();
         var framework = project.GetUnityFrameworkTargetGuid();
         project.AddFrameworkToProject(framework, "MapKit.framework", false);
