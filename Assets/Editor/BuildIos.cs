@@ -145,6 +145,7 @@ public static class BuildIos
         var main = project.GetUnityMainTargetGuid();
         var framework = project.GetUnityFrameworkTargetGuid();
         project.AddFrameworkToProject(framework, "MapKit.framework", false);
+        project.AddFrameworkToProject(framework, "AVFoundation.framework", false);
         project.AddFrameworkToProject(framework, "CoreLocation.framework", false);
         project.AddFrameworkToProject(framework, "AuthenticationServices.framework", false);
         project.AddFrameworkToProject(framework, "Security.framework", false);
