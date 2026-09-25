@@ -34,9 +34,66 @@ namespace Tagtag.UI
         }
     }
 
+    public readonly struct PaperStickState
+    {
+        public readonly string Title;
+        public readonly string Guidance;
+        public readonly bool ShowAdjustments;
+        public readonly bool CanWriteNote;
+
+        public PaperStickState(string title, string guidance, bool showAdjustments, bool canWriteNote)
+        {
+            Title = title;
+            Guidance = guidance;
+            ShowAdjustments = showAdjustments;
+            CanWriteNote = canWriteNote;
+        }
+    }
+
     public static class PaperFlow
     {
         public const string EmptyBookInvitation = "Your next little discovery is out there.";
+
+        public static bool ShowGlobalChrome(AppState state) => state == null ||
+            state.accountOpen || state.page != AppPage.Stick;
+        public static PaperStickState StickPlacement(AppState state, bool tracking, bool surface,
+            bool preview, bool placementBusy)
+        {
+            bool selected = !string.IsNullOrEmpty(state?.selectedPreset);
+            bool retry = state != null && state.hasPendingPublication;
+            string guidance = !selected ? "Choose a sticker to place." :
+                placementBusy ? "Placing Taggi…" :
+                !tracking ? "Move slowly to start tracking." :
+                !surface && !preview ? "Scan a wall or table for a surface." :
+                !preview ? "Surface found. Tap it to place Taggi." :
+                "Drag to move. Pinch to resize. Twist to rotate.";
+            return new PaperStickState("Place sticker", guidance, selected && preview,
+                selected && (preview || retry) && state != null && !state.busy && !placementBusy);
+        }
+        public static string PresetName(string presetId)
+        {
+            switch (presetId)
+            {
+                case "taggi-1": return "Taggi pose 1";
+                case "taggi-2": return "Taggi pose 2";
+                case "taggi-3": return "Taggi pose 3";
+                case "taggi-4": return "Taggi pose 4";
+                default: return "Taggi";
+            }
+        }
+        public static string DiscoveryGuidance(StickerSummary sticker)
+        {
+            if (sticker == null) return "Look around slowly for Taggi.";
+            string place = string.IsNullOrWhiteSpace(sticker.place) ? "the place" : sticker.place.Trim();
+            string clue = string.IsNullOrWhiteSpace(sticker.teaser) ? "Look for the sticker." : sticker.teaser.Trim();
+            return "Find " + place + ": " + clue + " Tap Taggi in AR to unlock the full note.";
+        }
+        public static bool ShowDiscoveryRetry(AppState state) => state?.selected != null &&
+            string.IsNullOrEmpty(state.selectedPreset);
+        public static bool BlockCameraInteraction(AppState state, bool sheetOpen,
+            CameraPresentationState camera, bool tracking = true) => state == null ||
+                state.page != AppPage.Stick || state.accountOpen || state.busy || sheetOpen ||
+                camera != CameraPresentationState.Live || !tracking;
 
         public static string StatusMessage(AppState state, bool invitationAlreadyShown)
         {

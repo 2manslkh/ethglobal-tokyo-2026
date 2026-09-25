@@ -85,6 +85,7 @@ namespace Tagtag.UI
         private bool publicationRequested;
         private AppPage renderedPage;
         private bool renderedAccountOpen;
+        private AppPage cameraReturnPage = AppPage.Home;
 
         public void Initialize(ITagtagController tagtagController)
         {
@@ -119,6 +120,7 @@ namespace Tagtag.UI
         private void OnDisable()
         {
             PaperMotion.SetPaused(true);
+            controller?.Ar?.SetCameraInteraction(default, true);
             controller?.Map?.Hide();
         }
 
@@ -127,6 +129,7 @@ namespace Tagtag.UI
             if (controller != null)
             {
                 controller.Changed -= OnControllerChanged;
+                controller.Ar?.SetCameraInteraction(default, true);
                 controller.Map?.Hide();
             }
 
@@ -170,6 +173,7 @@ namespace Tagtag.UI
             {
                 UpdateMapLayout();
             }
+            if (controller.State.page == AppPage.Stick) UpdateCameraInteraction();
         }
 
         private void EnsureDocument()
@@ -313,6 +317,9 @@ namespace Tagtag.UI
             bool destinationChanged = identity != renderedIdentity;
             if (destinationChanged)
             {
+                if (!state.accountOpen && state.page == AppPage.Stick &&
+                    renderedIdentity != null && renderedPage != AppPage.Stick)
+                    cameraReturnPage = renderedPage == AppPage.Explore ? AppPage.Explore : AppPage.Home;
                 mapRegion = null;
                 activeDraftScroll = null;
                 cameraCover = null;
@@ -328,6 +335,10 @@ namespace Tagtag.UI
                 exploreFindButton = null;
                 stickGuidance = null;
                 stickActions = null;
+                cameraSurface = null;
+                cameraSelectedArtwork = null;
+                stickWriteButton = null;
+                stickAdjustments = null;
                 accountCollectionCount = null;
                 accountAuthoredCount = null;
                 accountMotionSwitch = null;
@@ -350,11 +361,11 @@ namespace Tagtag.UI
                 if (state.accountOpen) BuildAccount(state);
                 else
                 {
-                    BuildTopBar(state);
+                    if (PaperFlow.ShowGlobalChrome(state)) BuildTopBar(state);
                     if (state.page == AppPage.Home) BuildHome(state);
                     else if (state.page == AppPage.Stick) BuildStick(state);
                     else BuildExplore(state);
-                    BuildTabBar(state);
+                    if (PaperFlow.ShowGlobalChrome(state)) BuildTabBar(state);
                 }
                 var reason = navigationMotion.Observe(identity, !state.accountOpen);
                 PaperNavigationMotion.Enter(screenHost, reason);
@@ -390,6 +401,7 @@ namespace Tagtag.UI
                 mapDirty = true;
             }
             ApplyTextScale();
+            UpdateCameraInteraction();
             renderedPage = state.page;
             renderedAccountOpen = state.accountOpen;
         }
@@ -510,8 +522,9 @@ namespace Tagtag.UI
         private void UpdateStatus(AppState state)
         {
             if (statusLabel == null) return;
-            bool invitationAlreadyShown = state.page == AppPage.Home && !state.accountOpen &&
-                homeInvitation != null && statusLabel == screenStatusLabel;
+            bool invitationAlreadyShown = (state.page == AppPage.Home && !state.accountOpen &&
+                homeInvitation != null && statusLabel == screenStatusLabel) ||
+                (state.page == AppPage.Stick && !state.accountOpen);
             string message = PaperFlow.StatusMessage(state, invitationAlreadyShown);
             statusLabel.text = message ?? "";
             bool error = !string.IsNullOrWhiteSpace(state.error);

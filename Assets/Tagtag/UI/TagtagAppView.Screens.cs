@@ -327,21 +327,47 @@ namespace Tagtag.UI
 
         private VisualElement stickGuidance;
         private VisualElement stickActions;
-        private Button stickPrimaryButton;
-        private readonly PresenterCache stickModeContents = new PresenterCache();
+        private VisualElement cameraSurface;
+        private Image cameraSelectedArtwork;
+        private Label cameraSelectedName;
+        private Label stickPlacementGuidanceLabel;
+        private Label stickModeTitle;
+        private VisualElement stickAdjustments;
+        private Button stickWriteButton;
+        private Button stickInventoryButton;
+        private Button stickCloseButton;
+        private Button stickCancelButton;
+        private Button stickRetryButton;
+        private readonly PaperSurfaceTap placementTap = new PaperSurfaceTap();
+        private readonly PaperSurfaceGesture placementGesture = new PaperSurfaceGesture();
         private Label cameraTitleLabel;
         private Label cameraDetailLabel;
         private Button cameraRecoveryButton;
 
         private void BuildStick(AppState state)
         {
-            stickModeContents.Reset();
             VisualElement page = Column(screenHost);
             page.name = "STICK camera";
             page.style.flexGrow = 1f;
             page.style.minHeight = 0f;
-            page.style.justifyContent = Justify.SpaceBetween;
             page.style.backgroundColor = Color.clear;
+            cameraSurface = new VisualElement { name = "STICK Camera Surface" };
+            cameraSurface.style.position = Position.Absolute;
+            cameraSurface.style.left = 0f;
+            cameraSurface.style.right = 0f;
+            cameraSurface.style.top = 0f;
+            cameraSurface.style.bottom = 0f;
+            cameraSurface.RegisterCallback<GeometryChangedEvent>(_ => UpdateCameraInteraction());
+            cameraSurface.RegisterCallback<PointerDownEvent>(OnCameraPointerDown);
+            cameraSurface.RegisterCallback<PointerMoveEvent>(OnCameraPointerMove);
+            cameraSurface.RegisterCallback<PointerUpEvent>(OnCameraPointerUp);
+            cameraSurface.RegisterCallback<PointerCancelEvent>(OnCameraPointerCancel);
+            cameraSurface.RegisterCallback<PointerCaptureOutEvent>(evt =>
+            {
+                placementTap.CancelContact(evt.pointerId);
+                placementGesture.CaptureOut(evt.pointerId);
+            });
+            page.Add(cameraSurface);
             cameraCover = Column(page);
             cameraCover.name = "Opaque camera cover";
             cameraCover.style.position = Position.Absolute;
@@ -367,33 +393,112 @@ namespace Tagtag.UI
                 else controller?.Ar?.Enter();
             });
             cameraRecoveryButton.style.marginTop = 16f;
-            VisualElement top = Column(page);
-            top.style.marginLeft = 18f;
-            top.style.marginRight = 18f;
-            top.style.marginTop = 12f;
-            top.style.paddingLeft = 14f;
-            top.style.paddingRight = 14f;
-            top.style.paddingTop = 10f;
-            top.style.paddingBottom = 10f;
-            top.style.backgroundColor = Paper;
-            top.style.borderTopLeftRadius = 14f;
-            top.style.borderTopRightRadius = 14f;
-            top.style.borderBottomLeftRadius = 14f;
-            top.style.borderBottomRightRadius = 14f;
-            Text(top, "Find it. Tap it. Keep the story.", 18, true);
-            cameraTrackingLabel = Text(top, "", 14, false, Muted);
-            cameraTrackingLabel.style.marginTop = 3f;
-            stickGuidance = Column(top);
-            AddStatus(top, state);
+            VisualElement top = Row(page);
+            top.name = "STICK camera header";
+            top.style.position = Position.Absolute;
+            top.style.left = 12f;
+            top.style.right = 12f;
+            top.style.top = 10f;
+            top.style.alignItems = Align.FlexStart;
+            stickCloseButton = Action(top, "Close", CloseCamera, false);
+            stickCloseButton.name = "STICK Close";
+            stickCloseButton.tooltip = "Close camera";
+            stickCloseButton.AddToClassList("camera-close");
+            stickCloseButton.style.minWidth = 64f;
+            stickCloseButton.style.marginRight = 8f;
+            VisualElement topCard = Column(top);
+            topCard.style.flexGrow = 1f;
+            topCard.style.minWidth = 0f;
+            topCard.style.paddingLeft = 12f;
+            topCard.style.paddingRight = 12f;
+            topCard.style.paddingTop = 8f;
+            topCard.style.paddingBottom = 8f;
+            topCard.style.backgroundColor = Paper;
+            topCard.style.borderTopLeftRadius = 14f;
+            topCard.style.borderTopRightRadius = 14f;
+            topCard.style.borderBottomLeftRadius = 14f;
+            topCard.style.borderBottomRightRadius = 14f;
+            stickModeTitle = Text(topCard, "STICK", 23, true);
+            VisualElement selection = Row(topCard);
+            selection.style.alignItems = Align.Center;
+            selection.style.minHeight = 0f;
+            cameraSelectedArtwork = Art(selection, "taggi-1", 48f);
+            cameraSelectedArtwork.name = "STICK Selected Artwork";
+            cameraSelectedName = Text(selection, "", 14, true);
+            cameraSelectedName.style.marginLeft = 8f;
+            ScrollView guidanceScroll = PaperScroll(topCard);
+            guidanceScroll.name = "STICK guidance scroll";
+            guidanceScroll.style.flexGrow = 0f;
+            guidanceScroll.style.maxHeight = 100f;
+            stickGuidance = guidanceScroll.contentContainer;
+            stickPlacementGuidanceLabel = Text(stickGuidance, "", 14, false, Ink);
+            stickPlacementGuidanceLabel.name = "STICK Placement Guidance";
+            cameraTrackingLabel = Text(stickGuidance, "", 12, false, Muted);
+            cameraTrackingLabel.style.marginTop = 2f;
+            AddStatus(topCard, state);
             VisualElement dock = Column(page);
-            dock.style.paddingLeft = 18f;
-            dock.style.paddingRight = 18f;
-            dock.style.paddingTop = 10f;
-            dock.style.paddingBottom = 12f;
+            dock.name = "STICK camera dock";
+            dock.style.position = Position.Absolute;
+            dock.style.left = 12f;
+            dock.style.right = 12f;
+            dock.style.bottom = 12f;
+            dock.style.paddingLeft = 12f;
+            dock.style.paddingRight = 12f;
+            dock.style.paddingTop = 8f;
+            dock.style.paddingBottom = 8f;
             dock.style.backgroundColor = Paper;
-            dock.style.borderTopLeftRadius = 22f;
-            dock.style.borderTopRightRadius = 22f;
-            stickActions = Column(dock);
+            dock.style.borderTopLeftRadius = 20f;
+            dock.style.borderTopRightRadius = 20f;
+            dock.style.borderBottomLeftRadius = 20f;
+            dock.style.borderBottomRightRadius = 20f;
+            var adjustmentFoldout = new Foldout { text = "Size & rotation", value = false };
+            adjustmentFoldout.AddToClassList("camera-adjustments");
+            adjustmentFoldout.style.unityFont = SemiboldFont;
+            adjustmentFoldout.style.fontSize = Mathf.RoundToInt(15f * textScale);
+            dock.Add(adjustmentFoldout);
+            stickAdjustments = adjustmentFoldout;
+            stickAdjustments.name = "STICK Adjustments";
+            ScrollView adjustScroll = PaperScroll(stickAdjustments);
+            adjustScroll.style.maxHeight = 122f;
+            adjustScroll.style.flexGrow = 0f;
+            VisualElement sizeRow = Row(adjustScroll.contentContainer);
+            AddAdjustment(sizeRow, "Smaller", -1f, 0f);
+            AddAdjustment(sizeRow, "Larger", 1f, 0f);
+            VisualElement rotationRow = Row(adjustScroll.contentContainer);
+            AddAdjustment(rotationRow, "Rotate left", 0f, -5f);
+            AddAdjustment(rotationRow, "Rotate right", 0f, 5f);
+            Button center = Action(adjustScroll.contentContainer, "Move to camera center", () =>
+            {
+                IArExperience ar = controller?.Ar;
+                if (!CanAdjustCamera(ar)) return;
+                ar.AdjustPlacement(ar.PlacementWidthMeters, ar.PlacementRotationDegrees,
+                    new Vector2(Screen.width * .5f, Screen.height * .5f));
+            }, false);
+            center.name = "STICK Move to camera center";
+            stickActions = Row(dock);
+            stickActions.style.alignItems = Align.Center;
+            stickActions.style.justifyContent = Justify.SpaceBetween;
+            stickInventoryButton = Action(stickActions, "STICK", () => { sheet = Sheet.Picker; QueueRender(); });
+            stickInventoryButton.name = "STICK Inventory";
+            stickInventoryButton.tooltip = "Open sticker inventory";
+            stickInventoryButton.style.width = 88f;
+            stickInventoryButton.style.height = 88f;
+            stickInventoryButton.style.minWidth = 88f;
+            stickInventoryButton.style.minHeight = 88f;
+            stickInventoryButton.style.paddingLeft = 0f;
+            stickInventoryButton.style.paddingRight = 0f;
+            stickInventoryButton.style.borderTopLeftRadius = 44f;
+            stickInventoryButton.style.borderTopRightRadius = 44f;
+            stickInventoryButton.style.borderBottomLeftRadius = 44f;
+            stickInventoryButton.style.borderBottomRightRadius = 44f;
+            VisualElement actions = Column(stickActions);
+            actions.style.flexGrow = 1f;
+            actions.style.marginLeft = 10f;
+            stickWriteButton = Action(actions, "Write note", () => { sheet = Sheet.Note; QueueRender(); });
+            stickWriteButton.name = "STICK Write note";
+            stickRetryButton = Action(actions, "Retry AR search", controller.StartDiscovery, false);
+            stickRetryButton.name = "STICK Retry AR search";
+            stickCancelButton = Action(actions, "Cancel placement", controller.CancelPlacement, false);
             RefreshStick(state);
             RefreshCamera(state);
         }
@@ -401,49 +506,38 @@ namespace Tagtag.UI
         private void RefreshStick(AppState state)
         {
             if (stickActions == null) return;
-            string mode = !string.IsNullOrEmpty(state.selectedPreset) ? "placing:" + state.selectedPreset :
-                state.selected != null ? "discovering:" + state.selected.id : "idle";
-            mode += ":" + HasLocation(state);
-            if (stickModeContents.NeedsRefresh(mode))
+            IArExperience ar = controller?.Ar;
+            bool selected = !string.IsNullOrEmpty(state.selectedPreset);
+            PaperStickState placement = PaperFlow.StickPlacement(state, ar?.IsTracking ?? false,
+                ar?.HasPlacementSurface ?? false, ar?.HasPlacementPreview ?? false,
+                ar?.PlacementBusy ?? false);
+            stickModeTitle.text = selected ? placement.Title : state.selected != null ? "Find sticker" : "STICK";
+            stickPlacementGuidanceLabel.text = selected ? placement.Guidance : state.selected != null ?
+                PaperFlow.DiscoveryGuidance(state.selected) :
+                "Open your stickers, choose Taggi, then place it on a surface.";
+            bool hasArtwork = selected || state.selected != null;
+            cameraSelectedArtwork.style.display = hasArtwork ? DisplayStyle.Flex : DisplayStyle.None;
+            cameraSelectedName.style.display = hasArtwork ? DisplayStyle.Flex : DisplayStyle.None;
+            if (hasArtwork)
             {
-                stickGuidance.Clear();
-                stickActions.Clear();
-                stickPrimaryButton = null;
-                if (!HasLocation(state)) Text(stickGuidance, "Location is needed to place or collect a sticker.", 13, false, Muted);
-                if (state.selected != null)
-                {
-                    Text(stickGuidance, "Find " + Safe(state.selected.place, "the place") + ": " +
-                        Safe(state.selected.teaser, "Look for the sticker."), 14).style.marginTop = 6f;
-                    Text(stickGuidance, "Tap its image in AR to unlock the full note.", 13, false, Muted);
-                }
-                if (!string.IsNullOrEmpty(state.selectedPreset))
-                {
-                    Text(stickActions, "Position Taggi · Pinch to resize · Twist to rotate", 13, false, Muted);
-                    stickPrimaryButton = Action(stickActions, "Write note", () => { sheet = Sheet.Note; QueueRender(); });
-                    stickPrimaryButton.style.marginTop = 7f;
-                    VisualElement secondary = Row(stickActions);
-                    secondary.style.justifyContent = Justify.SpaceBetween;
-                    Action(secondary, "Change pose", () => { sheet = Sheet.Picker; QueueRender(); }, false);
-                    Action(secondary, "Cancel placement", controller.CancelPlacement, false);
-                }
-                else if (state.selected != null)
-                {
-                    Text(stickActions, "Look around slowly for Taggi.", 15, true);
-                    stickPrimaryButton = Action(stickActions, "Retry AR search", controller.StartDiscovery);
-                    Action(stickActions, "Back to Explore", () => controller.Navigate(AppPage.Explore), false);
-                }
-                else
-                {
-                    Text(stickActions, "Leave something worth finding.", 16, true);
-                    stickPrimaryButton = Action(stickActions, "Leave a sticker", () => { sheet = Sheet.Picker; QueueRender(); });
-                    stickPrimaryButton.style.marginTop = 6f;
-                }
+                cameraSelectedArtwork.image = Resources.Load<Texture2D>("Tagtag/Presets/" +
+                    (selected ? state.selectedPreset : state.selected.presetId));
+                cameraSelectedName.text = selected ? PaperFlow.PresetName(state.selectedPreset) :
+                    Safe(state.selected.place, "A sticker nearby");
             }
-            if (stickPrimaryButton != null) SetDisabled(stickPrimaryButton, state.busy ||
-                (state.selected != null && controller.Ar == null));
+            stickAdjustments.style.display = placement.ShowAdjustments ? DisplayStyle.Flex : DisplayStyle.None;
+            stickWriteButton.style.display = selected ? DisplayStyle.Flex : DisplayStyle.None;
+            SetDisabled(stickWriteButton, !placement.CanWriteNote);
+            stickRetryButton.style.display = PaperFlow.ShowDiscoveryRetry(state) ? DisplayStyle.Flex : DisplayStyle.None;
+            SetDisabled(stickRetryButton, state.busy);
+            stickCancelButton.style.display = selected ? DisplayStyle.Flex : DisplayStyle.None;
+            SetDisabled(stickCancelButton, state.busy || (ar?.PlacementBusy ?? false));
+            SetDisabled(stickInventoryButton, state.busy || (ar?.PlacementBusy ?? false));
+            SetDisabled(stickCloseButton, state.busy);
             if (cameraTrackingLabel != null)
-                cameraTrackingLabel.text = controller.Ar == null ? "AR is unavailable on this device." :
-                    Safe(controller.Ar.Status, controller.Ar.IsTracking ? "Look around for Taggi." : "Move slowly to scan your surroundings.");
+                cameraTrackingLabel.text = ar == null ? "AR is unavailable on this device." :
+                    Safe(ar.Status, ar.IsTracking ? "Look around for Taggi." : "Move slowly to scan your surroundings.");
+            UpdateCameraInteraction();
         }
 
         private void RefreshCamera(AppState state)

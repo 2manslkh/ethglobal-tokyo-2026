@@ -14,6 +14,10 @@
 .paper-app .paper-button.auth-provider-apple:hover,.paper-app .paper-button.auth-provider-google:hover { background-color:#f2f0e9; }
 .paper-app .paper-button.auth-provider-apple:active,.paper-app .paper-button.auth-provider-google:active { background-color:#e6e3da; }
 .paper-app .paper-button.auth-provider-apple:disabled,.paper-app .paper-button.auth-provider-google:disabled { color:#68665f; background-color:#ebe9e2; border-color:#cbc9c1; }
+.paper-app .paper-button.camera-close { background-color:#fffefa; }
+.paper-app .paper-button.camera-close:hover { background-color:#e8e6df; }
+.paper-app .paper-button.camera-close:active { background-color:#dcd9cf; }
+.paper-app .camera-adjustments .unity-foldout__toggle { min-height:44px; }
 .paper-app .icon-button { min-width:48px; padding:10px; align-items:center; justify-content:center; }
 .paper-app .paper-selection { min-height:52px; padding-right:32px; -unity-text-align:middle-left; border-width:1px; border-color:#d2d0c8; }
 .paper-app .paper-selection.selected { border-color:#20201e; background-color:#fff6d2; }

@@ -15,6 +15,10 @@ The UI components in this directory were adapted on 2026-09-26 from the user's l
 | `StickerHunt/Playable/AppTypography.cs` | `832abd157d5f5a5ef14c1010f5e3ced84eaf8f8d24dbcb82a757f500977e6aed` | `TagtagAppView.cs`: role fonts and text scaling |
 | `StickerHunt/Playable/LineIcon.cs` | `f354d748c8d80e2761e410d76a06be4dae930d9deb0c5aeebbccd43dd4a0564a` | `PaperIcon.cs`: consistent vector icons |
 | `Resources/Playable.uss` | `36cfb85ef5c4ee11ae8220794fc64c720798b5c4380ae37dec438da4ad1484b7` | `Resources/Tagtag/UI/Paper.uss`: state styles mapped to tagtag paper, ink and yellow |
+| `StickerHunt/Core/SurfaceTap.cs` | `339031229b2cfa4f2cb0ed8abdc952ee7e7c8d03e5ae8398f7e41e088ca82638` | `PaperCameraInput.cs`: placement tap cancellation on drag, long press, and multiple contacts |
+| `StickerHunt/Core/SurfaceGesture.cs` | `2a988237578596ad90ff8e0a30f543c93d85eae51e6db72e3c965fd92d5aaa8d` | `PaperCameraInput.cs`: owned surface contact tracking and centroid for drag, pinch, and twist |
+| `StickerHunt/Core/PlaySession.cs` | `de18f4abe91e7c613cb7308506d046bbbd64591431cf798f704bc7939748d0d4` | `PaperCameraInput.cs`: width clamping and rotation wrapping from `PlacementGestures` |
+| `StickerHunt/Playable/DeviceApp.cs` | `0f44e2a510fed2558263fc8f6cf37fb5dcb337a2f08445ca39189e5e9081031f` | `TagtagAppView.Camera.cs` and `TagtagAppView.Screens.cs`: fullscreen camera surface, inventory, selection, placement guidance, and adjustment controls; tagtag retains its own publish service |
 
 The source checkout did not contain a root code license notice. The font files and their SIL Open Font License notices are documented in `Assets/Resources/Tagtag/Fonts/README.md`.
 

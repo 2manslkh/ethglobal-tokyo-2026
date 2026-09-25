@@ -305,7 +305,7 @@ namespace Tagtag.UI
             scrim.AddToClassList("sheet-scrim");
             scrim.RegisterCallback<PointerDownEvent>(_ => RequestCloseSheet());
             overlayHost.Add(scrim);
-            string title = sheet == Sheet.Picker ? "Choose Taggi" : sheet == Sheet.Note ? "Write note" :
+            string title = sheet == Sheet.Picker ? "Your stickers" : sheet == Sheet.Note ? "Write note" :
                 sheet == Sheet.Collected ? "Collected sticker" : sheet == Sheet.Report ? "Report sticker" :
                 sheet == Sheet.Withdraw ? "Withdraw sticker" : "Block author";
             Sheet openedSheet = sheet;
@@ -355,9 +355,8 @@ namespace Tagtag.UI
 
         private void FocusSheetTrigger(Sheet closed)
         {
-            string name = closed == Sheet.Note ? "Action Write note" : closed == Sheet.Picker ?
-                (screenHost?.Q<Button>("Action Change pose") != null ? "Action Change pose" :
-                    screenHost?.Q<Button>("Action Leave a sticker") != null ? "Action Leave a sticker" : "Action Write note") : null;
+            string name = closed == Sheet.Note ? "STICK Write note" :
+                closed == Sheet.Picker ? "STICK Inventory" : null;
             if (name == null) return;
             screenHost?.schedule.Execute(() => screenHost.Q<Button>(name)?.Focus());
         }
@@ -370,25 +369,40 @@ namespace Tagtag.UI
 
         private void BuildPickerSheet(VisualElement content, AppState state)
         {
-            Text(content, "Pick a pose for this place.", 16, false, Muted).style.marginBottom = 8f;
+            Text(content, "Choose one, then tap a surface to place it.", 16, false, Muted).style.marginBottom = 8f;
+            VisualElement grid = Column(content);
             for (int index = 0; index < Presets.Length; index++)
             {
                 string preset = Presets[index];
-                VisualElement row = Row(content);
-                row.style.alignItems = Align.Center;
-                Art(row, preset, 60f);
-                PaperSelection choice = new PaperSelection("Taggi pose " + (index + 1),
+                VisualElement row = index % 2 == 0 ? Row(grid) : grid.ElementAt(grid.childCount - 1);
+                row.style.justifyContent = Justify.SpaceBetween;
+                string presetName = PaperFlow.PresetName(preset);
+                PaperSelection choice = new PaperSelection("",
                     state.selectedPreset == preset, () =>
                     {
                         controller.SelectPreset(preset);
                         RequestCloseSheet();
                     });
-                choice.tooltip = "Choose Taggi pose " + (index + 1);
-                choice.style.flexGrow = 1f;
-                choice.style.marginLeft = 12f;
+                choice.name = "Inventory " + presetName;
+                choice.tooltip = "Select " + presetName;
+                choice.style.width = Length.Percent(48f);
+                choice.style.minHeight = textScale > 1.2f ? 158f : 142f;
+                choice.style.flexDirection = FlexDirection.Column;
+                choice.style.alignItems = Align.Center;
+                choice.style.justifyContent = Justify.Center;
+                choice.style.unityTextAlign = TextAnchor.MiddleCenter;
+                choice.style.paddingLeft = 8f;
+                choice.style.paddingRight = 8f;
+                choice.style.marginBottom = 8f;
+                Image art = Art(choice, preset, textScale > 1.2f ? 72f : 80f);
+                art.pickingMode = PickingMode.Ignore;
+                Label title = Text(choice, presetName, 14, true);
+                title.style.unityTextAlign = TextAnchor.MiddleCenter;
+                title.style.marginTop = 6f;
+                title.pickingMode = PickingMode.Ignore;
                 row.Add(choice);
             }
-            Text(content, "After choosing, place Taggi on a surface. Pinch to resize and twist to rotate.",
+            Text(content, "After placement, drag to move, pinch to resize, or twist to rotate.",
                 14, false, Muted).style.marginTop = 12f;
         }
 
