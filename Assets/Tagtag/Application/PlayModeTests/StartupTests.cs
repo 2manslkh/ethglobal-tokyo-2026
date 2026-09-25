@@ -24,7 +24,14 @@ namespace Tagtag.Tests
             Assert.That(root, Is.Not.Null);
             Assert.That(root.childCount, Is.GreaterThan(0), "Startup must render Home, not leave an empty panel.");
             Assert.That(root.Query<Label>().ToList().Any(label => label.text == "tagtag"), Is.True);
-            Assert.That(root.Query<Button>().ToList().Any(button => button.text == "Explore"), Is.True);
+            var explore = root.Q<Button>("Tab Explore");
+            Assert.That(explore, Is.Not.Null, "Explore must remain a named, keyboard-activatable navigation button.");
+            Assert.That(explore.Query<Label>().ToList().Any(label => label.text == "Explore"), Is.True);
+            var fallback = GameObject.Find("Paper camera fallback")?.GetComponent<Camera>();
+            Assert.That(fallback, Is.Not.Null);
+            Assert.That(fallback.clearFlags, Is.EqualTo(CameraClearFlags.SolidColor));
+            Assert.That(fallback.backgroundColor.a, Is.EqualTo(1f));
+            Assert.That(fallback.cullingMask, Is.Zero);
 
             var target = new RenderTexture(390, 844, 24);
             target.Create();

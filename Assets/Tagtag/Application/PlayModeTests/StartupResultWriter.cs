@@ -15,8 +15,10 @@ namespace Tagtag.Tests
         public void TestStarted(ITest test) { }
         public void TestFinished(ITestResult result)
         {
-            if (result.Test.FullName != "Tagtag.Tests.StartupTests.EntrySceneRendersHomeOnFirstLaunch") return;
-            File.WriteAllText(Path.Combine(Application.temporaryCachePath, "tagtag-startup-result.xml"),
+            var startup = result.Test.FullName == "Tagtag.Tests.StartupTests.EntrySceneRendersHomeOnFirstLaunch";
+            var review = result.Test.FullName == "Tagtag.Tests.PaperVisualTests.CapturesPaperScreensAndRecoveryStates";
+            if (!startup && !review) return;
+            File.WriteAllText(Path.Combine(Application.temporaryCachePath, startup ? "tagtag-startup-result.xml" : "tagtag-paper-visual-result.xml"),
                 result.ToXml(true).OuterXml);
         }
     }

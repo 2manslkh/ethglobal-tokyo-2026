@@ -10,6 +10,13 @@ namespace Tagtag
         private TagtagController controller;
         private void Awake()
         {
+            // Always clear to paper, including frames before the UI or AR rig is ready.
+            var fallback = new GameObject("Paper camera fallback").AddComponent<Camera>();
+            fallback.transform.SetParent(transform, false);
+            fallback.clearFlags = CameraClearFlags.SolidColor;
+            fallback.backgroundColor = new Color32(255, 254, 250, 255);
+            fallback.cullingMask = 0;
+            fallback.depth = -100;
             Application.targetFrameRate = 60;
             Screen.sleepTimeout = SleepTimeout.NeverSleep;
             var resource = Resources.Load<TextAsset>("Tagtag/ServiceConfiguration");
