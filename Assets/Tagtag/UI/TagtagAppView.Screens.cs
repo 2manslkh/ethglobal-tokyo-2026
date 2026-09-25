@@ -7,52 +7,71 @@ namespace Tagtag.UI
 {
     public sealed partial class TagtagAppView
     {
+        private VisualElement homeBook;
+        private VisualElement homeFooter;
+        private VisualElement homeInvitation;
+        private Label homeCount;
+        private readonly PresenterCache homeContents = new PresenterCache();
+        private List<CollectedSticker> homeItems = new List<CollectedSticker>();
+
         private void BuildHome(AppState state)
         {
-            List<CollectedSticker> collection = CollectionPresentation.OrderedDistinct(state.collection);
-            bookPage = BookPaging.ClampPage(bookPage, collection.Count);
-            VisualElement page = Column(safeRoot);
-            page.style.flexGrow = 1f;
-            page.style.minHeight = 0f;
+            homeContents.Reset();
+            ScrollView scroll = PaperScroll(screenHost);
+            scroll.name = "Home scroll";
+            VisualElement page = Column(scroll.contentContainer);
             page.style.paddingLeft = 20f;
             page.style.paddingRight = 20f;
-
+            page.style.paddingBottom = 22f;
             Label title = Text(page, "Your sticker book", 30, true);
             title.style.marginTop = 16f;
-            title.style.marginBottom = 8f;
-            Label count = Text(page, collection.Count == 1 ? "1 sticker collected" : collection.Count + " stickers collected", 16, false, Muted);
-            count.style.marginBottom = 18f;
+            title.style.marginBottom = 3f;
+            homeCount = Text(page, "", 15, false, Muted);
+            homeCount.style.marginBottom = 14f;
+            homeBook = Column(page);
+            homeBook.name = "Sticker book page";
+            homeBook.style.minHeight = textScale > 1.2f ? 490f : 390f;
+            homeBook.style.backgroundColor = Soft;
+            homeBook.style.borderTopLeftRadius = 18f;
+            homeBook.style.borderTopRightRadius = 18f;
+            homeBook.style.borderBottomLeftRadius = 18f;
+            homeBook.style.borderBottomRightRadius = 18f;
+            homeBook.style.paddingTop = 8f;
+            homeBook.style.paddingBottom = 8f;
+            homeBook.style.paddingLeft = 8f;
+            homeBook.style.paddingRight = 8f;
+            homeBook.RegisterCallback<PointerDownEvent>(evt => OnBookPointerDown(homeBook, evt));
+            homeBook.RegisterCallback<PointerUpEvent>(evt => OnBookPointerUp(homeBook, evt, homeItems.Count));
+            homeBook.RegisterCallback<PointerCancelEvent>(_ => { bookPressed = false; pressedStickerId = null; });
+            homeFooter = Row(page);
+            homeFooter.style.minHeight = 62f;
+            homeFooter.style.alignItems = Align.Center;
+            homeFooter.style.justifyContent = Justify.SpaceBetween;
+            RefreshHome(state);
+            AddStatus(page, state);
+        }
 
-            VisualElement book = Column(page);
-            book.name = "Sticker book page";
-            book.style.flexGrow = 1f;
-            book.style.minHeight = 0f;
-            book.style.backgroundColor = Soft;
-            book.style.borderTopLeftRadius = 18f;
-            book.style.borderTopRightRadius = 18f;
-            book.style.borderBottomLeftRadius = 18f;
-            book.style.borderBottomRightRadius = 18f;
-            book.style.paddingTop = 8f;
-            book.style.paddingBottom = 8f;
-            book.style.paddingLeft = 8f;
-            book.style.paddingRight = 8f;
-            book.RegisterCallback<PointerDownEvent>(evt => OnBookPointerDown(book, evt));
-            book.RegisterCallback<PointerUpEvent>(evt => OnBookPointerUp(book, evt, collection.Count));
-            book.RegisterCallback<PointerCancelEvent>(_ =>
-            {
-                bookPressed = false;
-                pressedStickerId = null;
-            });
-
+        private void RefreshHome(AppState state)
+        {
+            if (homeBook == null) return;
+            List<CollectedSticker> items = CollectionPresentation.OrderedDistinct(state.collection);
+            int page = BookPaging.ClampPage(bookPage, items.Count);
+            string key = page + ":" + items.Count + ":" + SignedIn(state);
+            foreach (var item in items) key += ":" + item.id + ":" + item.revision + ":" + item.unavailable;
+            if (!homeContents.NeedsRefresh(key)) return;
+            bookPage = page;
+            homeItems = items;
+            homeCount.text = items.Count == 1 ? "1 sticker collected" : items.Count + " stickers collected";
+            homeBook.Clear();
             for (int rowIndex = 0; rowIndex < BookPaging.Rows; rowIndex++)
             {
-                VisualElement row = Row(book);
+                VisualElement row = Row(homeBook);
                 row.style.flexGrow = 1f;
-                row.style.minHeight = 0f;
+                row.style.minHeight = textScale > 1.2f ? 86f : 68f;
                 for (int columnIndex = 0; columnIndex < BookPaging.Columns; columnIndex++)
                 {
                     int slot = rowIndex * BookPaging.Columns + columnIndex;
-                    int itemIndex = BookPaging.IndexAt(bookPage, slot, collection.Count);
+                    int index = BookPaging.IndexAt(bookPage, slot, items.Count);
                     VisualElement cell = Column(row);
                     cell.style.flexGrow = 1f;
                     cell.style.width = Length.Percent(25);
@@ -63,64 +82,55 @@ namespace Tagtag.UI
                     cell.style.marginBottom = 3f;
                     cell.style.alignItems = Align.Center;
                     cell.style.justifyContent = Justify.Center;
-                    cell.style.borderBottomColor = Line;
-                    cell.style.borderBottomWidth = 1f;
-
-                    if (itemIndex >= 0)
+                    if (index < 0) continue;
+                    CollectedSticker item = items[index];
+                    cell.userData = item.id;
+                    cell.tooltip = "Open " + Safe(item.place, "collected sticker") + " details";
+                    cell.focusable = true;
+                    cell.tabIndex = 0;
+                    string id = item.id;
+                    cell.RegisterCallback<KeyDownEvent>(evt =>
                     {
-                        CollectedSticker item = collection[itemIndex];
-                        cell.userData = item.id;
-                        cell.tooltip = "Open " + Safe(item.place, "collected sticker") + " details";
-                        cell.focusable = true;
-                        cell.tabIndex = 0;
-                        string stickerId = item.id;
-                        cell.RegisterCallback<KeyDownEvent>(evt =>
-                        {
-                            if (evt.keyCode != KeyCode.Return && evt.keyCode != KeyCode.Space) return;
-                            sheet = Sheet.Collected;
-                            sheetStickerId = stickerId;
-                            controller.OpenCollected(stickerId);
-                            QueueRender();
-                            evt.StopPropagation();
-                        });
-                        Image image = Art(cell, item.presetId, 72f);
-                        image.style.maxWidth = Length.Percent(95);
-                        image.style.maxHeight = Length.Percent(92);
-                        image.style.opacity = item.unavailable ? 0.35f : 1f;
-                    }
-                    else
-                    {
-                        VisualElement restingMark = new VisualElement();
-                        restingMark.style.width = 5f;
-                        restingMark.style.height = 5f;
-                        restingMark.style.borderTopLeftRadius = 3f;
-                        restingMark.style.borderTopRightRadius = 3f;
-                        restingMark.style.borderBottomLeftRadius = 3f;
-                        restingMark.style.borderBottomRightRadius = 3f;
-                        restingMark.style.backgroundColor = Line;
-                        cell.Add(restingMark);
-                    }
+                        if (evt.keyCode != KeyCode.Return && evt.keyCode != KeyCode.Space) return;
+                        OpenCollected(id); evt.StopPropagation();
+                    });
+                    Image image = Art(cell, item.presetId, textScale > 1.2f ? 78f : 67f);
+                    image.style.maxWidth = Length.Percent(95);
+                    image.style.maxHeight = Length.Percent(92);
+                    image.style.opacity = item.unavailable ? .4f : 1f;
                 }
             }
-
-            VisualElement footer = Row(page);
-            footer.style.height = 58f;
-            footer.style.alignItems = Align.Center;
-            footer.style.justifyContent = Justify.SpaceBetween;
-            Button previous = Action(footer, "Previous", () => ChangeBookPage(bookPage - 1, collection.Count), false);
-            SetDisabled(previous, bookPage == 0);
-            Text(footer, "Page " + (bookPage + 1) + " of " + BookPaging.PageCount(collection.Count), 14, false, Muted);
-            Button next = Action(footer, "Next", () => ChangeBookPage(bookPage + 1, collection.Count), false);
-            SetDisabled(next, bookPage + 1 >= BookPaging.PageCount(collection.Count));
-
-            if (collection.Count == 0)
+            if (items.Count == 0)
             {
-                Label empty = Text(page, SignedIn(state) ? "Your first find is waiting nearby." : "Explore now. Sign in when you find a sticker to collect it.", 14, false, Muted);
-                empty.style.marginBottom = 8f;
-                Text(page, "Explore a clue · Find Taggi in AR · Tap to collect", 13, false, Muted).style.marginBottom = 8f;
-                Action(page, "Explore nearby", () => controller.Navigate(AppPage.Explore)).style.marginBottom = 10f;
+                homeInvitation = Column(homeBook);
+                homeInvitation.style.position = Position.Absolute;
+                homeInvitation.style.left = 12f;
+                homeInvitation.style.right = 12f;
+                homeInvitation.style.top = 86f;
+                homeInvitation.style.bottom = 86f;
+                homeInvitation.style.alignItems = Align.Center;
+                homeInvitation.style.justifyContent = Justify.Center;
+                Art(homeInvitation, "taggi-1", 72f);
+                Label invitation = Text(homeInvitation, "Your next little discovery is out there.", 18, true);
+                invitation.style.unityTextAlign = TextAnchor.MiddleCenter;
+                invitation.style.marginTop = 6f;
+                Action(homeInvitation, "Explore nearby", () => controller.Navigate(AppPage.Explore)).style.marginTop = 8f;
             }
-            AddStatus(page, state);
+            else homeInvitation = null;
+            homeFooter.Clear();
+            Button previous = Action(homeFooter, "Previous", () => ChangeBookPage(bookPage - 1, homeItems.Count), false);
+            SetDisabled(previous, bookPage == 0);
+            Text(homeFooter, "Page " + (bookPage + 1) + " of " + BookPaging.PageCount(items.Count), 13, false, Muted);
+            Button next = Action(homeFooter, "Next", () => ChangeBookPage(bookPage + 1, homeItems.Count), false);
+            SetDisabled(next, bookPage + 1 >= BookPaging.PageCount(items.Count));
+        }
+
+        private void OpenCollected(string id)
+        {
+            sheet = Sheet.Collected;
+            sheetStickerId = id;
+            controller.OpenCollected(id);
+            QueueRender();
         }
 
         private void OnBookPointerDown(VisualElement book, PointerDownEvent evt)
@@ -155,10 +165,7 @@ namespace Tagtag.UI
             }
             else if (BookPaging.IsTap(deltaX, deltaY) && !string.IsNullOrEmpty(pressedStickerId))
             {
-                sheet = Sheet.Collected;
-                sheetStickerId = pressedStickerId;
-                controller.OpenCollected(pressedStickerId);
-                QueueRender();
+                OpenCollected(pressedStickerId);
             }
             pressedStickerId = null;
         }
@@ -168,106 +175,117 @@ namespace Tagtag.UI
             int clamped = BookPaging.ClampPage(page, itemCount);
             if (clamped == bookPage) return;
             bookPage = clamped;
-            QueueRender();
+            RefreshHome(controller.State);
         }
+
+        private VisualElement explorePreview;
+        private Label exploreLocationNotice;
+        private Label exploreMapMessage;
+        private Button exploreFindButton;
+        private Button exploreRefreshButton;
+        private Label exploreEmptyTitle;
+        private readonly PresenterCache explorePreviewContents = new PresenterCache();
 
         private void BuildExplore(AppState state)
         {
-            VisualElement page = Column(safeRoot);
+            explorePreviewContents.Reset();
+            VisualElement page = Column(screenHost);
             page.style.flexGrow = 1f;
             page.style.minHeight = 0f;
             page.style.backgroundColor = Paper;
             VisualElement heading = Row(page);
             heading.style.paddingLeft = 24f;
             heading.style.paddingRight = 20f;
-            heading.style.marginTop = 14f;
-            heading.style.marginBottom = 10f;
+            heading.style.marginTop = 12f;
+            heading.style.marginBottom = 8f;
             heading.style.alignItems = Align.Center;
             heading.style.justifyContent = Justify.SpaceBetween;
-            Text(heading, "Explore", 30, true);
+            Text(heading, "Explore", 28, true);
             Button recenter = Action(heading, "Recenter", () =>
             {
                 if (controller.State.location != null) controller.Map?.Recenter(controller.State.location);
                 else controller.RefreshNearby();
             }, false);
             SetDisabled(recenter, controller.Map == null);
-
-            if (!state.servicesConfigured)
-            {
-                Label configuration = Text(page, "Nearby stickers need a configured service. The map can still show your area if location is available.", 14, false, Muted);
-                configuration.style.marginLeft = 24f;
-                configuration.style.marginRight = 24f;
-                configuration.style.marginBottom = 8f;
-            }
-            if (!HasLocation(state))
-            {
-                Label location = Text(page, "Location is unavailable. Allow location access to see stickers near you.", 14, false, Muted);
-                location.style.marginLeft = 24f;
-                location.style.marginRight = 24f;
-                location.style.marginBottom = 8f;
-            }
-
+            exploreLocationNotice = Text(page, "", 14, false, Muted);
+            exploreLocationNotice.style.marginLeft = 24f;
+            exploreLocationNotice.style.marginRight = 24f;
+            exploreLocationNotice.style.marginBottom = 8f;
             mapRegion = new VisualElement();
             mapRegion.name = "Native MapKit region";
             mapRegion.style.flexGrow = 1f;
-            mapRegion.style.minHeight = 120f;
-            mapRegion.style.backgroundColor = (Color)new Color32(238, 237, 230, 255);
-            mapRegion.RegisterCallback<GeometryChangedEvent>(_ =>
-            {
-                mapDirty = true;
-                UpdateMapLayout();
-            });
+            mapRegion.style.minHeight = 180f;
+            mapRegion.style.backgroundColor = (Color)new Color32(236, 236, 229, 255);
+            mapRegion.RegisterCallback<GeometryChangedEvent>(_ => { mapDirty = true; UpdateMapLayout(); });
             page.Add(mapRegion);
-            if (controller.Map == null)
-            {
-                Label unavailable = Text(mapRegion, "Map is unavailable on this device.", 16, false, Muted);
-                unavailable.style.marginTop = 24f;
-                unavailable.style.marginLeft = 24f;
-            }
-            else if (state.location == null)
-            {
-                Label awaitingLocation = Text(mapRegion, "Waiting for your location…", 16, false, Muted);
-                awaitingLocation.style.marginTop = 24f;
-                awaitingLocation.style.marginLeft = 24f;
-            }
+            exploreMapMessage = Text(mapRegion, "", 16, false, Muted);
+            exploreMapMessage.style.marginTop = 24f;
+            exploreMapMessage.style.marginLeft = 24f;
+            ScrollView teaserScroll = PaperScroll(page);
+            teaserScroll.name = "Explore teaser scroll";
+            teaserScroll.style.flexGrow = 0f;
+            teaserScroll.style.flexShrink = 1f;
+            teaserScroll.style.maxHeight = Length.Percent(42f);
+            teaserScroll.style.minHeight = 0f;
+            explorePreview = Column(teaserScroll.contentContainer);
+            explorePreview.style.backgroundColor = Paper;
+            explorePreview.style.paddingLeft = 24f;
+            explorePreview.style.paddingRight = 24f;
+            explorePreview.style.paddingTop = 14f;
+            explorePreview.style.paddingBottom = 14f;
+            AddStatus(teaserScroll.contentContainer, state);
+            RefreshExplore(state);
+        }
 
-            VisualElement teaser = Column(page);
-            teaser.style.backgroundColor = Paper;
-            teaser.style.paddingLeft = 24f;
-            teaser.style.paddingRight = 24f;
-            teaser.style.paddingTop = 16f;
-            teaser.style.paddingBottom = 16f;
+        private void RefreshExplore(AppState state)
+        {
+            if (explorePreview == null) return;
+            exploreLocationNotice.text = !state.servicesConfigured ?
+                "Nearby stickers need a configured service." : !HasLocation(state) ?
+                "Allow location access to see stickers near you." : "";
+            exploreLocationNotice.style.display = string.IsNullOrEmpty(exploreLocationNotice.text) ? DisplayStyle.None : DisplayStyle.Flex;
+            exploreMapMessage.text = controller.Map == null ? "Map is unavailable on this device." :
+                state.location == null ? (state.busy ? "Finding your location…" : "Location is unavailable.") : "";
+            exploreMapMessage.style.display = string.IsNullOrEmpty(exploreMapMessage.text) ? DisplayStyle.None : DisplayStyle.Flex;
             StickerSummary selected = state.selected;
-            if (selected == null)
+            string key = selected == null ? "none:" + (state.nearby.Count == 0) : selected.id + ":" + selected.revision;
+            if (explorePreviewContents.NeedsRefresh(key))
             {
-                Text(teaser, state.nearby.Count == 0 ? "No stickers in view yet" : "Tap a sticker on the map", 20, true);
-                Label hint = Text(teaser, state.nearby.Count == 0 ? "Try another area or refresh nearby stickers." : "See its clue before you set out to find it.", 14, false, Muted);
-                hint.style.marginTop = 5f;
-                Action(teaser, "Refresh nearby", controller.RefreshNearby, false).style.alignSelf = Align.FlexStart;
-            }
-            else
-            {
-                VisualElement titleRow = Row(teaser);
-                titleRow.style.alignItems = Align.Center;
-                Art(titleRow, selected.presetId, 62f);
-                VisualElement words = Column(titleRow);
-                words.style.flexGrow = 1f;
-                words.style.marginLeft = 10f;
-                Text(words, Safe(selected.place, "A place nearby"), 20, true);
-                Text(words, "Left by " + Safe(selected.authorName, "someone nearby"), 13, false, Muted);
-                Label clue = Text(teaser, Safe(selected.teaser, "A sticker is waiting here."), 15);
-                clue.style.marginTop = 9f;
-                clue.style.marginBottom = 9f;
-                Action(teaser, "Find in AR", () =>
+                explorePreview.Clear();
+                if (selected == null)
                 {
-                    controller.StartDiscovery();
-                });
-                VisualElement secondary = Row(teaser);
-                secondary.style.justifyContent = Justify.SpaceBetween;
-                Action(secondary, "Report", () => OpenReport(selected.id), false);
-                if (!string.IsNullOrEmpty(selected.authorId)) Action(secondary, "Block author", () => OpenBlock(selected.authorId), false);
+                    exploreEmptyTitle = Text(explorePreview, "", 19, true);
+                    Text(explorePreview, state.nearby.Count == 0 ?
+                        "Try another area or refresh nearby stickers." : "See its clue before you set out to find it.", 14, false, Muted).style.marginTop = 4f;
+                    exploreRefreshButton = Action(explorePreview, "Refresh nearby", controller.RefreshNearby, false);
+                    exploreRefreshButton.style.alignSelf = Align.FlexStart;
+                    exploreFindButton = null;
+                }
+                else
+                {
+                    VisualElement titleRow = Row(explorePreview);
+                    titleRow.style.alignItems = Align.Center;
+                    Art(titleRow, selected.presetId, 68f);
+                    VisualElement words = Column(titleRow);
+                    words.style.flexGrow = 1f;
+                    words.style.marginLeft = 12f;
+                    Text(words, Safe(selected.place, "A place nearby"), 20, true);
+                    Text(words, "Left by " + Safe(selected.authorName, "someone nearby"), 13, false, Muted);
+                    Text(explorePreview, Safe(selected.teaser, "A sticker is waiting here."), 16).style.marginTop = 8f;
+                    exploreFindButton = Action(explorePreview, "Find in AR", controller.StartDiscovery);
+                    exploreRefreshButton = null;
+                    exploreEmptyTitle = null;
+                    exploreFindButton.style.marginTop = 10f;
+                    VisualElement secondary = Row(explorePreview);
+                    secondary.style.justifyContent = Justify.SpaceBetween;
+                    Action(secondary, "Report", () => OpenReport(selected.id), false);
+                    if (!string.IsNullOrEmpty(selected.authorId)) Action(secondary, "Block author", () => OpenBlock(selected.authorId), false);
+                }
             }
-            AddStatus(page, state);
+            if (exploreFindButton != null) SetDisabled(exploreFindButton, state.busy);
+            if (exploreRefreshButton != null) SetDisabled(exploreRefreshButton, state.busy);
+            if (exploreEmptyTitle != null) exploreEmptyTitle.text = state.busy ? "Looking for nearby stickers" :
+                state.nearby.Count == 0 ? "No stickers in view yet" : "Tap a sticker on the map";
         }
 
         private void UpdateMapLayout()
@@ -285,163 +303,181 @@ namespace Tagtag.UI
             controller.Map.Show(screenRect, controller.State.location, controller.State.nearby);
         }
 
+        private VisualElement stickGuidance;
+        private VisualElement stickActions;
+        private Button stickPrimaryButton;
+        private readonly PresenterCache stickModeContents = new PresenterCache();
+        private Label cameraTitleLabel;
+        private Label cameraDetailLabel;
+        private Button cameraRecoveryButton;
+
         private void BuildStick(AppState state)
         {
-            VisualElement page = Column(safeRoot);
+            stickModeContents.Reset();
+            VisualElement page = Column(screenHost);
+            page.name = "STICK camera";
             page.style.flexGrow = 1f;
             page.style.minHeight = 0f;
             page.style.justifyContent = Justify.SpaceBetween;
             page.style.backgroundColor = Color.clear;
+            cameraCover = Column(page);
+            cameraCover.name = "Opaque camera cover";
+            cameraCover.style.position = Position.Absolute;
+            cameraCover.style.left = 0f;
+            cameraCover.style.right = 0f;
+            cameraCover.style.top = 0f;
+            cameraCover.style.bottom = 0f;
+            cameraCover.style.backgroundColor = Paper;
+            cameraCover.style.alignItems = Align.Center;
+            cameraCover.style.justifyContent = Justify.Center;
+            cameraCover.style.paddingLeft = 30f;
+            cameraCover.style.paddingRight = 30f;
+            Art(cameraCover, "taggi-1", 100f).style.marginBottom = 18f;
+            cameraTitleLabel = Text(cameraCover, "Getting the camera ready", 23, true);
+            cameraTitleLabel.style.unityTextAlign = TextAnchor.MiddleCenter;
+            cameraDetailLabel = Text(cameraCover, "Hold your phone up while the camera starts.", 15, false, Muted);
+            cameraDetailLabel.style.unityTextAlign = TextAnchor.MiddleCenter;
+            cameraDetailLabel.style.marginTop = 7f;
+            cameraRecoveryButton = Action(cameraCover, "Try camera again", () =>
+            {
+                if (controller?.Ar?.CameraPresentation == CameraPresentationState.PermissionDenied)
+                    Application.OpenURL("app-settings:");
+                else controller?.Ar?.Enter();
+            });
+            cameraRecoveryButton.style.marginTop = 16f;
             VisualElement top = Column(page);
-            top.style.marginLeft = 20f;
-            top.style.marginRight = 20f;
+            top.style.marginLeft = 18f;
+            top.style.marginRight = 18f;
             top.style.marginTop = 12f;
-            top.style.paddingLeft = 16f;
-            top.style.paddingRight = 16f;
-            top.style.paddingTop = 12f;
-            top.style.paddingBottom = 12f;
+            top.style.paddingLeft = 14f;
+            top.style.paddingRight = 14f;
+            top.style.paddingTop = 10f;
+            top.style.paddingBottom = 10f;
             top.style.backgroundColor = Paper;
-            top.style.borderTopLeftRadius = 16f;
-            top.style.borderTopRightRadius = 16f;
-            top.style.borderBottomLeftRadius = 16f;
-            top.style.borderBottomRightRadius = 16f;
+            top.style.borderTopLeftRadius = 14f;
+            top.style.borderTopRightRadius = 14f;
+            top.style.borderBottomLeftRadius = 14f;
+            top.style.borderBottomRightRadius = 14f;
             Text(top, "Find it. Tap it. Keep the story.", 18, true);
-            string tracking = controller.Ar == null ? "AR is unavailable on this device." : Safe(controller.Ar.Status, controller.Ar.IsTracking ? "Move your phone slowly to scan." : "Looking for a surface…");
-            Label trackingLabel = Text(top, tracking, 14, false, Muted);
-            trackingLabel.style.marginTop = 4f;
-            if (!HasLocation(state)) Text(top, "Location is needed to place or collect a sticker.", 13, false, Muted);
-            if (state.selected != null)
-            {
-                Label clue = Text(top, "Find " + Safe(state.selected.place, "the place") + ": " + Safe(state.selected.teaser, "Look for the sticker."), 14);
-                clue.style.marginTop = 8f;
-                Text(top, "Tap the sticker in the camera to unlock its note. Being nearby is not enough.", 13, false, Muted);
-            }
+            cameraTrackingLabel = Text(top, "", 14, false, Muted);
+            cameraTrackingLabel.style.marginTop = 3f;
+            stickGuidance = Column(top);
             AddStatus(top, state);
+            VisualElement dock = Column(page);
+            dock.style.paddingLeft = 18f;
+            dock.style.paddingRight = 18f;
+            dock.style.paddingTop = 10f;
+            dock.style.paddingBottom = 12f;
+            dock.style.backgroundColor = Paper;
+            dock.style.borderTopLeftRadius = 22f;
+            dock.style.borderTopRightRadius = 22f;
+            stickActions = Column(dock);
+            RefreshStick(state);
+            RefreshCamera(state);
+        }
 
-            VisualElement composer = Column(page);
-            composer.style.backgroundColor = Paper;
-            composer.style.borderTopLeftRadius = 22f;
-            composer.style.borderTopRightRadius = 22f;
-            composer.style.paddingTop = 13f;
-            composer.style.paddingBottom = 14f;
-            composer.style.paddingLeft = 20f;
-            composer.style.paddingRight = 20f;
-            composer.style.height = Length.Percent(string.IsNullOrEmpty(state.selectedPreset) ? 33f : 52f);
-            composer.style.maxHeight = Length.Percent(65);
-            ScrollView scroll = new ScrollView(ScrollViewMode.Vertical);
-            activeDraftScroll = scroll;
-            scroll.style.flexGrow = 1f;
-            scroll.style.minHeight = 0f;
-            composer.Add(scroll);
-            VisualElement content = scroll.contentContainer;
-            if (state.selected != null && string.IsNullOrEmpty(state.selectedPreset))
+        private void RefreshStick(AppState state)
+        {
+            if (stickActions == null) return;
+            string mode = !string.IsNullOrEmpty(state.selectedPreset) ? "placing:" + state.selectedPreset :
+                state.selected != null ? "discovering:" + state.selected.id : "idle";
+            mode += ":" + HasLocation(state);
+            if (stickModeContents.NeedsRefresh(mode))
             {
-                Text(content, "Find Taggi", 21, true);
-                Text(content, "Move slowly around the place. Once the sticker is tracked, tap it in the camera to unlock the note.", 14, false, Muted).style.marginTop = 8f;
-                Button retry = Action(content, state.busy ? "Finding…" : "Retry AR search", controller.StartDiscovery);
-                retry.style.marginTop = 12f;
-                SetDisabled(retry, state.busy || controller.Ar == null);
-                Action(content, "Back to Explore", () => controller.Navigate(AppPage.Explore), false).style.marginTop = 7f;
-                Action(content, "Leave your own sticker", () => controller.SelectPreset(Presets[0]), false).style.marginTop = 7f;
-                return;
-            }
-            Text(content, "Leave a sticker", 21, true);
-            Label intro = Text(content, "Choose Taggi, place it on a surface, then leave a clue and a note.", 14, false, Muted);
-            intro.style.marginTop = 5f;
-            intro.style.marginBottom = 9f;
-            VisualElement presets = Row(content);
-            presets.style.justifyContent = Justify.SpaceBetween;
-            foreach (string presetId in Presets)
-            {
-                string selectedId = presetId;
-                Button choice = new Button(() => controller.SelectPreset(selectedId));
-                choice.name = "Select " + presetId;
-                choice.tooltip = "Select Taggi pose " + presetId.Substring(presetId.Length - 1);
-                choice.style.flexGrow = 1f;
-                choice.style.minWidth = 60f;
-                choice.style.minHeight = 68f;
-                choice.style.marginRight = 4f;
-                choice.style.marginLeft = 4f;
-                choice.style.borderTopLeftRadius = 12f;
-                choice.style.borderTopRightRadius = 12f;
-                choice.style.borderBottomLeftRadius = 12f;
-                choice.style.borderBottomRightRadius = 12f;
-                choice.style.borderTopWidth = 2f;
-                choice.style.borderRightWidth = 2f;
-                choice.style.borderBottomWidth = 2f;
-                choice.style.borderLeftWidth = 2f;
-                choice.style.borderTopColor = state.selectedPreset == presetId ? Ink : Line;
-                choice.style.borderRightColor = state.selectedPreset == presetId ? Ink : Line;
-                choice.style.borderBottomColor = state.selectedPreset == presetId ? Ink : Line;
-                choice.style.borderLeftColor = state.selectedPreset == presetId ? Ink : Line;
-                choice.style.backgroundColor = Paper;
-                Art(choice, presetId, 58f);
-                presets.Add(choice);
-            }
-
-            if (!string.IsNullOrEmpty(state.selectedPreset))
-            {
-                Label instruction = Text(content, "Move your phone to place Taggi. Pinch to resize and twist to rotate.", 13, false, Muted);
-                instruction.style.marginTop = 9f;
-                DraftField(content, "Place", draftPlace, 80, false, value => draftPlace = value);
-                DraftField(content, "A short clue people can see before finding it", draftTeaser, 180, false, value => draftTeaser = value);
-                DraftField(content, "Your note, unlocked when they find Taggi", draftNote, 2000, true, value => draftNote = value);
-                if (!SignedIn(state))
+                stickGuidance.Clear();
+                stickActions.Clear();
+                stickPrimaryButton = null;
+                if (!HasLocation(state)) Text(stickGuidance, "Location is needed to place or collect a sticker.", 13, false, Muted);
+                if (state.selected != null)
                 {
-                    Text(content, "Sign in to publish. Your draft will stay here.", 14, false, Muted);
-                    Action(content, "Sign in to publish", OpenSignIn).style.marginTop = 8f;
+                    Text(stickGuidance, "Find " + Safe(state.selected.place, "the place") + ": " +
+                        Safe(state.selected.teaser, "Look for the sticker."), 14).style.marginTop = 6f;
+                    Text(stickGuidance, "Tap its image in AR to unlock the full note.", 13, false, Muted);
+                }
+                if (!string.IsNullOrEmpty(state.selectedPreset))
+                {
+                    Text(stickActions, "Position Taggi · Pinch to resize · Twist to rotate", 13, false, Muted);
+                    stickPrimaryButton = Action(stickActions, "Write note", () => { sheet = Sheet.Note; QueueRender(); });
+                    stickPrimaryButton.style.marginTop = 7f;
+                    VisualElement secondary = Row(stickActions);
+                    secondary.style.justifyContent = Justify.SpaceBetween;
+                    Action(secondary, "Change pose", () => { sheet = Sheet.Picker; QueueRender(); }, false);
+                    Action(secondary, "Cancel placement", controller.CancelPlacement, false);
+                }
+                else if (state.selected != null)
+                {
+                    Text(stickActions, "Look around slowly for Taggi.", 15, true);
+                    stickPrimaryButton = Action(stickActions, "Retry AR search", controller.StartDiscovery);
+                    Action(stickActions, "Back to Explore", () => controller.Navigate(AppPage.Explore), false);
                 }
                 else
                 {
-                    Button publish = Action(content, state.busy ? "Publishing…" : state.hasPendingPublication ? "Retry publish" : "Publish sticker", () =>
-                    {
-                        controller.SetDraft(draftPlace, draftTeaser, draftNote);
-                        controller.Publish();
-                    });
-                    publish.style.marginTop = 12f;
-                    SetDisabled(publish, state.busy || (!state.hasPendingPublication && (controller.Ar == null || !controller.Ar.CanPublish)) ||
-                        string.IsNullOrWhiteSpace(draftPlace) || string.IsNullOrWhiteSpace(draftTeaser) || string.IsNullOrWhiteSpace(draftNote));
-                    if (state.hasPendingPublication)
-                    {
-                        Text(content, "Your saved placement is ready to retry. Your note is still here.", 13, false, Muted);
-                    }
-                    else if (controller.Ar != null && !controller.Ar.CanPublish)
-                    {
-                        Text(content, "Publishing becomes available after tracking and location are ready.", 13, false, Muted);
-                    }
+                    Text(stickActions, "Leave something worth finding.", 16, true);
+                    stickPrimaryButton = Action(stickActions, "Leave a sticker", () => { sheet = Sheet.Picker; QueueRender(); });
+                    stickPrimaryButton.style.marginTop = 6f;
                 }
-                Action(content, "Cancel placement", controller.CancelPlacement, false).style.marginTop = 6f;
             }
-            else if (state.selected == null)
-            {
-                Text(content, "Or walk toward a sticker on Explore and find it through the camera.", 13, false, Muted).style.marginTop = 10f;
-            }
+            if (stickPrimaryButton != null) SetDisabled(stickPrimaryButton, state.busy ||
+                (state.selected != null && controller.Ar == null));
+            if (cameraTrackingLabel != null)
+                cameraTrackingLabel.text = controller.Ar == null ? "AR is unavailable on this device." :
+                    Safe(controller.Ar.Status, controller.Ar.IsTracking ? "Look around for Taggi." : "Move slowly to scan your surroundings.");
         }
 
-        private void DraftField(VisualElement parent, string label, string value, int maxLength, bool multiline, Action<string> save)
+        private void RefreshCamera(AppState state)
         {
-            TextField field = new TextField(label);
+            if (root == null) return;
+            CameraPresentationState presentation = controller?.Ar?.CameraPresentation ?? CameraPresentationState.Unavailable;
+            CameraMessage message = PaperFlow.Camera(presentation);
+            bool stickVisible = state.page == AppPage.Stick && !state.accountOpen;
+            root.style.backgroundColor = stickVisible && !message.Cover ? Color.clear : Paper;
+            if (cameraCover == null) return;
+            cameraCover.style.display = message.Cover ? DisplayStyle.Flex : DisplayStyle.None;
+            cameraTitleLabel.text = message.Title;
+            cameraDetailLabel.text = message.Detail;
+            cameraRecoveryButton.style.display = message.Recovery == CameraRecovery.None ? DisplayStyle.None : DisplayStyle.Flex;
+            cameraRecoveryButton.text = message.Recovery == CameraRecovery.Settings ? "Open Settings" : "Try camera again";
+        }
+
+        private void RefreshPublish(AppState state)
+        {
+            if (publishButton == null) return;
+            publishButton.text = state.busy ? "Publishing…" : state.hasPendingPublication ? "Retry publish" : "Publish sticker";
+            SetDisabled(publishButton, !PaperFlow.CanPresentPublish(draftPlace, draftTeaser, draftNote,
+                controller?.Ar?.CanPublish ?? false, state.busy, state.hasPendingPublication));
+        }
+
+        private PaperField DraftField(VisualElement parent, string label, string value, int maxLength,
+            bool multiline, Action<string> save, string helper)
+        {
+            PaperField field = new PaperField(label, value, maxLength, multiline, helper, true);
             field.name = label;
             field.tooltip = label;
-            field.value = value;
-            field.maxLength = maxLength;
-            field.multiline = multiline;
             field.style.fontSize = Mathf.RoundToInt(16f * textScale);
-            field.style.color = Ink;
-            field.style.minHeight = multiline ? 100f : 64f;
-            field.style.marginTop = 10f;
+            field.style.unityFont = BodyFont;
             parent.Add(field);
-            field.RegisterCallback<FocusInEvent>(_ => focusedField = field);
+            field.RegisterCallback<FocusInEvent>(_ =>
+            {
+                focusedField = field;
+                lastDraftFieldName = field.name;
+            });
             field.RegisterCallback<FocusOutEvent>(_ =>
             {
+                lastDraftFieldName = field.name;
+                lastDraftCursor = field.cursorIndex;
+                lastDraftSelection = field.selectIndex;
                 if (focusedField == field) focusedField = null;
-                QueueRender();
+                field.PresentError(string.IsNullOrWhiteSpace(field.value) ? "Add " + label.ToLowerInvariant() + " before publishing." : "");
             });
             field.RegisterValueChangedCallback(evt =>
             {
                 save(evt.newValue);
+                if (!string.IsNullOrWhiteSpace(evt.newValue)) field.PresentError("");
                 controller.SetDraft(draftPlace, draftTeaser, draftNote);
+                RefreshPublish(controller.State);
             });
+            return field;
         }
+
     }
 }

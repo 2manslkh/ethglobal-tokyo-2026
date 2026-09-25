@@ -159,6 +159,8 @@ namespace Tagtag.UI
             }
             SetValueWithoutNotify(initialValue ?? "");
             this.RegisterValueChangedCallback(e => { if (e.target == this) UpdateCount(); });
+            RegisterCallback<FocusInEvent>(_ => AddToClassList("is-focused"));
+            RegisterCallback<FocusOutEvent>(_ => RemoveFromClassList("is-focused"));
         }
 
         public override void SetValueWithoutNotify(string newValue)
@@ -170,6 +172,19 @@ namespace Tagtag.UI
         private void UpdateCount()
         {
             if (counter != null) counter.text = (value?.Length ?? 0) + " / " + maxLength;
+        }
+
+        public void ApplyScale(float scale)
+        {
+            float heading = Mathf.RoundToInt(16f * scale);
+            float support = Mathf.RoundToInt(13f * scale);
+            var title = this.Q<Label>(className: "unity-base-field__label");
+            if (title != null) title.style.fontSize = heading;
+            var input = this.Q<VisualElement>(className: "unity-base-text-field__input");
+            if (input != null) input.style.fontSize = heading;
+            helper.style.fontSize = support;
+            error.style.fontSize = support;
+            if (counter != null) counter.style.fontSize = support;
         }
 
         public void PresentError(string message)

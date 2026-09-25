@@ -51,6 +51,20 @@ namespace Tagtag.UI
                 !string.IsNullOrWhiteSpace(place) && !string.IsNullOrWhiteSpace(teaser) &&
                 !string.IsNullOrWhiteSpace(note);
         }
+
+        public static bool ShouldClearPublishedDraft(bool submitted, AppState state)
+        {
+            return submitted && state != null && !state.busy && !state.hasPendingPublication &&
+                string.IsNullOrEmpty(state.error) && string.IsNullOrEmpty(state.selectedPreset) &&
+                string.IsNullOrEmpty(state.draftPlace) && string.IsNullOrEmpty(state.draftTeaser) &&
+                string.IsNullOrEmpty(state.draftNote);
+        }
+
+        public static bool ShouldAnimateCollection(AppPage previousPage, AppState state, string lastPresentedId)
+        {
+            return previousPage == AppPage.Stick && state != null && state.page == AppPage.Home &&
+                !string.IsNullOrEmpty(state.detail?.id) && state.detail.id != lastPresentedId;
+        }
     }
 
     public sealed class PaperActivation

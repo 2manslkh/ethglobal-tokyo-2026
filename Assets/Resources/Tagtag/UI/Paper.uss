@@ -10,19 +10,23 @@
 .paper-app .paper-button.primary:active { background-color:#e9c83e; }
 .paper-app .paper-button:disabled { opacity:1; color:#68665f; background-color:#ebe9e2; }
 .paper-app .paper-button:focus { border-width:2px; border-color:#20201e; }
+.paper-app .paper-button.auth-provider-apple,.paper-app .paper-button.auth-provider-google { min-height:54px; color:#20201e; background-color:#ffffff; border-width:1px; border-color:#cbc9c1; }
+.paper-app .paper-button.auth-provider-apple:hover,.paper-app .paper-button.auth-provider-google:hover { background-color:#f2f0e9; }
+.paper-app .paper-button.auth-provider-apple:active,.paper-app .paper-button.auth-provider-google:active { background-color:#e6e3da; }
+.paper-app .paper-button.auth-provider-apple:disabled,.paper-app .paper-button.auth-provider-google:disabled { color:#68665f; background-color:#ebe9e2; border-color:#cbc9c1; }
 .paper-app .icon-button { min-width:48px; padding:10px; align-items:center; justify-content:center; }
 .paper-app .paper-selection { min-height:52px; padding-right:32px; -unity-text-align:middle-left; border-width:1px; border-color:#d2d0c8; }
 .paper-app .paper-selection.selected { border-color:#20201e; background-color:#fff6d2; }
 .paper-app .selection-check { position:absolute; right:10px; top:17px; }
-.paper-app .paper-field { margin-top:12px; color:#20201e; min-height:76px; }
+.paper-app .paper-field { margin-top:12px; color:#20201e; min-height:76px; flex-direction:column; align-items:stretch; flex-shrink:0; min-width:0; }
 .paper-app .paper-field.multiline { min-height:172px; }
-.paper-app .paper-field .unity-text-field__label { margin-bottom:7px; color:#20201e; white-space:normal; }
-.paper-app .paper-field .unity-base-text-field__input { min-height:48px; padding:11px 12px; border-width:1px; border-color:#cbc9c1; border-radius:12px; background-color:#ffffff; color:#20201e; white-space:normal; }
+.paper-app .paper-field .unity-base-field__label { width:auto; min-width:0; align-self:stretch; margin-bottom:7px; color:#20201e; white-space:normal; }
+.paper-app .paper-field .unity-base-text-field__input { width:100%; flex-shrink:0; min-height:48px; padding:11px 12px; border-width:1px; border-color:#cbc9c1; border-radius:12px; background-color:#ffffff; color:#20201e; white-space:normal; }
 .paper-app .paper-field.multiline .unity-base-text-field__input { min-height:110px; }
-.paper-app .paper-field:focus-within .unity-base-text-field__input { border-width:2px; border-color:#20201e; }
+.paper-app .paper-field.is-focused .unity-base-text-field__input { border-width:2px; border-color:#20201e; }
 .paper-app .paper-field.invalid .unity-base-text-field__input { border-color:#a62920; background-color:#fff7f4; }
 .paper-app .paper-field:disabled .unity-base-text-field__input { color:#68665f; background-color:#ebe9e2; }
-.paper-app .field-support { flex-direction:row; justify-content:space-between; margin-top:5px; }
+.paper-app .field-support { width:100%; flex-direction:row; justify-content:space-between; margin-top:5px; }
 .paper-app .field-messages { flex-grow:1; flex-shrink:1; }
 .paper-app .field-helper,.paper-app .field-counter { color:#5c5b55; font-size:13px; }
 .paper-app .field-error { color:#a62920; font-size:13px; }
@@ -41,6 +45,7 @@
 .paper-app .paper-nav-item { flex-grow:1; flex-basis:0; min-width:48px; min-height:56px; margin:0 3px; padding:4px; flex-direction:column; align-items:center; justify-content:center; background-color:transparent; border-radius:14px; }
 .paper-app .paper-nav-item .nav-label { font-size:12px; margin-top:3px; }
 .paper-app .paper-nav-item.nav-stick { background-color:#ffe15a; }
+.paper-app .paper-nav-item.nav-stick.nav-unselected { color:#20201e; }
 .paper-app .paper-nav-item.nav-selected { color:#20201e; }
 .paper-app .paper-nav-item.nav-unselected { color:#696861; }
 .paper-app .nav-selection-marker { width:12px; height:2px; border-radius:1px; background-color:#20201e; margin-top:3px; }
@@ -50,7 +55,7 @@
 .paper-app .drawer-handle { width:36px; height:4px; border-radius:2px; background-color:#cbc9c1; }
 .paper-app .sheet-heading { flex-direction:row; min-height:52px; align-items:center; justify-content:space-between; }
 .paper-app .sheet-title { font-size:22px; color:#20201e; }
-.paper-app .drawer-scroll { flex-grow:1; min-height:0; }
+.paper-app .drawer-scroll { flex-shrink:1; min-height:0; }
 .paper-app .drawer-scroll .unity-scroller--vertical,.paper-app .drawer-scroll .unity-scroller--horizontal { display:none; }
 .paper-app .paper-notice { min-height:44px; flex-direction:row; align-items:center; padding:9px 12px; background-color:#f2f0e9; border-radius:12px; }
 .paper-app .paper-notice.error { background-color:#fff0ec; color:#93271e; }

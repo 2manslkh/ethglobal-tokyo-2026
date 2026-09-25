@@ -52,5 +52,44 @@ namespace Tagtag.UI.Tests
             Assert.AreEqual(AppNavigationReason.TopLevel, navigation.Observe("Explore", true));
             Assert.AreEqual(AppNavigationReason.Refresh, navigation.Observe("Explore", true));
         }
+
+        [Test]
+        public void ReturningToATabWithTheSameDataStillPopulatesItsNewHost()
+        {
+            PresenterCache cache = new PresenterCache();
+            Assert.IsTrue(cache.NeedsRefresh("two-collected"));
+            Assert.IsFalse(cache.NeedsRefresh("two-collected"));
+            cache.Reset();
+            Assert.IsTrue(cache.NeedsRefresh("two-collected"));
+        }
+
+        [Test]
+        public void OnlyASuccessfulSubmittedPublicationClearsTheLocalDraft()
+        {
+            AppState state = new AppState { selectedPreset = "taggi-2", draftPlace = "River", draftTeaser = "Bridge", draftNote = "Look up" };
+            Assert.IsFalse(PaperFlow.ShouldClearPublishedDraft(true, state));
+            state.busy = true;
+            state.selectedPreset = "";
+            state.draftPlace = state.draftTeaser = state.draftNote = "";
+            Assert.IsFalse(PaperFlow.ShouldClearPublishedDraft(true, state));
+            state.busy = false;
+            Assert.IsTrue(PaperFlow.ShouldClearPublishedDraft(true, state));
+            state.error = "Cleanup failed";
+            Assert.IsFalse(PaperFlow.ShouldClearPublishedDraft(true, state));
+            state.error = "";
+            Assert.IsFalse(PaperFlow.ShouldClearPublishedDraft(false, state));
+        }
+
+        [Test]
+        public void ArtworkCommitRunsOnlyForANewCollectionFromStick()
+        {
+            AppState state = new AppState { page = AppPage.Home,
+                detail = new CollectedSticker { id = "river" } };
+            Assert.IsTrue(PaperFlow.ShouldAnimateCollection(AppPage.Stick, state, null));
+            Assert.IsFalse(PaperFlow.ShouldAnimateCollection(AppPage.Home, state, null));
+            Assert.IsFalse(PaperFlow.ShouldAnimateCollection(AppPage.Stick, state, "river"));
+            state.detail = null;
+            Assert.IsFalse(PaperFlow.ShouldAnimateCollection(AppPage.Stick, state, null));
+        }
     }
 }

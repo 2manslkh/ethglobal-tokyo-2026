@@ -67,5 +67,40 @@ namespace Tagtag.UI.Tests
             state.location = null;
             Assert.IsFalse(MapPresentation.ShouldShow(state, false));
         }
+
+        [Test]
+        public void OpeningASheetHidesAMountedNativeMapBeforeItsOverlayAppears()
+        {
+            AppState state = new AppState { page = AppPage.Explore, location = new LocationFix { accuracyMeters = 10f } };
+            CountingMap map = new CountingMap();
+            Assert.IsTrue(MapPresentation.SyncVisibility(state, false, map));
+            Assert.IsFalse(MapPresentation.SyncVisibility(state, true, map));
+            Assert.AreEqual(1, map.HideCount);
+            Assert.IsTrue(MapPresentation.SyncVisibility(state, false, map));
+        }
+
+        [Test]
+        public void CollectedDetailRefreshesWhenSyncRevokesOrReplacesTheSameSticker()
+        {
+            PresenterCache cache = new PresenterCache();
+            CollectedSticker original = new CollectedSticker { id = "river", revision = 1, note = "First note" };
+            CollectedSticker replacement = new CollectedSticker { id = "river", revision = 2, note = "Updated note" };
+            Assert.IsTrue(cache.NeedsRefresh(CollectionPresentation.DetailKey(original, false)));
+            Assert.IsFalse(cache.NeedsRefresh(CollectionPresentation.DetailKey(original, false)));
+            Assert.IsTrue(cache.NeedsRefresh(CollectionPresentation.DetailKey(replacement, false)));
+            replacement.unavailable = true;
+            replacement.note = "";
+            Assert.IsTrue(cache.NeedsRefresh(CollectionPresentation.DetailKey(replacement, false)));
+            Assert.IsTrue(cache.NeedsRefresh(CollectionPresentation.DetailKey(null, false)));
+        }
+
+        private sealed class CountingMap : IMapExperience
+        {
+            public int HideCount;
+            public event System.Action<string> StickerSelected;
+            public void Show(UnityEngine.Rect bounds, LocationFix location, System.Collections.Generic.IReadOnlyList<StickerSummary> stickers) { }
+            public void Hide() { HideCount++; }
+            public void Recenter(LocationFix location) { }
+        }
     }
 }

@@ -7,9 +7,21 @@ namespace Tagtag.UI
 {
     public sealed partial class TagtagAppView
     {
+        private Label accountCollectionCount;
+        private Label accountAuthoredCount;
+        private VisualElement authoredListHost;
+        private readonly PresenterCache authoredListContents = new PresenterCache();
+        private PaperSwitch accountMotionSwitch;
+        private readonly List<PaperSelection> textSizeChoices = new List<PaperSelection>();
+        private readonly List<Button> authoredWithdrawButtons = new List<Button>();
+        private Button appleSignInButton;
+        private Button googleSignInButton;
+        private Button deleteButton;
+        private PaperField deleteField;
+
         private void BuildAccount(AppState state)
         {
-            VisualElement heading = Row(safeRoot);
+            VisualElement heading = Row(screenHost);
             heading.style.height = 62f;
             heading.style.paddingLeft = 16f;
             heading.style.paddingRight = 20f;
@@ -18,6 +30,7 @@ namespace Tagtag.UI
             {
                 if (accountScreen == AccountScreen.Overview || accountScreen == AccountScreen.SignIn)
                 {
+                    if (accountScreen == AccountScreen.SignIn && returnAfterSignIn != Sheet.None) RestoreSignInSheet();
                     controller.SetAccountOpen(false);
                 }
                 else
@@ -28,11 +41,10 @@ namespace Tagtag.UI
             }, false);
             Text(heading, accountScreen == AccountScreen.SignIn ? "Sign in" : accountScreen == AccountScreen.Authored ? "Your stickers" : accountScreen == AccountScreen.DeleteConfirmation ? "Delete account" : "Account", 21, true);
 
-            ScrollView scroll = new ScrollView(ScrollViewMode.Vertical);
-            scroll.style.flexGrow = 1f;
+            ScrollView scroll = PaperScroll(screenHost);
+            scroll.name = "Account scroll";
             scroll.style.paddingLeft = 24f;
             scroll.style.paddingRight = 24f;
-            safeRoot.Add(scroll);
             VisualElement content = scroll.contentContainer;
 
             if (accountScreen == AccountScreen.SignIn && !SignedIn(state)) BuildSignIn(content, state);
@@ -40,6 +52,21 @@ namespace Tagtag.UI
             else if (accountScreen == AccountScreen.DeleteConfirmation) BuildDeleteConfirmation(content, state);
             else BuildAccountOverview(content, state);
             AddStatus(content, state);
+            RefreshAccount(state);
+        }
+
+        private void RefreshAccount(AppState state)
+        {
+            if (accountCollectionCount != null) accountCollectionCount.text = CollectionPresentation.OrderedDistinct(state.collection).Count.ToString();
+            if (accountAuthoredCount != null) accountAuthoredCount.text = state.authored.Count.ToString();
+            if (accountMotionSwitch != null && accountMotionSwitch.value != reducedMotion) accountMotionSwitch.SetValueWithoutNotify(reducedMotion);
+            foreach (PaperSelection size in textSizeChoices)
+                if (size.userData is float value) size.SetSelected(Mathf.Abs(textScale - value) < .01f);
+            if (deleteButton != null) SetDisabled(deleteButton, deleteConfirmation != "DELETE" || state.busy);
+            if (appleSignInButton != null) SetDisabled(appleSignInButton, state.busy || !state.servicesConfigured);
+            if (googleSignInButton != null) SetDisabled(googleSignInButton, state.busy || !state.servicesConfigured);
+            foreach (Button button in authoredWithdrawButtons) SetDisabled(button, state.busy);
+            if (authoredListHost != null) RefreshAuthored(state);
         }
 
         private void BuildSignIn(VisualElement content, AppState state)
@@ -49,15 +76,23 @@ namespace Tagtag.UI
             explanation.style.marginTop = 12f;
             explanation.style.marginBottom = 24f;
             Button apple = Action(content, "Continue with Apple", () => controller.SignIn("apple"));
+            appleSignInButton = apple;
+            apple.AddToClassList("auth-provider-apple");
             apple.style.marginBottom = 10f;
             SetDisabled(apple, state.busy || !state.servicesConfigured);
             Button google = Action(content, "Continue with Google", () => controller.SignIn("google"));
+            googleSignInButton = google;
+            google.AddToClassList("auth-provider-google");
             SetDisabled(google, state.busy || !state.servicesConfigured);
             if (!state.servicesConfigured)
             {
                 Text(content, "Sign-in is unavailable until the service is configured.", 14, false, Muted).style.marginTop = 12f;
             }
-            Action(content, "Continue exploring", () => controller.SetAccountOpen(false), false).style.marginTop = 20f;
+            Action(content, "Continue exploring", () =>
+            {
+                AbandonSignInReturn();
+                controller.SetAccountOpen(false);
+            }, false).style.marginTop = 20f;
         }
 
         private void BuildAccountOverview(VisualElement content, AppState state)
@@ -75,7 +110,7 @@ namespace Tagtag.UI
             collection.style.justifyContent = Justify.SpaceBetween;
             collection.style.alignItems = Align.Center;
             Text(collection, "Collected stickers", 17, true);
-            Text(collection, CollectionPresentation.OrderedDistinct(state.collection).Count.ToString(), 17, false, Muted);
+            accountCollectionCount = Text(collection, CollectionPresentation.OrderedDistinct(state.collection).Count.ToString(), 17, false, Muted);
             Action(content, "Open sticker book", () =>
             {
                 controller.SetAccountOpen(false);
@@ -86,7 +121,7 @@ namespace Tagtag.UI
             authored.style.alignItems = Align.Center;
             authored.style.justifyContent = Justify.SpaceBetween;
             Text(authored, "Stickers you left", 17, true);
-            Text(authored, state.authored.Count.ToString(), 17, false, Muted);
+            accountAuthoredCount = Text(authored, state.authored.Count.ToString(), 17, false, Muted);
             Action(content, "Manage your stickers", () =>
             {
                 accountScreen = AccountScreen.Authored;
@@ -98,19 +133,23 @@ namespace Tagtag.UI
             size.style.marginTop = 12f;
             VisualElement sizes = Row(content);
             sizes.style.marginTop = 7f;
+            textSizeChoices.Clear();
             AddTextSize(sizes, "Standard", 1f);
             AddTextSize(sizes, "Larger", 1.2f);
             AddTextSize(sizes, "Largest", 1.4f);
-            Button motion = Action(content, reducedMotion ? "Reduced motion: on" : "Reduced motion: off", () =>
+            PaperSwitch motion = new PaperSwitch("Reduced motion", reducedMotion,
+                "Page changes stay still. AR movement follows your camera.");
+            accountMotionSwitch = motion;
+            content.Add(motion);
+            motion.RegisterValueChangedCallback(evt =>
             {
-                reducedMotion = !reducedMotion;
+                if (evt.target != motion) return;
+                reducedMotion = evt.newValue;
                 PlayerPrefs.SetInt("tagtag.reducedMotion", reducedMotion ? 1 : 0);
                 PlayerPrefs.Save();
-                QueueRender();
-            }, false);
-            motion.style.alignSelf = Align.FlexStart;
+                root.EnableInClassList("reduced-motion", reducedMotion);
+            });
             motion.style.marginTop = 12f;
-            Text(content, "Page changes stay still. AR movement follows your camera.", 13, false, Muted);
             Divider(content);
             Action(content, "Sign out", () =>
             {
@@ -127,13 +166,18 @@ namespace Tagtag.UI
 
         private void AddTextSize(VisualElement parent, string label, float scale)
         {
-            Button button = Action(parent, label, () =>
+            PaperSelection button = new PaperSelection(label, Mathf.Abs(textScale - scale) < .01f, () =>
             {
                 textScale = scale;
                 PlayerPrefs.SetFloat("tagtag.textScale", scale);
                 PlayerPrefs.Save();
-                QueueRender();
-            }, Mathf.Abs(textScale - scale) < 0.01f);
+                ApplyTextScale();
+                RefreshAccount(controller.State);
+            });
+            button.userData = scale;
+            button.style.unityFont = SemiboldFont;
+            parent.Add(button);
+            textSizeChoices.Add(button);
             button.style.flexGrow = 1f;
             button.style.marginRight = 4f;
             button.style.paddingLeft = 5f;
@@ -143,23 +187,37 @@ namespace Tagtag.UI
         private void BuildAuthored(VisualElement content, AppState state)
         {
             Text(content, "Stickers you left", 27, true).style.marginTop = 22f;
-            Text(content, "Withdraw a sticker to stop new discoveries. Copies already collected remain in other books.", 14, false, Muted).style.marginTop = 8f;
+            Text(content, "Withdraw a sticker to stop new discoveries. Copies already collected remain in other books.",
+                14, false, Muted).style.marginTop = 8f;
+            authoredListHost = Column(content);
+            authoredListContents.Reset();
+            RefreshAuthored(state);
+        }
+
+        private void RefreshAuthored(AppState state)
+        {
+            if (authoredListHost == null) return;
+            string key = state.authored.Count.ToString();
+            foreach (StickerSummary item in state.authored)
+                if (item != null) key += ":" + item.id + ":" + item.revision;
+            if (!authoredListContents.NeedsRefresh(key)) return;
+            authoredListHost.Clear();
+            authoredWithdrawButtons.Clear();
             if (state.authored.Count == 0)
             {
-                Text(content, "You have not left a sticker yet.", 16, false, Muted).style.marginTop = 28f;
-                Action(content, "Open STICK", () =>
+                Text(authoredListHost, "You have not left a sticker yet.", 16, false, Muted).style.marginTop = 28f;
+                Action(authoredListHost, "Open STICK", () =>
                 {
                     controller.SetAccountOpen(false);
                     controller.Navigate(AppPage.Stick);
                 }).style.marginTop = 15f;
                 return;
             }
-
             foreach (StickerSummary sticker in state.authored)
             {
                 if (sticker == null || string.IsNullOrEmpty(sticker.id)) continue;
-                Divider(content);
-                VisualElement row = Row(content);
+                Divider(authoredListHost);
+                VisualElement row = Row(authoredListHost);
                 row.style.alignItems = Align.Center;
                 Art(row, sticker.presetId, 62f);
                 VisualElement words = Column(row);
@@ -169,13 +227,14 @@ namespace Tagtag.UI
                 Text(words, Safe(sticker.teaser, "No clue"), 13, false, Muted);
                 Text(words, "Left " + Date(sticker.createdAt), 12, false, Muted);
                 string stickerId = sticker.id;
-                Button withdraw = Action(content, "Withdraw this sticker", () =>
+                Button withdraw = Action(authoredListHost, "Withdraw this sticker", () =>
                 {
                     sheet = Sheet.Withdraw;
                     sheetStickerId = stickerId;
                     QueueRender();
                 }, false);
                 withdraw.style.alignSelf = Align.FlexStart;
+                authoredWithdrawButtons.Add(withdraw);
                 SetDisabled(withdraw, state.busy);
             }
         }
@@ -187,18 +246,14 @@ namespace Tagtag.UI
             explanation.style.marginTop = 12f;
             explanation.style.marginBottom = 15f;
             Text(content, "Type DELETE to confirm", 15, true);
-            TextField confirmation = new TextField();
+            PaperField confirmation = new PaperField("Confirmation", deleteConfirmation, 16, false,
+                "Type DELETE to confirm account deletion");
+            deleteField = confirmation;
             confirmation.name = "Delete confirmation";
             confirmation.tooltip = "Type DELETE to confirm account deletion";
-            confirmation.value = deleteConfirmation;
-            confirmation.style.minHeight = 44f;
             confirmation.style.fontSize = Mathf.RoundToInt(17f * textScale);
             confirmation.RegisterCallback<FocusInEvent>(_ => focusedField = confirmation);
-            confirmation.RegisterCallback<FocusOutEvent>(_ =>
-            {
-                if (focusedField == confirmation) focusedField = null;
-                QueueRender();
-            });
+            confirmation.RegisterCallback<FocusOutEvent>(_ => { if (focusedField == confirmation) focusedField = null; });
             content.Add(confirmation);
             Button delete = Action(content, "Permanently delete account", () =>
             {
@@ -206,6 +261,8 @@ namespace Tagtag.UI
                 controller.DeleteAccount();
                 deleteConfirmation = "";
             });
+            deleteButton = delete;
+            delete.AddToClassList("danger");
             delete.style.marginTop = 13f;
             SetDisabled(delete, deleteConfirmation != "DELETE" || state.busy);
             confirmation.RegisterValueChangedCallback(evt =>
@@ -235,43 +292,178 @@ namespace Tagtag.UI
             QueueRender();
         }
 
+        private PaperSheet sheetView;
+        private Button sheetSubmitButton;
+        private VisualElement sheetDetailHost;
+        private readonly PresenterCache collectedDetailContents = new PresenterCache();
+        private readonly List<PaperSelection> reportChoices = new List<PaperSelection>();
+
         private void BuildSheet(AppState state)
         {
             VisualElement scrim = new VisualElement();
             scrim.name = "Sheet scrim";
-            scrim.style.position = Position.Absolute;
-            scrim.style.left = 0f;
-            scrim.style.top = 0f;
-            scrim.style.right = 0f;
-            scrim.style.bottom = 0f;
-            scrim.style.backgroundColor = new Color(0f, 0f, 0f, 0.26f);
-            root.Add(scrim);
-            VisualElement panel = Column(scrim);
-            panel.style.position = Position.Absolute;
-            panel.style.left = 0f;
-            panel.style.right = 0f;
-            panel.style.bottom = Mathf.Max(0f, Screen.safeArea.yMin * (root.layout.height > 0f ? root.layout.height / Screen.height : 1f));
-            panel.style.paddingTop = 18f;
-            panel.style.paddingBottom = 20f;
-            panel.style.paddingLeft = 24f;
-            panel.style.paddingRight = 24f;
-            panel.style.backgroundColor = Paper;
-            panel.style.borderTopLeftRadius = 22f;
-            panel.style.borderTopRightRadius = 22f;
-            panel.style.maxHeight = Length.Percent(78);
-            ScrollView scroll = new ScrollView(ScrollViewMode.Vertical);
-            panel.Add(scroll);
-            VisualElement content = scroll.contentContainer;
-            VisualElement top = Row(content);
-            top.style.justifyContent = Justify.SpaceBetween;
-            top.style.alignItems = Align.Center;
-            Text(top, sheet == Sheet.Collected ? "Collected sticker" : sheet == Sheet.Report ? "Report sticker" : sheet == Sheet.Withdraw ? "Withdraw sticker" : "Block author", 21, true);
-            Action(top, "Close", CloseSheet, false);
-            Divider(content);
-            if (sheet == Sheet.Collected) BuildCollectedDetail(content, state);
+            scrim.AddToClassList("sheet-scrim");
+            scrim.RegisterCallback<PointerDownEvent>(_ => RequestCloseSheet());
+            overlayHost.Add(scrim);
+            string title = sheet == Sheet.Picker ? "Choose Taggi" : sheet == Sheet.Note ? "Write note" :
+                sheet == Sheet.Collected ? "Collected sticker" : sheet == Sheet.Report ? "Report sticker" :
+                sheet == Sheet.Withdraw ? "Withdraw sticker" : "Block author";
+            Sheet openedSheet = sheet;
+            Action returnFocus = openedSheet == Sheet.Note || openedSheet == Sheet.Picker ?
+                () => FocusSheetTrigger(openedSheet) : null;
+            sheetView = new PaperSheet(title, CloseSheet, reducedMotion, returnFocus, "Close");
+            sheetView.style.bottom = SheetBottom();
+            ApplySheetHeight();
+            overlayHost.Add(sheetView);
+            VisualElement content = sheetView.Scroll.contentContainer;
+            content.style.paddingBottom = 18f;
+            reportChoices.Clear();
+            sheetSubmitButton = null;
+            publishButton = null;
+            sheetDetailHost = null;
+            if (sheet == Sheet.Picker) BuildPickerSheet(content, state);
+            else if (sheet == Sheet.Note) BuildNoteSheet(content, state);
+            else if (sheet == Sheet.Collected)
+            {
+                sheetDetailHost = Column(content);
+                collectedDetailContents.Reset();
+            }
             else if (sheet == Sheet.Report) BuildReportSheet(content, state);
             else if (sheet == Sheet.Withdraw) BuildWithdrawSheet(content, state);
             else BuildBlockSheet(content, state);
+            AddStatus(content, state);
+            sheetView.BindGestures();
+            RefreshSheet(state);
+            if (!string.IsNullOrEmpty(returnFieldName) && sheet == Sheet.Note)
+            {
+                string fieldName = returnFieldName;
+                int cursor = returnCursor, selection = returnSelection;
+                returnFieldName = null;
+                sheetView.schedule.Execute(() =>
+                {
+                    PaperField field = sheetView?.Q<PaperField>(fieldName);
+                    if (field == null || field.panel == null) return;
+                    field.Focus();
+                    field.SelectRange(Mathf.Clamp(cursor, 0, field.value.Length),
+                        Mathf.Clamp(selection, 0, field.value.Length));
+                });
+            }
+        }
+
+        private void FocusSheetTrigger(Sheet closed)
+        {
+            string name = closed == Sheet.Note ? "Action Write note" : closed == Sheet.Picker ?
+                (screenHost?.Q<Button>("Action Change pose") != null ? "Action Change pose" :
+                    screenHost?.Q<Button>("Action Leave a sticker") != null ? "Action Leave a sticker" : "Action Write note") : null;
+            if (name == null) return;
+            screenHost?.schedule.Execute(() => screenHost.Q<Button>(name)?.Focus());
+        }
+
+        private void RequestCloseSheet()
+        {
+            if (sheetView != null) sheetView.Dismiss();
+            else CloseSheet();
+        }
+
+        private void BuildPickerSheet(VisualElement content, AppState state)
+        {
+            Text(content, "Pick a pose for this place.", 16, false, Muted).style.marginBottom = 8f;
+            for (int index = 0; index < Presets.Length; index++)
+            {
+                string preset = Presets[index];
+                VisualElement row = Row(content);
+                row.style.alignItems = Align.Center;
+                Art(row, preset, 60f);
+                PaperSelection choice = new PaperSelection("Taggi pose " + (index + 1),
+                    state.selectedPreset == preset, () =>
+                    {
+                        controller.SelectPreset(preset);
+                        RequestCloseSheet();
+                    });
+                choice.tooltip = "Choose Taggi pose " + (index + 1);
+                choice.style.flexGrow = 1f;
+                choice.style.marginLeft = 12f;
+                row.Add(choice);
+            }
+            Text(content, "After choosing, place Taggi on a surface. Pinch to resize and twist to rotate.",
+                14, false, Muted).style.marginTop = 12f;
+        }
+
+        private void BuildNoteSheet(VisualElement content, AppState state)
+        {
+            Text(content, "Leave a clue, then the whole story.", 16, false, Muted);
+            DraftField(content, "Place", draftPlace, 80, false, value => draftPlace = value,
+                "Name the place you are standing at.");
+            DraftField(content, "Clue", draftTeaser, 180, false, value => draftTeaser = value,
+                "Visitors see this before they find Taggi.");
+            DraftField(content, "Your note", draftNote, 2000, true, value => draftNote = value,
+                "Unlocked only when someone taps Taggi in AR.");
+            if (!SignedIn(state))
+            {
+                Text(content, "Sign in to publish. Your draft will stay here.", 14, false, Muted).style.marginTop = 12f;
+                sheetSubmitButton = Action(content, "Sign in to publish", OpenSignIn);
+            }
+            else
+            {
+                publishButton = Action(content, "Publish sticker", () =>
+                {
+                    if (!PaperFlow.CanPresentPublish(draftPlace, draftTeaser, draftNote,
+                        controller.Ar?.CanPublish ?? false, controller.State.busy, controller.State.hasPendingPublication)) return;
+                    publicationRequested = true;
+                    controller.SetDraft(draftPlace, draftTeaser, draftNote);
+                    controller.Publish();
+                });
+                publishButton.style.marginTop = 14f;
+                if (state.hasPendingPublication)
+                    Text(content, "Your saved placement is ready to retry. Your note is still here.", 13, false, Muted);
+                else Text(content, "Publishing is available once tracking and your location are ready.", 13, false, Muted);
+            }
+        }
+
+        private void RefreshSheet(AppState state)
+        {
+            if (sheetView == null || sheet == Sheet.None) return;
+            sheetView.style.bottom = SheetBottom();
+            ApplySheetHeight();
+            if (sheet == Sheet.Note) RefreshPublish(state);
+            if (sheet == Sheet.Collected) RefreshCollectedDetail(state);
+            if (sheetSubmitButton != null) SetDisabled(sheetSubmitButton, state.busy);
+            foreach (PaperSelection choice in reportChoices)
+                choice.SetSelected(choice.userData is string reason && reason == selectedReportReason);
+            if (sheet == Sheet.Report && sheetSubmitButton != null) SetDisabled(sheetSubmitButton, state.busy || !SignedIn(state));
+            if (sheet == Sheet.Block && sheetSubmitButton != null) SetDisabled(sheetSubmitButton, state.busy || !SignedIn(state));
+            if (sheet == Sheet.Withdraw && sheetSubmitButton != null) SetDisabled(sheetSubmitButton, state.busy);
+            UpdateStatus(state);
+        }
+
+        private void RefreshCollectedDetail(AppState state)
+        {
+            if (sheetDetailHost == null) return;
+            CollectedSticker detail = state.detail != null && state.detail.id == sheetStickerId ? state.detail : null;
+            if (!collectedDetailContents.NeedsRefresh(CollectionPresentation.DetailKey(detail, state.busy))) return;
+            var continuity = PaperNavigationMotion.RebuildState.Capture(sheetDetailHost);
+            sheetDetailHost.Clear();
+            BuildCollectedDetail(sheetDetailHost, state);
+            continuity.Restore(sheetDetailHost, () => sheet == Sheet.Collected);
+        }
+
+        private float SheetBottom()
+        {
+            float pixels = Mathf.Max(Screen.safeArea.yMin, lastKeyboardHeight);
+            return pixels * (root != null && root.layout.height > 0f && Screen.height > 0 ? root.layout.height / Screen.height : 1f);
+        }
+
+        private void ApplySheetHeight()
+        {
+            if (sheetView == null || root == null) return;
+            if (root.layout.height <= 0f || Screen.height <= 0)
+            {
+                sheetView.style.maxHeight = Length.Percent(82f);
+                return;
+            }
+            float scale = root.layout.height / Screen.height;
+            float topInset = (Screen.height - Screen.safeArea.yMax) * scale;
+            sheetView.style.maxHeight = Mathf.Max(180f, root.layout.height - SheetBottom() - topInset - 8f);
         }
 
         private void BuildCollectedDetail(VisualElement content, AppState state)
@@ -282,7 +474,12 @@ namespace Tagtag.UI
                 Text(content, state.busy ? "Opening your sticker…" : "This sticker is unavailable in your collection.", 16, false, Muted);
                 return;
             }
-            Art(content, sticker.presetId, 140f);
+            Image artwork = Art(content, sticker.presetId, 140f);
+            if (pendingCollectionCommitId == sticker.id)
+            {
+                pendingCollectionCommitId = null;
+                artwork.schedule.Execute(() => { if (artwork.panel != null) PaperMotion.Commit(artwork); });
+            }
             Text(content, Safe(sticker.place, "A place you visited"), 25, true).style.marginTop = 8f;
             Text(content, "Left by " + Safe(sticker.authorName, "someone nearby"), 14, false, Muted).style.marginTop = 4f;
             Text(content, "Collected " + Date(sticker.collectedAt), 13, false, Muted).style.marginTop = 2f;
@@ -305,18 +502,22 @@ namespace Tagtag.UI
             foreach (string reason in ReportReasons)
             {
                 string choice = reason;
-                Button button = Action(content, (selectedReportReason == reason ? "Selected: " : "") + reason, () =>
+                PaperSelection button = new PaperSelection(reason, selectedReportReason == reason, () =>
                 {
                     selectedReportReason = choice;
-                    QueueRender();
-                }, selectedReportReason == reason);
+                    RefreshSheet(controller.State);
+                });
+                button.userData = reason;
+                content.Add(button);
+                reportChoices.Add(button);
                 button.style.marginTop = 8f;
             }
             Button submit = Action(content, "Send report", () =>
             {
                 controller.Report(sheetStickerId, selectedReportReason);
-                CloseSheet();
+                RequestCloseSheet();
             });
+            sheetSubmitButton = submit;
             submit.style.marginTop = 16f;
             SetDisabled(submit, state.busy || !SignedIn(state));
             if (!SignedIn(state)) Action(content, "Sign in to report", OpenSignIn, false).style.marginTop = 7f;
@@ -329,8 +530,9 @@ namespace Tagtag.UI
             Button block = Action(content, "Block author", () =>
             {
                 controller.Block(sheetAuthorId);
-                CloseSheet();
+                RequestCloseSheet();
             });
+            sheetSubmitButton = block;
             block.style.marginTop = 18f;
             SetDisabled(block, state.busy || !SignedIn(state));
             if (!SignedIn(state)) Action(content, "Sign in to block", OpenSignIn, false).style.marginTop = 7f;
@@ -343,18 +545,21 @@ namespace Tagtag.UI
             Button withdraw = Action(content, "Withdraw sticker", () =>
             {
                 controller.Withdraw(sheetStickerId);
-                CloseSheet();
+                RequestCloseSheet();
             });
+            sheetSubmitButton = withdraw;
             withdraw.style.marginTop = 18f;
             SetDisabled(withdraw, state.busy);
         }
 
         private void CloseSheet()
         {
-            if (controller.State.detail != null) controller.CloseDetail();
+            if (sheet == Sheet.Collected && controller.State.detail != null) controller.CloseDetail();
             sheet = Sheet.None;
             sheetStickerId = null;
             sheetAuthorId = null;
+            sheetView = null;
+            publishButton = null;
             QueueRender();
         }
     }

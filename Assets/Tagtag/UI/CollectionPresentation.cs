@@ -4,6 +4,14 @@ namespace Tagtag.UI
 {
     public static class CollectionPresentation
     {
+        public static string DetailKey(CollectedSticker sticker, bool busy)
+        {
+            if (sticker == null) return "missing:" + busy;
+            return sticker.id + ":" + sticker.revision + ":" + sticker.unavailable + ":" +
+                sticker.collectedAt + ":" + sticker.place + ":" + sticker.teaser + ":" +
+                sticker.authorName + ":" + sticker.note;
+        }
+
         public static List<CollectedSticker> OrderedDistinct(IReadOnlyList<CollectedSticker> source)
         {
             List<CollectedSticker> items = new List<CollectedSticker>();

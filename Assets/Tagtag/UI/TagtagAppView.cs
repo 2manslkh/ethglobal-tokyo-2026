@@ -9,7 +9,7 @@ namespace Tagtag.UI
     public sealed partial class TagtagAppView : MonoBehaviour
     {
         private enum AccountScreen { Overview, SignIn, Authored, DeleteConfirmation }
-        private enum Sheet { None, Collected, Report, Block, Withdraw }
+        private enum Sheet { None, Picker, Note, Collected, Report, Block, Withdraw }
 
         private static readonly Color Paper = new Color32(255, 254, 250, 255);
         private static readonly Color Ink = new Color32(32, 32, 30, 255);
@@ -17,6 +17,11 @@ namespace Tagtag.UI
         private static readonly Color Line = new Color32(226, 224, 215, 255);
         private static readonly Color Soft = new Color32(246, 245, 239, 255);
         private static readonly Color Yellow = new Color32(255, 225, 90, 255);
+        private Font bodyFont, semiboldFont, headingFont, displayFont;
+        private Font BodyFont => bodyFont ?? (bodyFont = Resources.Load<Font>("Tagtag/Fonts/InstrumentRegular"));
+        private Font SemiboldFont => semiboldFont ?? (semiboldFont = Resources.Load<Font>("Tagtag/Fonts/InstrumentSemibold"));
+        private Font HeadingFont => headingFont ?? (headingFont = Resources.Load<Font>("Tagtag/Fonts/BricolageBold"));
+        private Font DisplayFont => displayFont ?? (displayFont = Resources.Load<Font>("Tagtag/Fonts/BricolageExtraBold"));
         private static readonly string[] Presets = { "taggi-1", "taggi-2", "taggi-3", "taggi-4" };
         private static readonly string[] ReportReasons = { "Harassment or hate", "Unsafe place", "Private information", "Spam or misleading", "Something else" };
 
@@ -25,9 +30,25 @@ namespace Tagtag.UI
         private PanelSettings ownedPanelSettings;
         private VisualElement root;
         private VisualElement safeRoot;
+        private VisualElement topHost;
+        private VisualElement screenHost;
+        private VisualElement navHost;
+        private VisualElement overlayHost;
+        private VisualElement cameraCover;
+        private Label cameraTrackingLabel;
+        private Button publishButton;
+        private Button topProfileButton;
+        private PaperNavigationMotion navigationMotion = new PaperNavigationMotion();
+        private string renderedIdentity;
+        private string renderedSheetSignature;
         private VisualElement mapRegion;
         private ScrollView activeDraftScroll;
         private Label statusLabel;
+        private VisualElement statusNotice;
+        private VisualElement statusSymbol;
+        private Label screenStatusLabel;
+        private VisualElement screenStatusNotice;
+        private VisualElement screenStatusSymbol;
         private TextField focusedField;
         private Rect lastSafeArea;
         private int lastScreenWidth;
@@ -38,6 +59,15 @@ namespace Tagtag.UI
         private Sheet sheet;
         private string sheetStickerId;
         private string sheetAuthorId;
+        private Sheet returnAfterSignIn;
+        private string returnStickerId;
+        private string returnAuthorId;
+        private string returnFieldName;
+        private int returnCursor;
+        private int returnSelection;
+        private string lastDraftFieldName;
+        private int lastDraftCursor;
+        private int lastDraftSelection;
         private string selectedReportReason = ReportReasons[0];
         private string deleteConfirmation = "";
         private string draftPlace = "";
@@ -51,6 +81,8 @@ namespace Tagtag.UI
         private Vector2 bookStart;
         private string pressedStickerId;
         private string lastPresentedDiscoveryId;
+        private string pendingCollectionCommitId;
+        private bool publicationRequested;
         private AppPage renderedPage;
         private bool renderedAccountOpen;
 
@@ -77,6 +109,7 @@ namespace Tagtag.UI
 
         private void OnEnable()
         {
+            PaperMotion.SetPaused(false);
             if (controller != null)
             {
                 QueueRender();
@@ -85,6 +118,7 @@ namespace Tagtag.UI
 
         private void OnDisable()
         {
+            PaperMotion.SetPaused(true);
             controller?.Map?.Hide();
         }
 
@@ -120,6 +154,11 @@ namespace Tagtag.UI
             {
                 lastKeyboardHeight = keyboardHeight;
                 ApplySafeArea();
+                if (sheetView != null)
+                {
+                    sheetView.style.bottom = SheetBottom();
+                    ApplySheetHeight();
+                }
                 mapDirty = true;
                 if (keyboardHeight > 0f && focusedField != null && activeDraftScroll != null)
                 {
@@ -161,6 +200,12 @@ namespace Tagtag.UI
 
             root = document.rootVisualElement;
             if (root == null) return;
+            root.AddToClassList("paper-app");
+            root.EnableInClassList("reduced-motion", reducedMotion);
+            root.style.unityFont = BodyFont;
+            StyleSheet paperStyles = Resources.Load<StyleSheet>("Tagtag/UI/Paper");
+            if (paperStyles != null && !root.styleSheets.Contains(paperStyles)) root.styleSheets.Add(paperStyles);
+            root.style.backgroundColor = Paper;
             root.style.flexGrow = 1f;
             root.style.width = Length.Percent(100);
             root.style.height = Length.Percent(100);
@@ -169,6 +214,25 @@ namespace Tagtag.UI
                 ApplySafeArea();
                 mapDirty = true;
             });
+            if (safeRoot == null)
+            {
+                safeRoot = Column(root);
+                safeRoot.style.flexGrow = 1f;
+                safeRoot.style.minHeight = 0f;
+                topHost = Column(safeRoot);
+                screenHost = Column(safeRoot);
+                screenHost.style.flexGrow = 1f;
+                screenHost.style.minHeight = 0f;
+                navHost = Column(safeRoot);
+                overlayHost = new VisualElement { pickingMode = PickingMode.Ignore };
+                overlayHost.style.position = Position.Absolute;
+                overlayHost.style.left = 0f;
+                overlayHost.style.right = 0f;
+                overlayHost.style.top = 0f;
+                overlayHost.style.bottom = 0f;
+                root.Add(overlayHost);
+                ApplySafeArea();
+            }
         }
 
         private void LoadPreferences()
@@ -180,10 +244,29 @@ namespace Tagtag.UI
         private void OnControllerChanged()
         {
             AppState state = controller?.State;
-            if (state != null && (state.page == AppPage.Stick || renderedPage == AppPage.Stick) && state.detail != null &&
-                !string.IsNullOrEmpty(state.detail.id) && state.detail.id != lastPresentedDiscoveryId)
+            if (PaperFlow.ShouldClearPublishedDraft(publicationRequested, state))
+            {
+                publicationRequested = false;
+                SyncDraftFromState();
+                if (sheet == Sheet.Note) sheet = Sheet.None;
+            }
+            else if (publicationRequested && state != null && !state.busy && !string.IsNullOrEmpty(state.error))
+            {
+                publicationRequested = false;
+            }
+            if (state != null && state.accountOpen && accountScreen == AccountScreen.SignIn &&
+                SignedIn(state) && returnAfterSignIn != Sheet.None)
+            {
+                RestoreSignInSheet();
+                controller.SetAccountOpen(false);
+                return;
+            }
+            if (state != null && state.page == AppPage.Stick && state.detail == null)
+                lastPresentedDiscoveryId = null;
+            if (PaperFlow.ShouldAnimateCollection(renderedPage, state, lastPresentedDiscoveryId))
             {
                 lastPresentedDiscoveryId = state.detail.id;
+                pendingCollectionCommitId = state.detail.id;
                 sheet = Sheet.Collected;
                 sheetStickerId = state.detail.id;
             }
@@ -213,52 +296,112 @@ namespace Tagtag.UI
             }
 
             AppState state = controller.State;
-            if (accountScreen == AccountScreen.DeleteConfirmation && !SignedIn(state))
+            if (state.accountOpen && !SignedIn(state) && accountScreen != AccountScreen.SignIn)
             {
                 accountScreen = AccountScreen.SignIn;
             }
-            if (focusedField != null && state.page == renderedPage && state.accountOpen == renderedAccountOpen)
+            else if (state.accountOpen && SignedIn(state) && accountScreen == AccountScreen.SignIn &&
+                returnAfterSignIn == Sheet.None)
             {
-                UpdateStatus(state);
-                return;
+                accountScreen = AccountScreen.Overview;
             }
-
-            focusedField = null;
-            SyncDraftFromState();
-            if (!MapPresentation.ShouldShow(state, sheet != Sheet.None)) controller.Map?.Hide();
-            mapRegion = null;
-            activeDraftScroll = null;
-            root.Clear();
-            root.style.backgroundColor = state.page == AppPage.Stick && !state.accountOpen ? Color.clear : Paper;
-            safeRoot = Column(root);
-            safeRoot.style.flexGrow = 1f;
-            safeRoot.style.minHeight = 0f;
-            ApplySafeArea();
-
-            if (state.accountOpen)
+            MapPresentation.SyncVisibility(state, sheet != Sheet.None, controller.Map);
+            string identity = state.accountOpen ? "Account:" + (accountScreen == AccountScreen.SignIn && SignedIn(state) ? AccountScreen.Overview : accountScreen) : state.page.ToString();
+            bool destinationChanged = identity != renderedIdentity;
+            if (destinationChanged)
             {
-                BuildAccount(state);
+                mapRegion = null;
+                activeDraftScroll = null;
+                cameraCover = null;
+                cameraTrackingLabel = null;
+                publishButton = null;
+                topProfileButton = null;
+                homeBook = null;
+                homeFooter = null;
+                homeInvitation = null;
+                explorePreview = null;
+                exploreLocationNotice = null;
+                exploreMapMessage = null;
+                exploreFindButton = null;
+                stickGuidance = null;
+                stickActions = null;
+                accountCollectionCount = null;
+                accountAuthoredCount = null;
+                accountMotionSwitch = null;
+                authoredListHost = null;
+                authoredWithdrawButtons.Clear();
+                appleSignInButton = null;
+                googleSignInButton = null;
+                textSizeChoices.Clear();
+                deleteButton = null;
+                deleteField = null;
+                screenStatusLabel = null;
+                screenStatusNotice = null;
+                screenStatusSymbol = null;
+                focusedField = null;
+                SyncDraftFromState();
+                topHost.Clear();
+                screenHost.Clear();
+                navHost.Clear();
+                root.style.backgroundColor = Paper;
+                if (state.accountOpen) BuildAccount(state);
+                else
+                {
+                    BuildTopBar(state);
+                    if (state.page == AppPage.Home) BuildHome(state);
+                    else if (state.page == AppPage.Stick) BuildStick(state);
+                    else BuildExplore(state);
+                    BuildTabBar(state);
+                }
+                var reason = navigationMotion.Observe(identity, !state.accountOpen);
+                PaperNavigationMotion.Enter(screenHost, reason);
+                renderedIdentity = identity;
             }
             else
             {
-                BuildTopBar(state);
-                if (state.page == AppPage.Home) BuildHome(state);
-                else if (state.page == AppPage.Stick) BuildStick(state);
-                else BuildExplore(state);
-                BuildTabBar(state);
+                RefreshMounted(state);
             }
 
-            if (sheet != Sheet.None)
+            string sheetSignature = sheet + ":" + sheetStickerId + ":" + sheetAuthorId;
+            if (sheetSignature != renderedSheetSignature)
             {
-                BuildSheet(state);
+                overlayHost.Clear();
+                if (sheet != Sheet.None) BuildSheet(state);
+                else
+                {
+                    sheetView = null;
+                    sheetDetailHost = null;
+                    sheetSubmitButton = null;
+                    publishButton = null;
+                    reportChoices.Clear();
+                    statusLabel = screenStatusLabel;
+                    statusNotice = screenStatusNotice;
+                    statusSymbol = screenStatusSymbol;
+                }
+                renderedSheetSignature = sheetSignature;
             }
+            else RefreshSheet(state);
 
             if (MapPresentation.ShouldShow(state, sheet != Sheet.None))
             {
                 mapDirty = true;
             }
+            ApplyTextScale();
             renderedPage = state.page;
             renderedAccountOpen = state.accountOpen;
+        }
+
+        private void RefreshMounted(AppState state)
+        {
+            UpdateStatus(state);
+            if (topProfileButton != null) topProfileButton.text = SignedIn(state) ? "Account" : "Sign in";
+            if (state.accountOpen) RefreshAccount(state);
+            else if (state.page == AppPage.Home) RefreshHome(state);
+            else if (state.page == AppPage.Stick) RefreshStick(state);
+            else RefreshExplore(state);
+            RefreshCamera(state);
+            RefreshPublish(state);
+            mapDirty = state.page == AppPage.Explore;
         }
 
         private void ApplySafeArea()
@@ -290,7 +433,7 @@ namespace Tagtag.UI
 
         private void BuildTopBar(AppState state)
         {
-            VisualElement bar = Row(safeRoot);
+            VisualElement bar = Row(topHost);
             bar.style.height = 62f;
             bar.style.paddingLeft = 24f;
             bar.style.paddingRight = 20f;
@@ -304,12 +447,14 @@ namespace Tagtag.UI
                 accountScreen = SignedIn(controller.State) ? AccountScreen.Overview : AccountScreen.SignIn;
                 controller.SetAccountOpen(true);
             }, false);
+            topProfileButton = profile;
             profile.style.minWidth = 72f;
         }
 
         private void BuildTabBar(AppState state)
         {
-            VisualElement bar = Row(safeRoot);
+            VisualElement bar = Row(navHost);
+            bar.AddToClassList("paper-nav");
             bar.style.height = 70f;
             bar.style.paddingLeft = 16f;
             bar.style.paddingRight = 16f;
@@ -323,20 +468,32 @@ namespace Tagtag.UI
 
         private void AddTab(VisualElement bar, string title, AppPage page, bool selected)
         {
-            Button tab = Action(bar, title, () =>
+            PaperButton tab = new PaperButton("", () =>
             {
+                if (controller.State.page == page && !controller.State.accountOpen) return;
                 sheet = Sheet.None;
                 controller.Navigate(page);
-            }, selected);
+            }, PaperButtonKind.Quiet);
+            tab.tooltip = title;
+            tab.name = "Tab " + title;
+            tab.AddToClassList("paper-nav-item");
+            tab.AddToClassList(selected ? "nav-selected" : "nav-unselected");
+            if (page == AppPage.Stick) tab.AddToClassList("nav-stick");
+            tab.Add(new PaperIcon(page == AppPage.Home ? "home" : page == AppPage.Stick ? "stick" : "explore", 22));
+            var label = new Label(title);
+            label.AddToClassList("nav-label");
+            tab.Add(label);
+            if (selected && page != AppPage.Stick)
+            {
+                var marker = new VisualElement { pickingMode = PickingMode.Ignore };
+                marker.AddToClassList("nav-selection-marker");
+                tab.Add(marker);
+            }
+            bar.Add(tab);
             tab.style.flexGrow = 1f;
             tab.style.marginLeft = 4f;
             tab.style.marginRight = 4f;
             tab.style.minHeight = 48f;
-            tab.style.backgroundColor = selected ? Yellow : Color.clear;
-            tab.style.borderTopLeftRadius = 14f;
-            tab.style.borderTopRightRadius = 14f;
-            tab.style.borderBottomLeftRadius = 14f;
-            tab.style.borderBottomRightRadius = 14f;
         }
 
         private void UpdateStatus(AppState state)
@@ -344,16 +501,31 @@ namespace Tagtag.UI
             if (statusLabel == null) return;
             string message = !string.IsNullOrWhiteSpace(state.error) ? state.error : state.status;
             statusLabel.text = message ?? "";
-            statusLabel.style.display = string.IsNullOrWhiteSpace(message) ? DisplayStyle.None : DisplayStyle.Flex;
-            statusLabel.style.color = !string.IsNullOrWhiteSpace(state.error) ? (Color)new Color32(125, 39, 31, 255) : Muted;
+            bool error = !string.IsNullOrWhiteSpace(state.error);
+            statusNotice.style.display = string.IsNullOrWhiteSpace(message) ? DisplayStyle.None : DisplayStyle.Flex;
+            statusNotice.EnableInClassList("error", error);
+            statusNotice.EnableInClassList("success", !error && !string.IsNullOrEmpty(message) &&
+                (message.Contains("published") || message.Contains("book") || message.Contains("received")));
+            statusSymbol.Clear();
+            statusSymbol.Add(new PaperIcon(error ? "warning" : "info", 18));
+            statusLabel.style.color = error ? (Color)new Color32(125, 39, 31, 255) : Ink;
         }
 
         private Label AddStatus(VisualElement parent, AppState state)
         {
-            statusLabel = Text(parent, "", 14, false, Muted);
-            statusLabel.style.marginTop = 10f;
-            statusLabel.style.marginBottom = 8f;
-            statusLabel.style.whiteSpace = WhiteSpace.Normal;
+            statusNotice = Row(parent);
+            statusNotice.AddToClassList("paper-notice");
+            statusNotice.style.marginTop = 10f;
+            statusNotice.style.marginBottom = 8f;
+            statusSymbol = Row(statusNotice);
+            statusLabel = Text(statusNotice, "", 14, false, Ink);
+            statusLabel.AddToClassList("notice-copy");
+            if (overlayHost == null || !overlayHost.Contains(parent))
+            {
+                screenStatusLabel = statusLabel;
+                screenStatusNotice = statusNotice;
+                screenStatusSymbol = statusSymbol;
+            }
             UpdateStatus(state);
             return statusLabel;
         }
@@ -382,9 +554,37 @@ namespace Tagtag.UI
 
         private void OpenSignIn()
         {
+            if (sheet == Sheet.Note || sheet == Sheet.Report || sheet == Sheet.Block)
+            {
+                returnAfterSignIn = sheet;
+                returnStickerId = sheetStickerId;
+                returnAuthorId = sheetAuthorId;
+                returnFieldName = focusedField?.name ?? lastDraftFieldName;
+                returnCursor = focusedField?.cursorIndex ?? lastDraftCursor;
+                returnSelection = focusedField?.selectIndex ?? lastDraftSelection;
+            }
             accountScreen = AccountScreen.SignIn;
             sheet = Sheet.None;
             controller.SetAccountOpen(true);
+        }
+
+        private void RestoreSignInSheet()
+        {
+            sheet = returnAfterSignIn;
+            sheetStickerId = returnStickerId;
+            sheetAuthorId = returnAuthorId;
+            returnAfterSignIn = Sheet.None;
+            returnStickerId = null;
+            returnAuthorId = null;
+        }
+
+        private void AbandonSignInReturn()
+        {
+            returnAfterSignIn = Sheet.None;
+            returnStickerId = null;
+            returnAuthorId = null;
+            returnFieldName = null;
+            returnCursor = returnSelection = 0;
         }
 
         private static VisualElement Column(VisualElement parent)
@@ -403,12 +603,28 @@ namespace Tagtag.UI
             return element;
         }
 
+        private static ScrollView PaperScroll(VisualElement parent)
+        {
+            var scroll = new ScrollView(ScrollViewMode.Vertical)
+            {
+                verticalScrollerVisibility = ScrollerVisibility.Hidden,
+                horizontalScrollerVisibility = ScrollerVisibility.Hidden
+            };
+            scroll.AddToClassList("paper-scroll");
+            scroll.style.flexGrow = 1f;
+            scroll.style.minHeight = 0f;
+            parent.Add(scroll);
+            return scroll;
+        }
+
         private Label Text(VisualElement parent, string value, int size, bool bold = false, Color? color = null)
         {
             Label label = new Label(value);
+            label.userData = size;
+            label.style.unityFont = size >= 30 && bold ? DisplayFont : size >= 20 && bold ? HeadingFont : bold ? SemiboldFont : BodyFont;
             label.style.fontSize = Mathf.RoundToInt(size * textScale);
             label.style.color = color ?? Ink;
-            label.style.unityFontStyleAndWeight = bold ? FontStyle.Bold : FontStyle.Normal;
+            label.style.unityFontStyleAndWeight = FontStyle.Normal;
             label.style.whiteSpace = WhiteSpace.Normal;
             label.style.flexShrink = 1f;
             parent.Add(label);
@@ -417,30 +633,34 @@ namespace Tagtag.UI
 
         private Button Action(VisualElement parent, string title, Action callback, bool filled = true)
         {
-            Button button = new Button(callback) { text = title, tooltip = title, name = "Action " + title };
+            Button button = new PaperButton(title, callback, filled ? PaperButtonKind.Primary : PaperButtonKind.Quiet);
+            button.userData = 15;
             button.style.minHeight = 44f;
             button.style.paddingLeft = 15f;
             button.style.paddingRight = 15f;
             button.style.fontSize = Mathf.RoundToInt(15f * textScale);
-            button.style.unityFontStyleAndWeight = FontStyle.Bold;
-            button.style.color = Ink;
-            button.style.backgroundColor = filled ? Yellow : Color.clear;
-            button.style.borderTopWidth = 0f;
-            button.style.borderRightWidth = 0f;
-            button.style.borderBottomWidth = 0f;
-            button.style.borderLeftWidth = 0f;
-            button.style.borderTopLeftRadius = 14f;
-            button.style.borderTopRightRadius = 14f;
-            button.style.borderBottomLeftRadius = 14f;
-            button.style.borderBottomRightRadius = 14f;
+            button.style.unityFont = SemiboldFont;
+            button.style.unityFontStyleAndWeight = FontStyle.Normal;
             parent.Add(button);
             return button;
+        }
+
+        private void ApplyTextScale()
+        {
+            if (root == null) return;
+            root.style.fontSize = Mathf.RoundToInt(16f * textScale);
+            root.Query<TextElement>().ForEach(element =>
+            {
+                if (element.userData is int baseSize) element.style.fontSize = Mathf.RoundToInt(baseSize * textScale);
+            });
+            root.Query<PaperField>().ForEach(field => field.ApplyScale(textScale));
+            root.Query<Label>(className: "sheet-title").ForEach(label => label.style.fontSize = Mathf.RoundToInt(22f * textScale));
+            root.Query<Label>(className: "nav-label").ForEach(label => label.style.fontSize = Mathf.RoundToInt(12f * textScale));
         }
 
         private static void SetDisabled(Button button, bool disabled)
         {
             button.SetEnabled(!disabled);
-            button.style.opacity = disabled ? 0.45f : 1f;
         }
 
         private static void Divider(VisualElement parent)

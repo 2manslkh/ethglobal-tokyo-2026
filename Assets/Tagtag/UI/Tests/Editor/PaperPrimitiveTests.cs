@@ -30,6 +30,16 @@ namespace Tagtag.UI.Tests
             Assert.IsFalse(selection.ClassListContains("selected"));
         }
 
+        [Test]
+        public void FieldSupportTextScalesWithItsInput()
+        {
+            PaperField field = new PaperField("Note", "Hello", 2000, true, "Unlocked after discovery", true);
+            field.ApplyScale(1.4f);
+            Assert.AreEqual(22f, field.Q<Label>(className: "unity-base-field__label").style.fontSize.value.value);
+            Assert.AreEqual(18f, field.Q<Label>("field-counter").style.fontSize.value.value);
+            Assert.AreEqual(18f, field.Q<Label>(className: "field-helper").style.fontSize.value.value);
+        }
+
         [TestCase(100f, 0f, false)]
         [TestCase(100f, 50f, false)]
         [TestCase(100f, 70f, true)]
