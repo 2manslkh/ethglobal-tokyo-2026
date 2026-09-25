@@ -49,7 +49,6 @@ namespace Tagtag.AR
         private bool recovered;
         private bool wasTracking;
         private bool wasMapped;
-        private bool hadPreviewPose;
         private Pose previewPose;
         private float widthMeters = 0.2f;
         private float twistDegrees;
@@ -100,7 +99,6 @@ namespace Tagtag.AR
             recoveredStickerId = null;
             recovered = false;
             presetId = IsPreset(id) ? id : null;
-            hadPreviewPose = false;
             if (presetId == null) SetStatus("Choose a sticker to place.");
             else SetStatus("Move slowly until a surface appears, then tap to place.");
         }
@@ -112,7 +110,6 @@ namespace Tagtag.AR
             presetId = null;
             recoveredStickerId = null;
             recovered = false;
-            hadPreviewPose = false;
             SetStatus("Placement cancelled.");
         }
 
@@ -225,11 +222,9 @@ namespace Tagtag.AR
         {
             if (!TrySurface(new Vector2(Screen.width * 0.5f, Screen.height * 0.5f), out previewPose))
             {
-                hadPreviewPose = false;
                 if (visual != null) visual.SetActive(false);
                 return;
             }
-            hadPreviewPose = true;
             if (visual == null) CreateVisual(presetId);
             visual.SetActive(true);
             visual.transform.SetPositionAndRotation(previewPose.position, previewPose.rotation * Quaternion.Euler(90f, twistDegrees, 0f));
@@ -259,7 +254,7 @@ namespace Tagtag.AR
             gestureActive = false;
             if (Input.touchCount != 1) return;
             var touch = Input.GetTouch(0);
-            if (touch.phase != TouchPhase.Ended || TouchOnUi(touch.fingerId)) return;
+            if (touch.phase != UnityEngine.TouchPhase.Ended || TouchOnUi(touch.fingerId)) return;
             if (anchor == null && TrySurface(touch.position, out var pose)) PlaceAnchor(pose);
         }
 
@@ -314,7 +309,7 @@ namespace Tagtag.AR
         {
             if (Input.touchCount != 1 || !CanCollect) return;
             var touch = Input.GetTouch(0);
-            if (touch.phase != TouchPhase.Ended || TouchOnUi(touch.fingerId)) return;
+            if (touch.phase != UnityEngine.TouchPhase.Ended || TouchOnUi(touch.fingerId)) return;
             var ray = camera.ScreenPointToRay(touch.position);
             if (!Physics.Raycast(ray, out var hit, 3.25f)) return;
             if (hit.collider == null || hit.collider.gameObject != visual) return;
