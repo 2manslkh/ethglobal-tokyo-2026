@@ -1,19 +1,187 @@
 # Design
 
-## Key Motifs
+## Theme
 
-1. Hand Drawn
-2. Die-cut Stickers
-3. Paper White
+**Little discoveries worth keeping.**
+
+tagtag feels like a personal sticker book of places, recommendations, and
+encounters. A collected sticker is a souvenir of discovering something another
+person chose to share. The mood is warm, curious, thoughtful, and lightly playful.
+
+The visual direction is **subtle stationery**: paper-white surfaces, charcoal ink,
+die-cut artwork, and small handmade details. Give the collection the care of a
+keepsake while keeping navigation and reading effortless. Avoid competitive,
+promotional, or overly childish presentation.
+
+This document defines the intended design and implementation requirements. It
+does not certify that the current app implements every treatment below.
+
+## Visual Language
+
+### Paper and ink
+
+Use paper white for the main canvas and a slightly warmer paper tone for the
+sticker book. Charcoal carries primary text and icons; softer neutral ink carries
+supporting text. Thin dividers and gentle shadows provide separation without
+heavy outlines around every surface.
+
+Yellow is a restrained accent for the primary available action and meaningful
+selection. Use dark text on yellow. Error and success treatments retain explicit
+labels and distinct semantic colors; never communicate state through color alone.
+Keep the rest of the interface quiet enough for sticker artwork to lead.
+
+Use die-cut white borders and soft contact shadows to suggest a sticker resting
+on paper. Preserve artwork proportions. Keep the book's grid orderly: handmade
+irregularity belongs in the drawings, not in displaced controls or unreadable text.
+
+| Use | Avoid |
+| --- | --- |
+| Clean paper tones and occasional ink doodles | Heavy grain, distressed textures, or decorative tape everywhere |
+| Small depth cues around sticker artwork | Raised cards and large shadows around every control |
+| Yellow for an action or selection | Yellow filling every panel or acting as the only status cue |
+| Expressive artwork within stable layouts | Random rotation of labels, fields, or navigation |
+
+### Typography
+
+Use **Bricolage Grotesque Bold / ExtraBold** for expressive headings and
+**Instrument Sans Regular / SemiBold** for reading and controls, sourced from
+`sticker-app` as described below. Import the actual font weights and their SIL
+Open Font License notices; do not substitute Unity's default face or synthesize
+bold. Reuse the source's typography roles and scaling behavior.
+
+Use sentence case, retaining **STICK** as the named camera tab. Notes, instructions,
+and controls must remain easy to read. Handwriting is reserved for occasional
+short decorative annotations, never essential instructions or full notes.
+
+Support text scaling, wrapping, safe areas, and controls at least 44 points in
+size. Preserve larger targets provided by the source components. Target 4.5:1
+contrast for normal text and 3:1 for large text and essential control graphics;
+verify camera overlays against changing real-world imagery. Validate font fallback
+for supported languages rather than assuming the imported fonts cover every script.
 
 ## App References
 
-1. Instagram
-2. POAP
+- **Instagram:** familiar browsing, content hierarchy, and direct access to creation.
+- **POAP:** the idea of collecting a memory connected to a place or experience.
+
+These are interaction and concept references. tagtag's visual identity follows
+the stationery direction above; these references do not add feeds, minting, or
+other product features.
 
 ## Mascot (Taggi)
 
-A hand-drawn rabbit-like figure.
+Taggi is the supplied hand-drawn rabbit-like figure. Preserve its irregular black
+linework, simple expression, and recognizable silhouette. Related illustrations
+and small decorative marks should feel drawn by the same hand.
+
+Taggi is a friendly companion in onboarding, empty states, camera preparation,
+and moments of discovery. Keep routine navigation quiet. Avoid repetitive mascot
+interruptions or large illustrations that push the user's collection off screen.
+
+## Voice
+
+Use short, friendly, concrete language. Invite exploration without urgency or
+pressure: “Your next little discovery is out there.” Celebrate a collected
+sticker gently: “A little discovery, now in your book.”
+
+Permission, loading, and error copy must explain the real state and next step.
+Use “Getting the camera ready” while waiting for camera imagery, and “Allow camera
+access to find stickers in AR” when access is needed. Do not disguise failures
+with playful copy or celebrate before an operation succeeds.
+
+## Component Sources
+
+**Required source:** `~/Desktop/coding-projects/sticker-app`.
+
+Adapt the existing Unity UI Toolkit primitives and their required styles,
+resources, and behavior into tagtag. This is a requirement to reuse the actual
+implementation, not just to imitate screenshots. The source paths below are
+relative to that repository; they are local reference paths, not runtime
+dependencies on another checkout.
+
+| Concern | Source | Adaptation requirement |
+| --- | --- | --- |
+| Buttons, icon buttons, selections, switches, settings rows, and fields | `unity/Assets/StickerHunt/Playable/PrimitiveControls.cs` | Preserve activation, accessible naming, focus, selection, disabled, helper, counter, and validation behavior. |
+| Shared visual states and typography | `unity/Assets/Resources/Playable.uss`, `unity/Assets/StickerHunt/Playable/AppTypography.cs`, `unity/Assets/Resources/Fonts/` | Carry the relevant styles, real font assets, and license notices; map surface colors to tagtag's paper and ink direction. |
+| Shell and scrolling | `unity/Assets/StickerHunt/Playable/ScreenShell.cs` | Preserve safe-area and large-text behavior; its scrollers hide stock Unity scrollbar chrome. |
+| Sheets and notices | `unity/Assets/StickerHunt/Playable/BottomSheet.cs`, `ConfirmationSheet.cs`, `AppNotice.cs` in the same directory | Preserve dismissal, scroll-versus-drag handling, modal focus, and clear feedback. |
+| Navigation | `unity/Assets/StickerHunt/Playable/BottomNav.cs`, `AppNavigationMotion.cs` in the same directory | Adapt shared behavior to Home, STICK, and Explore while preserving navigation continuity. |
+| Motion | `unity/Assets/StickerHunt/Playable/AppMotion.cs`, component code, and `unity/Assets/Resources/Playable.uss` | Reuse motion channels, timing, curves, component transitions, and reduced-motion behavior. |
+
+Bring across only the dependencies needed by the adopted components, including
+input and accessibility helpers where required. Preserve tagtag's naming,
+artwork, account rules, and discovery flow. The source app's other features and
+screen compositions are not automatically part of tagtag. No runtime import or
+component migration is implied by this document alone.
+
+## No Unity Defaults
+
+Every app-owned visible surface must have an intentional tagtag treatment, from
+the first rendered frame through loading, failure, interruption, and recovery.
+Stock Unity styling is not an acceptable fallback.
+
+- Style buttons, fields, switches, focus indicators, selection, disabled states,
+  sheets, and loading feedback, including their internal UI Toolkit elements.
+- Hide stock vertical and horizontal scrollbar chrome, following the source
+  shell and sheets, while retaining scrolling. Where a visible indicator is
+  needed, provide a slim neutral indicator with deliberate styling. Verify long
+  forms and enlarged text rather than hiding overflow.
+- Never expose the scene/editor-style background, skybox, default camera clear
+  color, debug overlays, or placeholder geometry in the app viewport. Configure
+  a deliberate opaque fallback behind the interface as well as the UI cover.
+- Keep system-owned permission and sign-in dialogs native. The requirement
+  concerns app-owned Unity presentation.
+
+### Camera preparation and recovery
+
+Cover the camera region with an opaque paper-white surface, Taggi, and concise
+status text until camera imagery is ready. Keep navigation available. Reveal the
+live camera only after a valid frame is available for display, not after an
+arbitrary delay or merely because the AR view has mounted.
+
+Camera imagery and tracking readiness are separate states. Once imagery is
+available, show it while readable guidance explains scanning or tracking recovery.
+When the camera feed is unavailable, keep or restore the designed cover. Permission
+denial, unavailable hardware, startup failure, and interrupted sessions need their
+own truthful message and an appropriate recovery action.
+
+Apply the same cover and fallback during cold startup, entering STICK, returning
+from system dialogs, background/resume, and camera restart. There must be no
+transient frame of an unstyled scene between these states.
+
+## Motion
+
+Motion reinforces touch, selection, and discovery without competing with the
+sticker artwork. Source component motion from `sticker-app`; do not introduce a
+parallel animation system or replace its interactions with unrelated effects.
+
+| Shared role | Source timing | Use |
+| --- | --- | --- |
+| Feedback | 120 ms | Small immediate responses |
+| State | 220 ms | Selection and switch changes |
+| Arrival | 320 ms | Content and sheet appearance |
+| Exit | 200 ms | Dismissal |
+
+Reuse `AppMotion.EaseOut` and its restrained spring, which settles after a small
+overshoot. Preserve component-specific timings where the source defines them:
+the shared roles are not a command to replace every duration. Buttons use tonal
+press feedback with stable geometry; selection markers and switch thumbs animate
+within their controls. Sheets retain their drag, settle, and dismissal behavior.
+
+Use the source artwork-confirmation motion for a successful collection where
+applicable: a small settling response on the artwork, not a bouncing entire
+screen. Navigation and routine refreshes must preserve focus, scroll position,
+and ongoing input rather than replaying entrances unnecessarily.
+
+Honor reduced motion by removing spatial travel, spring, and page-turn animation;
+use immediate state changes or the source's brief non-spatial reveal. Cancel or
+settle animation safely when interrupted, detached, or backgrounded. Do not leave
+invisible or untappable content waiting for an animation callback.
+
+Animation is presentation only. Publishing, collecting, and data persistence must
+not depend on animation completion. Haptics, when appropriate for a meaningful
+outcome, must also be independent of animation callbacks; keep decorative motion
+quiet and verify hardware behavior separately.
 
 ## Experience
 
@@ -39,6 +207,10 @@ sticker, reveal the full note, and collect a copy.
 Home shows the total number of stickers collected and the user's collection
 as a sticker book.
 
+Treat Home as a calm personal keepsake. Sticker artwork is the focal point;
+totals and page controls are secondary. A warm paper surface and gentle sticker
+shadows are enough to suggest a book without surrounding it with scrapbook props.
+
 - Each page uses a fixed grid of **5 rows and 4 columns**, holding 20 stickers.
 - Stickers are arranged automatically for the first version.
 - Users swipe between pages and tap a collected sticker to revisit its details.
@@ -48,6 +220,12 @@ as a sticker book.
 
 STICK is the AR camera view. Users can see and collect nearby stickers or
 choose to stick a new sticker.
+
+Let the real surroundings lead once the camera is ready. Keep controls compact
+and legible without shrinking touch targets. Use deliberate high-contrast
+backings for camera controls and guidance, and paper-toned sheets for reading and
+composition. Follow the preparation and recovery rules above before revealing
+the feed. Collection gets a small confirmation after success.
 
 For the first version, placement uses a preset sticker library:
 
@@ -65,3 +243,27 @@ collecting a sticker require finding and tapping it in STICK's AR view.
 
 Use die-cut sticker pins and count clusters. Selecting a pin opens a teaser
 sheet with a Find in AR action.
+
+Keep streets and place labels readable. Express the brand through artwork-led
+pins and paper-toned teaser sheets rather than decorating the map itself.
+
+## Visual Acceptance
+
+The following checks are required when implementing this guide. Documentation
+alone does not satisfy them.
+
+- Capture Home, STICK, Explore, account screens, sheets, and long scrolling forms
+  with empty and populated content. Inspect normal, pressed, focused, selected,
+  disabled, loading, and error states for exposed Unity defaults.
+- Verify standard and enlarged text, safe areas, readable contrast, accessible
+  labels, and minimum touch targets. All content remains reachable by scrolling.
+- Exercise primitive interactions and motion against the source components,
+  including rapid input, interrupted transitions, sheet gestures, and reduced
+  motion. Confirm that animations do not duplicate or gate product actions.
+- Record physical-device video of cold startup, camera preparation, permission
+  return, tab changes, tracking interruption, and background/resume. Inspect
+  transitions for flashes of scene backgrounds or stock chrome; a static
+  screenshot of the ready camera is insufficient.
+- Record device, scenarios, results, and remaining gaps in
+  [device verification](docs/DEVICE_VERIFICATION.md). Do not describe an untested
+  camera transition or migrated component as verified.
