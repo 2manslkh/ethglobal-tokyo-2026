@@ -17,10 +17,38 @@ public static class BuildIos
 {
     private const string ScenePath = "Assets/Scenes/Tagtag.unity";
     private const string OutputPath = "Build/iOS";
+    private const string AppName = "tagtag";
+    private const string AppIconPath = "Assets/Tagtag/Branding/AppIcon.png";
+    private const string CameraUsageDescription = "tagtag uses your camera to place and discover AR stickers around you.";
+    private const string LocationUsageDescription = "tagtag uses your location to show nearby stickers and confirm you’re close enough to place or collect them.";
+
+    [MenuItem("tagtag/Configure App Metadata")]
+    public static void ConfigureAppMetadata()
+    {
+        var icon = AssetDatabase.LoadAssetAtPath<Texture2D>(AppIconPath);
+        if (icon == null)
+            throw new InvalidOperationException("App icon is missing at " + AppIconPath);
+
+        PlayerSettings.companyName = AppName;
+        PlayerSettings.productName = AppName;
+        PlayerSettings.SetApplicationIdentifier(NamedBuildTarget.iOS, "com.kenk.tagtag");
+        PlayerSettings.iOS.cameraUsageDescription = CameraUsageDescription;
+        PlayerSettings.iOS.locationUsageDescription = LocationUsageDescription;
+        PlayerSettings.SetIcons(NamedBuildTarget.Unknown, new[] { icon }, IconKind.Any);
+        foreach (var kind in PlayerSettings.GetSupportedIconKinds(NamedBuildTarget.iOS))
+        {
+            var icons = PlayerSettings.GetPlatformIcons(NamedBuildTarget.iOS, kind);
+            foreach (var slot in icons)
+                slot.SetTexture(icon);
+            PlayerSettings.SetPlatformIcons(NamedBuildTarget.iOS, kind, icons);
+        }
+        AssetDatabase.SaveAssets();
+    }
 
     [MenuItem("tagtag/Prepare ARKit")]
     public static void PrepareArKit()
     {
+        ConfigureAppMetadata();
         var ids = AssetDatabase.FindAssets("t:XRGeneralSettingsPerBuildTarget");
         XRGeneralSettingsPerBuildTarget settings;
         if (ids.Length == 0)
@@ -49,8 +77,6 @@ public static class BuildIos
         var serialized = new SerializedObject(Unsupported.GetSerializedAssetInterfaceSingleton("PlayerSettings"));
         serialized.FindProperty("activeInputHandler").intValue = 2;
         serialized.ApplyModifiedPropertiesWithoutUndo();
-        PlayerSettings.iOS.cameraUsageDescription = "Use the camera to place and find tagtag stickers in AR.";
-        PlayerSettings.iOS.locationUsageDescription = "Use your location to find nearby tagtag stickers and verify discoveries.";
         PlayerSettings.iOS.targetOSVersionString = "15.0";
         PlayerSettings.iOS.targetDevice = iOSTargetDevice.iPhoneOnly;
         EditorUtility.SetDirty(settings);
@@ -66,9 +92,6 @@ public static class BuildIos
         throw new InvalidOperationException("ARKit was just configured. Run BuildIos.Build in a new Unity invocation so its native build processor is compiled.");
 #endif
         EnsureScene();
-        PlayerSettings.companyName = "tagtag";
-        PlayerSettings.productName = "tagtag";
-        PlayerSettings.SetApplicationIdentifier(NamedBuildTarget.iOS, "com.kenk.tagtag");
         PlayerSettings.defaultInterfaceOrientation = UIOrientation.Portrait;
         PlayerSettings.allowedAutorotateToLandscapeLeft = false;
         PlayerSettings.allowedAutorotateToLandscapeRight = false;
@@ -131,8 +154,9 @@ public static class BuildIos
         var infoPath = Path.Combine(output, "Info.plist");
         var info = new PlistDocument();
         info.ReadFromFile(infoPath);
-        info.root.SetString("NSCameraUsageDescription", "Use the camera to place and find tagtag stickers in AR.");
-        info.root.SetString("NSLocationWhenInUseUsageDescription", "Use your location to find nearby tagtag stickers and verify discoveries.");
+        info.root.SetString("CFBundleDisplayName", AppName);
+        info.root.SetString("NSCameraUsageDescription", CameraUsageDescription);
+        info.root.SetString("NSLocationWhenInUseUsageDescription", LocationUsageDescription);
         info.root.SetBoolean("UIRequiresFullScreen", true);
         var googleScheme = Environment.GetEnvironmentVariable("TAGTAG_GOOGLE_REVERSED_CLIENT_ID");
         if (string.IsNullOrWhiteSpace(googleScheme))

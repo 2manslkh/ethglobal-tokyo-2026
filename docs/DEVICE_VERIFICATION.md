@@ -29,6 +29,15 @@ Record device/iOS/build, observed result, and screenshot paths for each check:
 8. Offline collection viewing; reconnect; withdrawal, blocking, moderation, and account deletion hide or revoke content as specified.
 9. Smaller screen, large text, VoiceOver, Reduce Motion, and keyboard controls.
 
+## App branding — 2026-09-26
+
+- App icon: unchanged `docs/mascot/Taggi 3.png` artwork copied to `Assets/Tagtag/Branding/AppIcon.png`. The import is uncompressed with alpha disabled; Unity generates the iOS sizes, including the 1024-pixel entry, from the 512-pixel source.
+- `BuildIos.PrepareArKit` and `BuildIos.Build` passed in separate Unity invocations. Export inspection verified all 10 icon catalog entries have the declared dimensions and no alpha channel.
+- `xcodebuild -project Build/iOS/Unity-iPhone.xcodeproj -scheme Unity-iPhone -configuration Debug -sdk iphoneos -destination 'generic/platform=iOS' -derivedDataPath Build/DerivedData CODE_SIGNING_ALLOWED=NO build` passed.
+- Compiled app metadata verified: display name `tagtag`, bundle `com.kenk.tagtag`, version `0.1.0`, build `0`, `AppIcon` catalog reference, and the updated camera/location descriptions. `BuildIos.ConfigureAppMetadata` also exposes a **tagtag > Configure App Metadata** editor menu command.
+- [Icon preview](verification/app-icon-preview.png) inspected at 60-point home-screen and 29-point settings sizes with rounded corners. This is a rendered preview of exported assets, not a device screenshot.
+- Physical branding verification is **pending**: CoreDevice reported no available physical iPhone during this check. On an available iPhone, install the updated build, confirm the home-screen name/icon, and check both permission prompts on a fresh permission state. Record the device, iOS version, and screenshots here.
+
 ## Current limits
 
 No successful two-device AR recovery, live provider sign-in, or current-build hardware launch is claimed until the checks above are recorded. Budget alerts warn about spend; they are not a spending cap.
