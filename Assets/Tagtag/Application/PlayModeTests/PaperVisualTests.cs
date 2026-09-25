@@ -22,6 +22,106 @@ namespace Tagtag.Tests
         private int oldMotion;
 
         [UnityTest]
+        public IEnumerator CameraInventoryFlowUsesFullScreenAndExplicitPlacement()
+        {
+            oldScale = PlayerPrefs.GetFloat("tagtag.textScale", 1f);
+            oldMotion = PlayerPrefs.GetInt("tagtag.reducedMotion", 0);
+            PlayerPrefs.SetFloat("tagtag.textScale", 1f);
+            PlayerPrefs.SetInt("tagtag.reducedMotion", 1);
+            controller = new ReviewController();
+            controller.Navigate(AppPage.Explore);
+            host = new GameObject("Camera inventory review");
+            host.AddComponent<TagtagAppView>().Initialize(controller);
+            document = host.GetComponent<UIDocument>();
+            target = new RenderTexture(390, 844, 24);
+            target.Create();
+            document.panelSettings.targetTexture = target;
+            document.panelSettings.clearColor = true;
+            document.panelSettings.colorClearValue = new Color32(218, 225, 222, 255);
+            yield return null;
+            controller.Navigate(AppPage.Stick);
+            yield return Capture("camera-fullscreen-preparing");
+            Assert.That(document.rootVisualElement.Q<Button>("Tab Home"), Is.Null, "Camera mode must remove the bottom navigation.");
+            Assert.That(document.rootVisualElement.Query<Label>().ToList().Any(label => label.text == "tagtag"), Is.False,
+                "Camera mode must remove the generic app header.");
+            Assert.That(document.rootVisualElement.Q<Button>("STICK Close"), Is.Not.Null);
+            Assert.That(controller.Camera.InteractionBlocked, Is.True);
+            controller.Camera.CameraPresentation = CameraPresentationState.Live;
+            controller.Camera.IsTracking = true;
+            controller.Notify();
+            yield return Capture("camera-fullscreen-idle");
+            var inventory = document.rootVisualElement.Q<Button>("STICK Inventory");
+            Assert.That(inventory, Is.Not.Null);
+            Assert.That(inventory.layout.width, Is.GreaterThanOrEqualTo(88f));
+            Assert.That(inventory.layout.height, Is.GreaterThanOrEqualTo(88f));
+            Submit("STICK Inventory");
+            yield return Capture("camera-inventory");
+            Assert.That(controller.Camera.InteractionBlocked, Is.True, "The inventory must block all camera input.");
+            Assert.That(document.rootVisualElement.Query<Button>().ToList().Count(button =>
+                button.name != null && button.name.StartsWith("Inventory Taggi pose ")), Is.EqualTo(4));
+            foreach (var choice in document.rootVisualElement.Query<Button>().ToList().Where(button =>
+                button.name != null && button.name.StartsWith("Inventory Taggi pose ")))
+            {
+                var artwork = choice.Q<Image>();
+                var caption = choice.Query<Label>().ToList().FirstOrDefault(label => label.text.StartsWith("Taggi pose "));
+                Assert.That(caption, Is.Not.Null, "Inventory captions must occupy their own layout below the art.");
+                Assert.That(caption.worldBound.yMin, Is.GreaterThanOrEqualTo(artwork.worldBound.yMax - 1f));
+            }
+            Submit("Inventory Taggi pose 2");
+            yield return Capture("camera-finding-surface");
+            Assert.That(controller.State.selectedPreset, Is.EqualTo("taggi-2"));
+            Assert.That(controller.Camera.PlaceCalls, Is.Zero, "Selecting inventory art must not place it automatically.");
+            Assert.That(document.rootVisualElement.Q<Image>("STICK Selected Artwork")?.image, Is.Not.Null);
+            var write = document.rootVisualElement.Q<Button>("STICK Write note");
+            Assert.That(write == null || !write.enabledSelf, Is.True, "Place a preview before writing its note.");
+            controller.Camera.HasPlacementSurface = true;
+            controller.Notify();
+            yield return Capture("camera-surface-ready");
+            Submit("STICK Inventory");
+            yield return new WaitForSecondsRealtime(.4f);
+            yield return TapCameraSurface();
+            Assert.That(controller.Camera.PlaceCalls, Is.Zero, "Touches behind the inventory must not place a sticker.");
+            Submit("Close");
+            yield return new WaitForSecondsRealtime(.4f);
+            yield return TapCameraSurface();
+            controller.Notify();
+            yield return Capture("camera-adjusting-preview");
+            Assert.That(controller.Camera.PlaceCalls, Is.EqualTo(1));
+            Assert.That(controller.Camera.CanPublish, Is.False, "Fixture keeps mapping incomplete to test independent note access.");
+            var adjustments = document.rootVisualElement.Q<Foldout>("STICK Adjustments");
+            Assert.That(adjustments.value, Is.False, "Adjustment controls start collapsed to leave room for the camera.");
+            adjustments.value = true;
+            yield return Capture("camera-adjustments-expanded");
+            Submit("STICK Smaller");
+            Submit("STICK Rotate left");
+            Assert.That(controller.Camera.PlacementWidthMeters, Is.EqualTo(.19f).Within(.001f));
+            Assert.That(controller.Camera.PlacementRotationDegrees, Is.EqualTo(-5f).Within(.001f));
+            adjustments.value = false;
+            Submit("STICK Write note");
+            yield return Capture("camera-note-after-placement");
+            Assert.That(document.rootVisualElement.Q<TextField>("Your note"), Is.Not.Null);
+            Assert.That(controller.Camera.InteractionBlocked, Is.True);
+            Submit("Close");
+            yield return new WaitForSecondsRealtime(.4f);
+            Submit("STICK Close");
+            yield return new WaitForSecondsRealtime(.4f);
+            Assert.That(controller.State.page, Is.EqualTo(AppPage.Explore), "Close returns to the camera entry destination.");
+            Assert.That(document.rootVisualElement.Q<Button>("Tab Explore"), Is.Not.Null);
+        }
+
+        private IEnumerator TapCameraSurface()
+        {
+            var surface = document.rootVisualElement.Q("STICK Camera Surface");
+            Assert.That(surface, Is.Not.Null);
+            var center = surface.worldBound.center;
+            using (var down = PointerDownEvent.GetPooled(new Event { type = EventType.MouseDown, mousePosition = center, button = 0 }))
+            { down.target = surface; surface.SendEvent(down); }
+            yield return null;
+            using (var up = PointerUpEvent.GetPooled(new Event { type = EventType.MouseUp, mousePosition = center, button = 0 }))
+            { up.target = surface; surface.SendEvent(up); }
+        }
+
+        [UnityTest]
         public IEnumerator CapturesPaperScreensAndRecoveryStates()
         {
             oldScale = PlayerPrefs.GetFloat("tagtag.textScale", 1f);
@@ -117,11 +217,13 @@ namespace Tagtag.Tests
             controller.Notify();
             yield return Capture("camera-live-guidance");
             Assert.That(document.rootVisualElement.Q("Opaque camera cover").resolvedStyle.display, Is.EqualTo(DisplayStyle.None));
-            Submit("Leave a sticker");
+            Submit("STICK Inventory");
             yield return Capture("pose-picker");
             Submit("Close");
             yield return new WaitForSecondsRealtime(.4f);
             controller.SelectPreset("taggi-2");
+            controller.Camera.HasPlacementPreview = true;
+            controller.Notify();
             for (int frame = 0; frame < 5; frame++) yield return null;
             Submit("Write note");
             yield return Capture("note-empty-disabled");
@@ -170,6 +272,8 @@ namespace Tagtag.Tests
             controller.Notify();
             yield return new WaitForSecondsRealtime(.4f);
             controller.SelectPreset("taggi-3");
+            controller.Camera.HasPlacementPreview = true;
+            controller.Notify();
             yield return new WaitForSecondsRealtime(.4f);
             if (document.rootVisualElement.Q<PaperSheet>() == null) Submit("Write note");
             yield return new WaitForSecondsRealtime(.4f);
@@ -178,7 +282,7 @@ namespace Tagtag.Tests
             Submit("Close");
             yield return new WaitForSecondsRealtime(.4f);
             Assert.That(document.rootVisualElement.panel.focusController.focusedElement,
-                Is.SameAs(document.rootVisualElement.Q<Button>("Action Write note")), "Dismissal returns focus to the trigger.");
+                Is.SameAs(document.rootVisualElement.Q<Button>("STICK Write note")), "Dismissal returns focus to the trigger.");
 
             controller.SignOut();
             yield return new WaitForSecondsRealtime(.4f);
@@ -284,11 +388,29 @@ namespace Tagtag.Tests
             for (int frame = 0; frame < 10; frame++) yield return null;
             Submit("Write note");
             yield return Capture("note-compact-largest-reduced-motion");
+            Submit("Close");
+            yield return new WaitForSecondsRealtime(.4f);
+            controller.Camera.CameraPresentation = CameraPresentationState.Live;
+            controller.Camera.IsTracking = true;
+            controller.Notify();
+            yield return Capture("camera-compact-largest-reduced-motion");
+            var compactInventory = document.rootVisualElement.Q<Button>("STICK Inventory");
+            Assert.That(compactInventory.worldBound.yMax, Is.LessThanOrEqualTo(document.rootVisualElement.worldBound.yMax));
+            var compactAdjustments = document.rootVisualElement.Q<Foldout>("STICK Adjustments");
+            compactAdjustments.value = true;
+            yield return Capture("camera-adjustments-compact-largest-reduced-motion");
+            Assert.That(document.rootVisualElement.Q("STICK camera dock").worldBound.yMin,
+                Is.GreaterThanOrEqualTo(document.rootVisualElement.Q("STICK camera header").worldBound.yMax));
+            compactAdjustments.value = false;
+            Submit("STICK Inventory");
+            yield return Capture("inventory-compact-largest-reduced-motion");
         }
 
         private void Submit(string title)
         {
-            var button = document.rootVisualElement.Query<Button>().ToList().FirstOrDefault(b => b.text == title || b.name == title);
+            VisualElement scope = document.rootVisualElement.Q<PaperSheet>() ?? document.rootVisualElement;
+            var buttons = scope.Query<Button>().ToList();
+            var button = buttons.FirstOrDefault(b => b.name == title) ?? buttons.FirstOrDefault(b => b.text == title);
             Assert.That(button, Is.Not.Null, "Missing control: " + title);
             using (var submit = NavigationSubmitEvent.GetPooled())
             { button.Focus(); submit.target = button; button.SendEvent(submit); }
@@ -374,7 +496,7 @@ namespace Tagtag.Tests
             public void RefreshNearby() { }
             public void SelectSticker(string id) { State.selected = State.nearby.Find(s => s.id == id); Notify(); }
             public void StartDiscovery() { Navigate(AppPage.Stick); }
-            public void SelectPreset(string id) { State.selectedPreset = id; Notify(); }
+            public void SelectPreset(string id) { State.selectedPreset = id; Camera.SelectPreset(id); Notify(); }
             public void SetDraft(string place, string teaser, string note) { State.draftPlace = place; State.draftTeaser = teaser; State.draftNote = note; Notify(); }
             public int PublishCount { get; private set; }
             public void Publish() { PublishCount++; }
