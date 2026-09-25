@@ -1,0 +1,1 @@
+{"name":"Tagtag.Core.Tests","references":["Tagtag.Core"],"optionalUnityReferences":["TestAssemblies"],"includePlatforms":["Editor"]}
