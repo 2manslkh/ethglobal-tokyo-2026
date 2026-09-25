@@ -1,0 +1,9 @@
+{
+    "name": "Tagtag.Services.Tests",
+    "rootNamespace": "Tagtag.Services.Tests",
+    "references": ["Tagtag.Core", "Tagtag.Services"],
+    "optionalUnityReferences": ["TestAssemblies"],
+    "includePlatforms": ["Editor"],
+    "overrideReferences": true,
+    "precompiledReferences": ["nunit.framework.dll"]
+}
