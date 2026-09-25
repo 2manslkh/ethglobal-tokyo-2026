@@ -71,7 +71,7 @@ The device owner has offered to test the iPhone once the new build is installed.
 
 | Case | Expected observation | Current result |
 | --- | --- | --- |
-| Cold start → STICK | Paper/Taggi remains visible until the first valid camera frame; no blank scene | Pending |
+| Cold start → STICK | Paper/Taggi remains visible until the first valid camera frame; no blank scene | Failed in paper UI build: permission-denied cover despite Settings access. Follow-up retest pending. |
 | Camera permission denied → Settings → return | Truthful recovery prompt; fresh preparation before live imagery | Pending |
 | Home/Explore/STICK switching | Paper screens remain opaque; camera restarts without stale imagery | Pending |
 | Background/interruption → resume | Cover returns immediately; camera reveals only after a new frame | Pending |
@@ -80,3 +80,23 @@ The device owner has offered to test the iPhone once the new build is installed.
 | Explore → sheet → Explore | Map hides under the overlay and restores the same viewport | Pending |
 
 Video has not yet been recorded. Hardware startup, camera permissions/lifecycle, software-keyboard clearance, and native-map interaction are unverified for this pass until device results are entered here.
+
+## Device feedback follow-up — 2026-09-26
+
+The owner reported two failures in the paper UI build: STICK remained on “Allow camera access to find stickers in AR” even though Settings already granted access, and Explore blocked navigation until its precise-location timeout. No physical success or video is claimed for that build.
+
+The camera cause is confirmed in the shipped Unity export: `UNITY_USES_WEBCAM` and `UNITY_USES_MICROPHONE` are both zero, so Unity's `Classes/Unity/AVCapture.mm` compiles out its authorization query/request and returns denied. A dedicated AVFoundation bridge now reads and requests video permission independently of those stripped modules. Native status controls the decision; Unity's status is logged only for diagnosis. Unknown native status produces a recoverable failure rather than a false permission denial.
+
+Nearby reads now have a separate loading state, cancel location waiting on navigation, and discard late results. Account/sync interruptions resume the lookup when Explore becomes active again. Session invalidation reaches application identity, and automatic nearby resumption preserves foreground errors. GPS accuracy and AR discovery requirements remain unchanged.
+
+The owner also requested Taggi roof/star/map navigation art and Shadows Into Light for display/title text only. Instrument Sans remains on body text, fields, controls, navigation labels, and native map clusters. [Artwork and exact prompts](../Assets/Resources/Tagtag/Navigation/README.md) and [font licenses](../Assets/Resources/Tagtag/Fonts/README.md) are bundled in the repository.
+
+- Edit Mode: **79/79 passed**, including camera permission disagreement and seven nearby navigation/lifecycle regressions. The new service failures were reproduced before their fixes.
+- Play Mode: **2/2 passed**, including real-entry startup, mounted flows, font/resource inclusion, navigation during nearby loading, discovery action busy states, and compact enlarged-text footer bounds. The initial compact capture exposed footer clipping; intrinsic nav height and nonshrinking shell sections repaired it.
+- [32 rendered screen/sheet captures](verification/device-followup/contact-sheet.png), [Edit Mode result](verification/device-followup/edit-mode.xml), and [Play Mode result](verification/device-followup/play-mode.xml) are retained. Native map/camera imagery and software keyboard are not represented by the fixture. Text fields contain Japanese/Latin content to exercise fallback fonts.
+- Integrated static review closed with no remaining concrete findings after the service and UI corrections.
+- Built macOS player: both local NUnit callbacks passed at 2026-09-25 20:14:09 UTC ([startup](verification/device-followup/tagtag-startup-result.xml), [mounted UI](verification/device-followup/tagtag-paper-visual-result.xml)). The editor connection hung again; the completed test pair was terminated only after reading the fresh passing callbacks. No native-camera result is implied.
+- Separate ARKit preparation and iOS export passed. The Xcode Sources phase includes `TagtagCameraPermission.mm`; AVFoundation is linked explicitly. Generated IL2CPP code calls both bridge functions, and both symbols are present in the linked UnityFramework binary.
+- Unsigned Xcode compilation and automatic development signing passed (`/private/tmp/tagtag-device-followup-xcode-unsigned.log`, `/private/tmp/tagtag-device-followup-xcode-signed.log`). USB installation on Dawg. returned `InstallComplete` without uninstalling (`/private/tmp/tagtag-device-followup-install.log`).
+- Isolated arm64 simulator preparation, export, and Xcode build passed. Installed and launched on iPhone 17 Pro, iOS 26.2; the [native Home capture](verification/device-followup/simulator-home.png) confirms the handwritten heading, Instrument control text, three Taggi icons, and safe-area layout. Interactive native-map/keyboard checks remain unverified because the Simulator desktop application is unavailable on this Mac.
+- The owner was asked to retest the installed follow-up: STICK cold startup, Settings return, tab switching, background/resume, and leaving Explore immediately during location acquisition. Physical results and device video are still pending.

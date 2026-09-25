@@ -43,15 +43,21 @@ irregularity belongs in the drawings, not in displaced controls or unreadable te
 
 ### Typography
 
-Use **Bricolage Grotesque Bold / ExtraBold** for expressive headings and
-**Instrument Sans Regular / SemiBold** for reading and controls, sourced from
-`sticker-app` as described below. Import the actual font weights and their SIL
-Open Font License notices; do not substitute Unity's default face or synthesize
-bold. Reuse the source's typography roles and scaling behavior.
+Use **Shadows Into Light** for display text and titles, following the device-review
+direction of 2026-09-26. Use **Instrument Sans Regular / SemiBold** for body text,
+fields, controls, navigation labels, and native map counts. Ship the actual font
+files and their SIL Open Font License notices. Keep a readable fallback for
+characters outside the handwriting font's coverage; do not synthesize bold.
+Preserve the source's typography roles and scaling behavior.
 
 Use sentence case, retaining **STICK** as the named camera tab. Notes, instructions,
-and controls must remain easy to read. Handwriting is reserved for occasional
-short decorative annotations, never essential instructions or full notes.
+and controls must remain easy to read. Handwriting belongs to display/title
+roles, never essential instructions or full notes.
+
+Navigation uses matching Taggi illustrations: raised arms forming a roof for
+Home, a held yellow star for STICK, and an open folded map for Explore. Keep the
+destination labels and selected marker; artwork must remain legible within
+stable touch targets.
 
 Support text scaling, wrapping, safe areas, and controls at least 44 points in
 size. Preserve larger targets provided by the source components. Target 4.5:1

@@ -1,0 +1,42 @@
+<test-case id="1002" name="CapturesPaperScreensAndRecoveryStates" fullname="Tagtag.Tests.PaperVisualTests.CapturesPaperScreensAndRecoveryStates" methodname="CapturesPaperScreensAndRecoveryStates" classname="Tagtag.Tests.PaperVisualTests" runstate="Runnable" seed="1577877516" result="Passed" start-time="2026-09-25 20:13:47Z" end-time="2026-09-25 20:14:08Z" duration="21.222697" asserts="0"><properties><property name="_JOINTYPE" value="UnityCombinatorial" /><property name="retryIteration" value="0" /><property name="repeatIteration" value="0" /></properties><output><![CDATA[Paper UI capture: /var/folders/_r/65qcktj96mgb6y7948nn9g9m0000gn/T/tagtag/tagtag/tagtag-paper-review/home-empty.png
+Paper UI capture: /var/folders/_r/65qcktj96mgb6y7948nn9g9m0000gn/T/tagtag/tagtag/tagtag-paper-review/home-populated.png
+Paper UI capture: /var/folders/_r/65qcktj96mgb6y7948nn9g9m0000gn/T/tagtag/tagtag/tagtag-paper-review/collected-long-note.png
+Paper UI capture: /var/folders/_r/65qcktj96mgb6y7948nn9g9m0000gn/T/tagtag/tagtag/tagtag-paper-review/collected-revoked-after-sync.png
+Paper UI capture: /var/folders/_r/65qcktj96mgb6y7948nn9g9m0000gn/T/tagtag/tagtag/tagtag-paper-review/account.png
+Paper UI capture: /var/folders/_r/65qcktj96mgb6y7948nn9g9m0000gn/T/tagtag/tagtag/tagtag-paper-review/authored-empty.png
+Paper UI capture: /var/folders/_r/65qcktj96mgb6y7948nn9g9m0000gn/T/tagtag/tagtag/tagtag-paper-review/authored-populated.png
+Paper UI capture: /var/folders/_r/65qcktj96mgb6y7948nn9g9m0000gn/T/tagtag/tagtag/tagtag-paper-review/withdraw-confirmation.png
+Paper UI capture: /var/folders/_r/65qcktj96mgb6y7948nn9g9m0000gn/T/tagtag/tagtag/tagtag-paper-review/delete-disabled.png
+Paper UI capture: /var/folders/_r/65qcktj96mgb6y7948nn9g9m0000gn/T/tagtag/tagtag/tagtag-paper-review/delete-error-focused.png
+Paper UI capture: /var/folders/_r/65qcktj96mgb6y7948nn9g9m0000gn/T/tagtag/tagtag/tagtag-paper-review/sign-in.png
+Paper UI capture: /var/folders/_r/65qcktj96mgb6y7948nn9g9m0000gn/T/tagtag/tagtag/tagtag-paper-review/camera-preparing.png
+Paper UI capture: /var/folders/_r/65qcktj96mgb6y7948nn9g9m0000gn/T/tagtag/tagtag/tagtag-paper-review/camera-denied.png
+Paper UI capture: /var/folders/_r/65qcktj96mgb6y7948nn9g9m0000gn/T/tagtag/tagtag/tagtag-paper-review/camera-interrupted.png
+Paper UI capture: /var/folders/_r/65qcktj96mgb6y7948nn9g9m0000gn/T/tagtag/tagtag/tagtag-paper-review/camera-unavailable.png
+Paper UI capture: /var/folders/_r/65qcktj96mgb6y7948nn9g9m0000gn/T/tagtag/tagtag/tagtag-paper-review/camera-live-guidance.png
+Paper UI capture: /var/folders/_r/65qcktj96mgb6y7948nn9g9m0000gn/T/tagtag/tagtag/tagtag-paper-review/pose-picker.png
+Paper UI capture: /var/folders/_r/65qcktj96mgb6y7948nn9g9m0000gn/T/tagtag/tagtag/tagtag-paper-review/note-empty-disabled.png
+Paper UI capture: /var/folders/_r/65qcktj96mgb6y7948nn9g9m0000gn/T/tagtag/tagtag/tagtag-paper-review/note-long-focused.png
+Paper UI capture: /var/folders/_r/65qcktj96mgb6y7948nn9g9m0000gn/T/tagtag/tagtag/tagtag-paper-review/note-busy-error.png
+Paper UI capture: /var/folders/_r/65qcktj96mgb6y7948nn9g9m0000gn/T/tagtag/tagtag/tagtag-paper-review/note-sign-in-return.png
+Paper UI capture: /var/folders/_r/65qcktj96mgb6y7948nn9g9m0000gn/T/tagtag/tagtag/tagtag-paper-review/note-signed-in-restored.png
+Paper UI capture: /var/folders/_r/65qcktj96mgb6y7948nn9g9m0000gn/T/tagtag/tagtag/tagtag-paper-review/explore-empty.png
+Paper UI capture: /var/folders/_r/65qcktj96mgb6y7948nn9g9m0000gn/T/tagtag/tagtag/tagtag-paper-review/explore-location-loading.png
+Paper UI capture: /var/folders/_r/65qcktj96mgb6y7948nn9g9m0000gn/T/tagtag/tagtag/tagtag-paper-review/explore-teaser.png
+Paper UI capture: /var/folders/_r/65qcktj96mgb6y7948nn9g9m0000gn/T/tagtag/tagtag/tagtag-paper-review/report-sheet.png
+Paper UI capture: /var/folders/_r/65qcktj96mgb6y7948nn9g9m0000gn/T/tagtag/tagtag/tagtag-paper-review/block-sheet.png
+Paper UI capture: /var/folders/_r/65qcktj96mgb6y7948nn9g9m0000gn/T/tagtag/tagtag/tagtag-paper-review/explore-error.png
+Paper UI capture: /var/folders/_r/65qcktj96mgb6y7948nn9g9m0000gn/T/tagtag/tagtag/tagtag-paper-review/home-compact-largest-reduced-motion.png
+Paper UI capture: /var/folders/_r/65qcktj96mgb6y7948nn9g9m0000gn/T/tagtag/tagtag/tagtag-paper-review/account-compact-largest-reduced-motion.png
+Paper UI capture: /var/folders/_r/65qcktj96mgb6y7948nn9g9m0000gn/T/tagtag/tagtag/tagtag-paper-review/explore-compact-largest-long-clue.png
+Compact geometry Compact paper visual review-container unity-ui-document__root,paper-app,reduced-motion bounds=(x:0.00, y:0.00, width:390.00, height:692.25)
+Compact geometry   bounds=(x:0.00, y:0.00, width:390.00, height:692.25)
+Compact geometry   bounds=(x:0.00, y:62.16, width:390.00, height:532.59)
+Compact geometry   bounds=(x:0.00, y:594.75, width:390.00, height:97.50)
+Compact geometry   bounds=(x:0.00, y:62.16, width:390.00, height:532.59)
+Compact geometry Native MapKit region  bounds=(x:0.00, y:165.75, width:390.00, height:205.97)
+Compact geometry Explore teaser scroll unity-scroll-view,unity-scroll-view--scroll,unity-scroll-view--vertical,paper-scroll bounds=(x:0.00, y:371.72, width:390.00, height:223.03)
+Compact geometry  paper-nav bounds=(x:0.00, y:594.75, width:390.00, height:97.50)
+Compact geometry Tab Explore unity-text-element,unity-button,paper-button,quiet,paper-nav-item,nav-selected bounds=(x:258.38, y:600.84, width:112.13, height:84.09)
+Paper UI capture: /var/folders/_r/65qcktj96mgb6y7948nn9g9m0000gn/T/tagtag/tagtag/tagtag-paper-review/note-compact-largest-reduced-motion.png
+]]></output></test-case>

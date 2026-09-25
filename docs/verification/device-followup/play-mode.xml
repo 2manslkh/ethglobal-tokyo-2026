@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="utf-8"?>
+<test-run id="2" testcasecount="2" result="Passed" total="2" passed="2" failed="0" inconclusive="0" skipped="0" asserts="0" engine-version="3.5.0.0" clr-version="4.0.30319.42000" start-time="2026-09-25 20:11:17Z" end-time="2026-09-25 20:11:38Z" duration="20.7907772">
+  <test-suite type="TestSuite" id="1010" name="tagtag" fullname="tagtag" runstate="Runnable" testcasecount="2" result="Passed" start-time="2026-09-25 20:11:17Z" end-time="2026-09-25 20:11:38Z" duration="20.790777" total="2" passed="2" failed="0" inconclusive="0" skipped="0" asserts="0">
+    <properties>
+      <property name="platform" value="PlayMode" />
+    </properties>
+    <test-suite type="Assembly" id="1005" name="Tagtag.Startup.Tests.dll" fullname="/private/tmp/tagtag-paper-ui/Library/ScriptAssemblies/Tagtag.Startup.Tests.dll" runstate="Runnable" testcasecount="2" result="Passed" start-time="2026-09-25 20:11:17Z" end-time="2026-09-25 20:11:38Z" duration="20.786543" total="2" passed="2" failed="0" inconclusive="0" skipped="0" asserts="0">
+      <properties>
+        <property name="_PID" value="19025" />
+        <property name="_APPDOMAIN" value="Unity Child Domain" />
+        <property name="platform" value="PlayMode" />
+        <property name="EditorOnly" value="False" />
+      </properties>
+      <test-suite type="TestSuite" id="1006" name="Tagtag" fullname="Tagtag" runstate="Runnable" testcasecount="2" result="Passed" start-time="2026-09-25 20:11:17Z" end-time="2026-09-25 20:11:38Z" duration="20.785731" total="2" passed="2" failed="0" inconclusive="0" skipped="0" asserts="0">
+        <properties />
+        <test-suite type="TestSuite" id="1007" name="Tests" fullname="Tagtag.Tests" runstate="Runnable" testcasecount="2" result="Passed" start-time="2026-09-25 20:11:17Z" end-time="2026-09-25 20:11:38Z" duration="20.785504" total="2" passed="2" failed="0" inconclusive="0" skipped="0" asserts="0">
+          <properties />
+          <test-suite type="TestFixture" id="1001" name="PaperVisualTests" fullname="Tagtag.Tests.PaperVisualTests" classname="Tagtag.Tests.PaperVisualTests" runstate="Runnable" testcasecount="1" result="Passed" start-time="2026-09-25 20:11:17Z" end-time="2026-09-25 20:11:37Z" duration="20.426631" total="1" passed="1" failed="0" inconclusive="0" skipped="0" asserts="0">
+            <properties />
+            <test-case id="1002" name="CapturesPaperScreensAndRecoveryStates" fullname="Tagtag.Tests.PaperVisualTests.CapturesPaperScreensAndRecoveryStates" methodname="CapturesPaperScreensAndRecoveryStates" classname="Tagtag.Tests.PaperVisualTests" runstate="Runnable" seed="1069303129" result="Passed" start-time="2026-09-25 20:11:17Z" end-time="2026-09-25 20:11:37Z" duration="20.413218" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+              <output><![CDATA[Paper UI capture: /var/folders/_r/65qcktj96mgb6y7948nn9g9m0000gn/T/tagtag/tagtag/tagtag-paper-review/home-empty.png
+Paper UI capture: /var/folders/_r/65qcktj96mgb6y7948nn9g9m0000gn/T/tagtag/tagtag/tagtag-paper-review/home-populated.png
+Paper UI capture: /var/folders/_r/65qcktj96mgb6y7948nn9g9m0000gn/T/tagtag/tagtag/tagtag-paper-review/collected-long-note.png
+Paper UI capture: /var/folders/_r/65qcktj96mgb6y7948nn9g9m0000gn/T/tagtag/tagtag/tagtag-paper-review/collected-revoked-after-sync.png
+Paper UI capture: /var/folders/_r/65qcktj96mgb6y7948nn9g9m0000gn/T/tagtag/tagtag/tagtag-paper-review/account.png
+Paper UI capture: /var/folders/_r/65qcktj96mgb6y7948nn9g9m0000gn/T/tagtag/tagtag/tagtag-paper-review/authored-empty.png
+Paper UI capture: /var/folders/_r/65qcktj96mgb6y7948nn9g9m0000gn/T/tagtag/tagtag/tagtag-paper-review/authored-populated.png
+Paper UI capture: /var/folders/_r/65qcktj96mgb6y7948nn9g9m0000gn/T/tagtag/tagtag/tagtag-paper-review/withdraw-confirmation.png
+Paper UI capture: /var/folders/_r/65qcktj96mgb6y7948nn9g9m0000gn/T/tagtag/tagtag/tagtag-paper-review/delete-disabled.png
+Paper UI capture: /var/folders/_r/65qcktj96mgb6y7948nn9g9m0000gn/T/tagtag/tagtag/tagtag-paper-review/delete-error-focused.png
+Paper UI capture: /var/folders/_r/65qcktj96mgb6y7948nn9g9m0000gn/T/tagtag/tagtag/tagtag-paper-review/sign-in.png
+Paper UI capture: /var/folders/_r/65qcktj96mgb6y7948nn9g9m0000gn/T/tagtag/tagtag/tagtag-paper-review/camera-preparing.png
+Paper UI capture: /var/folders/_r/65qcktj96mgb6y7948nn9g9m0000gn/T/tagtag/tagtag/tagtag-paper-review/camera-denied.png
+Paper UI capture: /var/folders/_r/65qcktj96mgb6y7948nn9g9m0000gn/T/tagtag/tagtag/tagtag-paper-review/camera-interrupted.png
+Paper UI capture: /var/folders/_r/65qcktj96mgb6y7948nn9g9m0000gn/T/tagtag/tagtag/tagtag-paper-review/camera-unavailable.png
+Paper UI capture: /var/folders/_r/65qcktj96mgb6y7948nn9g9m0000gn/T/tagtag/tagtag/tagtag-paper-review/camera-live-guidance.png
+Paper UI capture: /var/folders/_r/65qcktj96mgb6y7948nn9g9m0000gn/T/tagtag/tagtag/tagtag-paper-review/pose-picker.png
+Paper UI capture: /var/folders/_r/65qcktj96mgb6y7948nn9g9m0000gn/T/tagtag/tagtag/tagtag-paper-review/note-empty-disabled.png
+Paper UI capture: /var/folders/_r/65qcktj96mgb6y7948nn9g9m0000gn/T/tagtag/tagtag/tagtag-paper-review/note-long-focused.png
+Paper UI capture: /var/folders/_r/65qcktj96mgb6y7948nn9g9m0000gn/T/tagtag/tagtag/tagtag-paper-review/note-busy-error.png
+Paper UI capture: /var/folders/_r/65qcktj96mgb6y7948nn9g9m0000gn/T/tagtag/tagtag/tagtag-paper-review/note-sign-in-return.png
+Paper UI capture: /var/folders/_r/65qcktj96mgb6y7948nn9g9m0000gn/T/tagtag/tagtag/tagtag-paper-review/note-signed-in-restored.png
+Paper UI capture: /var/folders/_r/65qcktj96mgb6y7948nn9g9m0000gn/T/tagtag/tagtag/tagtag-paper-review/explore-empty.png
+Paper UI capture: /var/folders/_r/65qcktj96mgb6y7948nn9g9m0000gn/T/tagtag/tagtag/tagtag-paper-review/explore-location-loading.png
+Paper UI capture: /var/folders/_r/65qcktj96mgb6y7948nn9g9m0000gn/T/tagtag/tagtag/tagtag-paper-review/explore-teaser.png
+Paper UI capture: /var/folders/_r/65qcktj96mgb6y7948nn9g9m0000gn/T/tagtag/tagtag/tagtag-paper-review/report-sheet.png
+Paper UI capture: /var/folders/_r/65qcktj96mgb6y7948nn9g9m0000gn/T/tagtag/tagtag/tagtag-paper-review/block-sheet.png
+Paper UI capture: /var/folders/_r/65qcktj96mgb6y7948nn9g9m0000gn/T/tagtag/tagtag/tagtag-paper-review/explore-error.png
+Paper UI capture: /var/folders/_r/65qcktj96mgb6y7948nn9g9m0000gn/T/tagtag/tagtag/tagtag-paper-review/home-compact-largest-reduced-motion.png
+Paper UI capture: /var/folders/_r/65qcktj96mgb6y7948nn9g9m0000gn/T/tagtag/tagtag/tagtag-paper-review/account-compact-largest-reduced-motion.png
+Paper UI capture: /var/folders/_r/65qcktj96mgb6y7948nn9g9m0000gn/T/tagtag/tagtag/tagtag-paper-review/explore-compact-largest-long-clue.png
+Compact geometry Compact paper visual review-container unity-ui-document__root,paper-app,reduced-motion bounds=(x:0.00, y:0.00, width:390.00, height:692.25)
+Compact geometry   bounds=(x:0.00, y:0.00, width:390.00, height:692.25)
+Compact geometry   bounds=(x:0.00, y:62.16, width:390.00, height:532.59)
+Compact geometry   bounds=(x:0.00, y:594.75, width:390.00, height:97.50)
+Compact geometry   bounds=(x:0.00, y:62.16, width:390.00, height:532.59)
+Compact geometry Native MapKit region  bounds=(x:0.00, y:165.75, width:390.00, height:205.97)
+Compact geometry Explore teaser scroll unity-scroll-view,unity-scroll-view--scroll,unity-scroll-view--vertical,paper-scroll bounds=(x:0.00, y:371.72, width:390.00, height:223.03)
+Compact geometry  paper-nav bounds=(x:0.00, y:594.75, width:390.00, height:97.50)
+Compact geometry Tab Explore unity-text-element,unity-button,paper-button,quiet,paper-nav-item,nav-selected bounds=(x:258.38, y:600.84, width:112.13, height:84.09)
+Paper UI capture: /var/folders/_r/65qcktj96mgb6y7948nn9g9m0000gn/T/tagtag/tagtag/tagtag-paper-review/note-compact-largest-reduced-motion.png
+]]></output>
+            </test-case>
+          </test-suite>
+          <test-suite type="TestFixture" id="1003" name="StartupTests" fullname="Tagtag.Tests.StartupTests" classname="Tagtag.Tests.StartupTests" runstate="Runnable" testcasecount="1" result="Passed" start-time="2026-09-25 20:11:37Z" end-time="2026-09-25 20:11:38Z" duration="0.358112" total="1" passed="1" failed="0" inconclusive="0" skipped="0" asserts="0">
+            <properties />
+            <test-case id="1004" name="EntrySceneRendersHomeOnFirstLaunch" fullname="Tagtag.Tests.StartupTests.EntrySceneRendersHomeOnFirstLaunch" methodname="EntrySceneRendersHomeOnFirstLaunch" classname="Tagtag.Tests.StartupTests" runstate="Runnable" seed="1071125734" result="Passed" start-time="2026-09-25 20:11:37Z" end-time="2026-09-25 20:11:38Z" duration="0.356559" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+              <output><![CDATA[tagtag startup screenshot: /var/folders/_r/65qcktj96mgb6y7948nn9g9m0000gn/T/tagtag/tagtag/tagtag-startup.png
+Saving results to: /private/tmp/tagtag-device-followup-play-final.xml
+]]></output>
+            </test-case>
+          </test-suite>
+        </test-suite>
+      </test-suite>
+    </test-suite>
+  </test-suite>
+</test-run>
