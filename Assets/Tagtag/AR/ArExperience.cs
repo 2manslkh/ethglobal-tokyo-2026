@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using Unity.Collections;
+using UnityEngine.Rendering;
 using Unity.XR.CoreUtils;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -27,6 +28,11 @@ namespace Tagtag.AR
         public event Action<string> StickerTapped;
         public string Status { get; private set; } = "Open STICK to scan a surface.";
         public CameraPresentationState CameraPresentation => presentation.State;
+        public bool HasPlacementSurface { get; private set; }
+        public bool HasPlacementPreview => !recovered && anchor != null && visual != null;
+        public bool PlacementBusy => busy;
+        public float PlacementWidthMeters => widthMeters;
+        public float PlacementRotationDegrees => twistDegrees;
         public bool IsTracking => active && !paused && ARSession.state == ARSessionState.SessionTracking &&
             cameraFrameAt > 0 && Time.realtimeSinceStartupAsDouble - cameraFrameAt < 1.5;
         public bool CanPublish => ArGates.CanPublish(IsTracking, anchor != null && anchor.trackingState == TrackingState.Tracking,
@@ -47,6 +53,12 @@ namespace Tagtag.AR
         private Material material;
         private ARAnchor anchor;
         private readonly List<ARRaycastHit> hits = new List<ARRaycastHit>();
+        private readonly PlacementFlow placementFlow = new PlacementFlow();
+        private readonly Dictionary<TrackableId, LineRenderer> surfaceOutlines = new Dictionary<TrackableId, LineRenderer>();
+        private readonly List<TrackableId> removedOutlines = new List<TrackableId>();
+        private Material outlineMaterial;
+        private Texture2D outlineTexture;
+        private float nextSurfaceUpdate;
         private InputAction positionInput;
         private InputAction rotationInput;
         private string presetId;
@@ -59,16 +71,12 @@ namespace Tagtag.AR
         private bool wasMapped;
         private bool wasAnchorTracking;
         private bool appliedMap;
-        private Pose previewPose;
         private float widthMeters = 0.2f;
         private float twistDegrees;
         private double cameraFrameAt;
         private int generation;
         private Coroutine recoveryRoutine;
         private Coroutine captureRoutine;
-        private bool gestureActive;
-        private float gestureDistance;
-        private float gestureAngle;
         private int cameraFrameNumber;
         private readonly CameraPresentation presentation = new CameraPresentation();
         private readonly CameraSuspension suspension = new CameraSuspension();
@@ -112,6 +120,7 @@ namespace Tagtag.AR
             if (rig != null) rig.SetActive(false);
             cameraFrameAt = 0d;
             presentation.Exit();
+            UpdatePlacementGuidance();
             SetStatus("Open STICK to scan a surface.");
         }
 
@@ -122,8 +131,12 @@ namespace Tagtag.AR
             recoveredStickerId = null;
             recovered = false;
             presetId = IsPreset(id) ? id : null;
+            widthMeters = 0.2f;
+            twistDegrees = 0f;
+            nextSurfaceUpdate = 0f;
             if (presetId == null) SetStatus("Choose a sticker to place.");
             else SetStatus("Move slowly until a surface appears, then tap to place.");
+            UpdatePlacementGuidance();
         }
 
         public void CancelPlacement()
@@ -133,7 +146,49 @@ namespace Tagtag.AR
             presetId = null;
             recoveredStickerId = null;
             recovered = false;
+            UpdatePlacementGuidance();
             SetStatus("Placement cancelled.");
+        }
+
+        public void SetCameraInteraction(Rect cameraScreenRect, bool blocked)
+        {
+            if (!placementFlow.SetInteraction(cameraScreenRect, blocked)) return;
+            nextSurfaceUpdate = 0f;
+            UpdatePlacementGuidance();
+        }
+
+        public void Place(Vector2 screenPoint)
+        {
+            if (!active || paused || busy || recovered || presetId == null || anchor != null ||
+                !placementFlow.Allows(screenPoint) || TouchOnUi(screenPoint)) return;
+            if (!IsTracking)
+            {
+                SetStatus("Tracking is not ready. Scan the surroundings and try again.");
+                return;
+            }
+            if (!TrySurface(screenPoint, out var pose))
+            {
+                SetStatus("No surface here yet. Aim at a textured wall or table.");
+                return;
+            }
+            PlaceAnchor(pose);
+        }
+
+        public void AdjustPlacement(float widthMeters, float rotationDegrees, Vector2? screenPoint = null)
+        {
+            if (!active || paused || busy || recovered || presetId == null || anchor == null || visual == null ||
+                !IsTracking || anchor.trackingState != TrackingState.Tracking || placementFlow.IsBlocked ||
+                float.IsNaN(widthMeters) || float.IsInfinity(widthMeters) ||
+                float.IsNaN(rotationDegrees) || float.IsInfinity(rotationDegrees)) return;
+            if (screenPoint.HasValue && placementFlow.Allows(screenPoint.Value) &&
+                !TouchOnUi(screenPoint.Value) && TrySurface(screenPoint.Value, out var pose) &&
+                PlacementFlow.TryMoveOnOriginalPlane(new Pose(anchor.transform.position, anchor.transform.rotation),
+                    pose, out var position)) visual.transform.position = position;
+            this.widthMeters = Mathf.Clamp(widthMeters, 0.1f, 0.5f);
+            twistDegrees = Mathf.Repeat(rotationDegrees + 180f, 360f) - 180f;
+            visual.transform.localScale = Vector3.one * this.widthMeters;
+            visual.transform.localRotation = Quaternion.Euler(0f, twistDegrees, 0f) * Quaternion.Euler(90f, 0f, 0f);
+            Changed?.Invoke();
         }
 
         public void Capture(Action<SpatialSnapshot> success, Action<string> failure)
@@ -158,6 +213,7 @@ namespace Tagtag.AR
             recovered = false;
             recoveredStickerId = null;
             presetId = null;
+            UpdatePlacementGuidance();
             if (recovery == null || recovery.sticker == null || recovery.snapshot == null ||
                 string.IsNullOrEmpty(recovery.sticker.id) || recovery.expiresAt <= DateTimeOffset.UtcNow.ToUnixTimeSeconds())
             {
@@ -231,6 +287,7 @@ namespace Tagtag.AR
                 var visible = tracking && anchor.trackingState == TrackingState.Tracking && (recovered || presetId != null);
                 visual.SetActive(visible);
             }
+            UpdatePlacementGuidance();
             if (recovered)
             {
                 if (!IsTracking || anchor == null || anchor.trackingState != TrackingState.Tracking)
@@ -239,53 +296,83 @@ namespace Tagtag.AR
                     SetStatus("Tracking was lost. Reopen this sticker and scan again.");
                 }
                 else HandleRecoveredTap();
-                return;
             }
-            if (busy || string.IsNullOrEmpty(presetId) || !tracking) return;
-            if (anchor == null) UpdateSurfacePreview();
-            HandlePlacementTouches();
         }
 
-        private void UpdateSurfacePreview()
+        private void UpdatePlacementGuidance()
         {
-            if (!TrySurface(new Vector2(Screen.width * 0.5f, Screen.height * 0.5f), out previewPose))
+            var show = PlacementFlow.ShouldOutline(active && !paused && presetId != null && !recovered,
+                IsTracking, busy, HasPlacementPreview, placementFlow.IsBlocked);
+            if (!show || planes == null || camera == null)
             {
-                if (visual != null) visual.SetActive(false);
+                foreach (var line in surfaceOutlines.Values) if (line != null) line.enabled = false;
+                SetSurfaceAvailable(false);
                 return;
             }
-            if (visual == null) CreateVisual(presetId);
-            visual.SetActive(true);
-            visual.transform.SetPositionAndRotation(previewPose.position, previewPose.rotation * Quaternion.Euler(90f, twistDegrees, 0f));
-            visual.transform.localScale = Vector3.one * widthMeters;
-        }
-
-        private void HandlePlacementTouches()
-        {
-            if (Input.touchCount == 2 && anchor != null)
+            if (Time.unscaledTime < nextSurfaceUpdate) return;
+            nextSurfaceUpdate = Time.unscaledTime + 0.1f;
+            if (outlineMaterial == null)
             {
-                var first = Input.GetTouch(0);
-                var second = Input.GetTouch(1);
-                if (TouchOnUi(first.position) || TouchOnUi(second.position))
-                { gestureActive = false; return; }
-                var delta = second.position - first.position;
-                if (gestureActive)
+                var template = Resources.Load<Material>("Tagtag/AR/DeviceSticker");
+                if (template == null || template.shader == null || !template.shader.isSupported)
+                { SetSurfaceAvailable(false); return; }
+                outlineTexture = new Texture2D(1, 1, TextureFormat.RGBA32, false);
+                outlineTexture.SetPixel(0, 0, new Color(1f, 0.824f, 0.188f, 0.9f));
+                outlineTexture.Apply();
+                outlineMaterial = new Material(template);
+                outlineMaterial.mainTexture = outlineTexture;
+            }
+            removedOutlines.Clear();
+            removedOutlines.AddRange(surfaceOutlines.Keys);
+            var visible = false;
+            var frustum = GeometryUtility.CalculateFrustumPlanes(camera);
+            foreach (var plane in planes.trackables)
+            {
+                if (plane.trackingState != TrackingState.Tracking || plane.subsumedBy != null ||
+                    plane.boundary.Length < 3) continue;
+                removedOutlines.Remove(plane.trackableId);
+                if (!surfaceOutlines.TryGetValue(plane.trackableId, out var line) || line == null)
                 {
-                    widthMeters = Mathf.Clamp(widthMeters * delta.magnitude / Mathf.Max(1f, gestureDistance), 0.1f, 0.5f);
-                    twistDegrees += Mathf.DeltaAngle(gestureAngle, Mathf.Atan2(delta.y, delta.x) * Mathf.Rad2Deg);
-                    visual.transform.localScale = Vector3.one * widthMeters;
-                    visual.transform.localRotation = Quaternion.Euler(90f, twistDegrees, 0f);
-                    Changed?.Invoke();
+                    line = Child("Placement surface outline", plane.transform).AddComponent<LineRenderer>();
+                    line.useWorldSpace = false;
+                    line.loop = true;
+                    line.widthMultiplier = 0.006f;
+                    line.sharedMaterial = outlineMaterial;
+                    line.numCornerVertices = 3;
+                    line.shadowCastingMode = ShadowCastingMode.Off;
+                    line.receiveShadows = false;
+                    surfaceOutlines[plane.trackableId] = line;
                 }
-                gestureDistance = delta.magnitude;
-                gestureAngle = Mathf.Atan2(delta.y, delta.x) * Mathf.Rad2Deg;
-                gestureActive = true;
-                return;
+                line.positionCount = plane.boundary.Length;
+                for (var index = 0; index < plane.boundary.Length; index++)
+                    line.SetPosition(index, new Vector3(plane.boundary[index].x, 0.003f, plane.boundary[index].y));
+                line.enabled = true;
+                visible |= GeometryUtility.TestPlanesAABB(frustum, line.bounds);
             }
-            gestureActive = false;
-            if (Input.touchCount != 1) return;
-            var touch = Input.GetTouch(0);
-            if (touch.phase != UnityEngine.TouchPhase.Ended || TouchOnUi(touch.position)) return;
-            if (anchor == null && TrySurface(touch.position, out var pose)) PlaceAnchor(pose);
+            foreach (var id in removedOutlines)
+            {
+                if (surfaceOutlines[id] != null) Destroy(surfaceOutlines[id].gameObject);
+                surfaceOutlines.Remove(id);
+            }
+            SetSurfaceAvailable(visible);
+        }
+
+        private void SetSurfaceAvailable(bool available)
+        {
+            if (HasPlacementSurface == available) return;
+            HasPlacementSurface = available;
+            if (active && !paused && !busy && anchor == null && presetId != null && !placementFlow.IsBlocked)
+                SetStatus(available ? "Surface found. Tap it to place your sticker." :
+                    "Move slowly until a surface appears, then tap to place.");
+            else Changed?.Invoke();
+        }
+
+        private void DisposePlacementGuidance()
+        {
+            foreach (var line in surfaceOutlines.Values) if (line != null) Destroy(line.gameObject);
+            surfaceOutlines.Clear();
+            if (outlineMaterial != null) Destroy(outlineMaterial);
+            if (outlineTexture != null) Destroy(outlineTexture);
         }
 
         private async void PlaceAnchor(Pose pose)
@@ -293,6 +380,7 @@ namespace Tagtag.AR
             busy = true;
             var attempt = ++generation;
             SetStatus("Attaching sticker to this surface…");
+            UpdatePlacementGuidance();
             try
             {
                 var result = await anchors.TryAddAnchorAsync(pose);
@@ -307,15 +395,23 @@ namespace Tagtag.AR
                     return;
                 }
                 anchor = result.value;
-                if (visual == null) CreateVisual(presetId);
+                if (!CreateVisual(presetId))
+                {
+                    Destroy(anchor.gameObject);
+                    anchor = null;
+                    return;
+                }
                 visual.transform.SetParent(anchor.transform, false);
                 visual.transform.localPosition = new Vector3(0f, 0.002f, 0f);
-                visual.transform.localRotation = Quaternion.Euler(90f, twistDegrees, 0f);
+                visual.transform.localRotation = Quaternion.Euler(0f, twistDegrees, 0f) *
+                    Quaternion.Euler(90f, 0f, 0f);
                 visual.transform.localScale = Vector3.one * widthMeters;
+                UpdatePlacementGuidance();
                 SetStatus("Pinch and twist to adjust. Scan around the sticker before publishing.");
             }
             catch (Exception)
             {
+                if (attempt == generation) ClearPlacement();
                 SetStatus("Could not attach there. Choose another surface.");
             }
             finally { if (attempt == generation) { busy = false; Changed?.Invoke(); } }
@@ -324,7 +420,8 @@ namespace Tagtag.AR
         private bool TrySurface(Vector2 point, out Pose pose)
         {
             pose = default;
-            if (raycasts == null || !raycasts.Raycast(point, hits, TrackableType.PlaneWithinPolygon)) return false;
+            if (raycasts == null || planes == null ||
+                !raycasts.Raycast(point, hits, TrackableType.PlaneWithinPolygon)) return false;
             foreach (var hit in hits)
             {
                 var plane = planes.GetPlane(hit.trackableId);
@@ -339,7 +436,8 @@ namespace Tagtag.AR
         {
             if (Input.touchCount != 1 || !CanCollect) return;
             var touch = Input.GetTouch(0);
-            if (touch.phase != UnityEngine.TouchPhase.Ended || TouchOnUi(touch.position)) return;
+            if (touch.phase != UnityEngine.TouchPhase.Ended || !placementFlow.Allows(touch.position) ||
+                TouchOnUi(touch.position)) return;
             var ray = camera.ScreenPointToRay(touch.position);
             if (!Physics.Raycast(ray, out var hit, 3.25f)) return;
             if (hit.collider == null || hit.collider.gameObject != visual) return;
@@ -358,19 +456,45 @@ namespace Tagtag.AR
             var point = RuntimePanelUtils.ScreenToPanel(panel, topLeft);
             for (var element = panel.Pick(point); element != null && element != root; element = element.parent)
             {
-                if (element is Button || element is TextField || element is ScrollView ||
-                    element.resolvedStyle.backgroundColor.a > 0.1f) return true;
+                if (element is Button || element is TextField || element is ScrollView) return true;
+                if (element.name == "STICK Camera Surface") return false;
+                if (element.resolvedStyle.backgroundColor.a > 0.1f) return true;
             }
             return false;
         }
 
-        private void CreateVisual(string id)
+        private bool CreateVisual(string id)
         {
-            visual = GameObject.CreatePrimitive(PrimitiveType.Quad);
-            visual.name = "Tracked tagtag sticker";
-            material = new Material(Shader.Find("Unlit/Transparent"));
-            material.mainTexture = Resources.Load<Texture2D>("Tagtag/Presets/" + id);
-            visual.GetComponent<Renderer>().sharedMaterial = material;
+            var template = Resources.Load<Material>("Tagtag/AR/DeviceSticker");
+            var artwork = Resources.Load<Texture2D>("Tagtag/Presets/" + id);
+            if (template == null || template.shader == null || !template.shader.isSupported || artwork == null)
+            {
+                Debug.LogError("[TagtagSticker] Sticker material or artwork is unavailable: preset=" + id +
+                    " material=" + (template != null) + " artwork=" + (artwork != null));
+                SetStatus("Sticker artwork could not load. Try again.");
+                return false;
+            }
+            Material nextMaterial = null;
+            GameObject nextVisual = null;
+            try
+            {
+                nextMaterial = new Material(template);
+                nextMaterial.mainTexture = artwork;
+                nextVisual = GameObject.CreatePrimitive(PrimitiveType.Quad);
+                nextVisual.name = "Tracked tagtag sticker";
+                nextVisual.GetComponent<Renderer>().sharedMaterial = nextMaterial;
+                visual = nextVisual;
+                material = nextMaterial;
+                return true;
+            }
+            catch (Exception exception)
+            {
+                if (nextVisual != null) Destroy(nextVisual);
+                if (nextMaterial != null) Destroy(nextMaterial);
+                Debug.LogError("[TagtagSticker] Could not create sticker visual: " + exception.Message);
+                SetStatus("Sticker artwork could not load. Try again.");
+                return false;
+            }
         }
 
 #if UNITY_IOS && !UNITY_EDITOR
@@ -479,7 +603,12 @@ namespace Tagtag.AR
                         IsTracking, frameInterval <= 0.2f, frameInterval))
                     {
                         anchor = candidate;
-                        CreateVisual(data.sticker.presetId);
+                        if (!CreateVisual(data.sticker.presetId))
+                        {
+                            anchor = null;
+                            busy = false;
+                            yield break;
+                        }
                         visual.transform.SetParent(anchor.transform, false);
                         visual.transform.localPosition = snapshot.position;
                         visual.transform.localRotation = snapshot.rotation;
@@ -732,6 +861,9 @@ namespace Tagtag.AR
             ClearPlacement();
             recovered = false;
             recoveredStickerId = null;
+            foreach (var line in surfaceOutlines.Values) if (line != null) line.enabled = false;
+            SetSurfaceAvailable(false);
+            nextSurfaceUpdate = 0f;
         }
 
         private void SetStatus(string value)
@@ -759,6 +891,7 @@ namespace Tagtag.AR
             if (cameraManager != null) cameraManager.frameReceived -= OnCameraFrame;
             presentation.Changed -= OnCameraPresentationChanged;
             ClearPlacement();
+            DisposePlacementGuidance();
             if (rig != null) Destroy(rig);
             positionInput?.Dispose();
             rotationInput?.Dispose();
