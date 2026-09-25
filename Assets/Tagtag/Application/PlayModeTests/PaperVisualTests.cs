@@ -38,6 +38,16 @@ namespace Tagtag.Tests
             document.panelSettings.clearColor = true;
             document.panelSettings.colorClearValue = new Color32(218, 225, 222, 255);
             yield return Capture("home-empty");
+            var brand = document.rootVisualElement.Query<Label>().ToList().First(label => label.text == "tagtag");
+            Assert.That(brand.resolvedStyle.unityFont, Is.SameAs(Resources.Load<Font>("Tagtag/Fonts/ShadowsIntoLight")));
+            foreach (var label in document.rootVisualElement.Query<Label>(className: "nav-label").ToList())
+                Assert.That(label.resolvedStyle.unityFont, Is.SameAs(Resources.Load<Font>("Tagtag/Fonts/InstrumentSemibold")));
+            foreach (var title in new[] { "Home", "STICK", "Explore" })
+            {
+                var tab = document.rootVisualElement.Q<Button>("Tab " + title);
+                Assert.That(tab.Q<Image>().image, Is.Not.Null, "Taggi artwork must be included in the player.");
+                Assert.That(tab.layout.height, Is.GreaterThanOrEqualTo(44f));
+            }
 
             controller.State.user = new UserSession { uid = "review", displayName = "Aki" };
             for (int i = 0; i < 21; i++) controller.State.collection.Add(Sticker(i));
@@ -190,10 +200,32 @@ namespace Tagtag.Tests
 
             controller.Navigate(AppPage.Explore);
             yield return Capture("explore-empty");
+            controller.State.nearbyLoading = true;
+            controller.Notify();
+            yield return Capture("explore-location-loading");
+            Submit("Tab Home");
+            yield return new WaitForSecondsRealtime(.4f);
+            Assert.That(controller.State.page, Is.EqualTo(AppPage.Home), "Nearby loading must leave navigation reachable.");
+            controller.State.nearbyLoading = false;
+            controller.Navigate(AppPage.Explore);
             controller.State.selected = Sticker(0);
             controller.State.nearby.Add(controller.State.selected);
             controller.Notify();
             yield return Capture("explore-teaser");
+            var discoveryButton = document.rootVisualElement.Query<Button>().ToList().First(button => button.text == "Find in AR");
+            controller.State.busy = true;
+            controller.Notify();
+            yield return null;
+            yield return null;
+            Assert.That(discoveryButton.enabledSelf, Is.False, "Foreground operations must visibly disable rejected discovery actions.");
+            controller.State.busy = false;
+            controller.State.nearbyLoading = true;
+            controller.Notify();
+            yield return null;
+            yield return null;
+            Assert.That(discoveryButton.enabledSelf, Is.True, "Nearby reads must not disable discovery.");
+            controller.State.nearbyLoading = false;
+            controller.Notify();
             Submit("Report");
             yield return Capture("report-sheet");
             Submit("Close");
@@ -236,6 +268,13 @@ namespace Tagtag.Tests
             yield return Capture("explore-compact-largest-long-clue");
             var teaserScroll = document.rootVisualElement.Q<ScrollView>("Explore teaser scroll");
             Assert.That(teaserScroll, Is.Not.Null);
+            foreach (var element in new VisualElement[] { document.rootVisualElement, teaserScroll.parent.parent.parent,
+                teaserScroll.parent.parent, document.rootVisualElement.Q<Button>("Tab Explore").parent.parent,
+                teaserScroll.parent, document.rootVisualElement.Q("Native MapKit region"), teaserScroll,
+                document.rootVisualElement.Q<Button>("Tab Explore").parent, document.rootVisualElement.Q<Button>("Tab Explore") })
+                Debug.Log("Compact geometry " + element.name + " " + string.Join(",", element.GetClasses()) + " bounds=" + element.worldBound);
+            foreach (var label in document.rootVisualElement.Query<Label>(className: "nav-label").ToList())
+                Assert.That(label.worldBound.yMax, Is.LessThanOrEqualTo(document.rootVisualElement.worldBound.yMax), "Navigation labels remain inside the compact viewport.");
             Assert.That(teaserScroll.worldBound.yMax, Is.LessThanOrEqualTo(document.rootVisualElement.Q<Button>("Tab Explore").worldBound.yMin + 1f));
             var longClue = document.rootVisualElement.Query<Label>().ToList().First(label => label.text == controller.State.selected.teaser);
             var findButton = document.rootVisualElement.Query<Button>().ToList().First(button => button.text == "Find in AR");
@@ -249,7 +288,7 @@ namespace Tagtag.Tests
 
         private void Submit(string title)
         {
-            var button = document.rootVisualElement.Query<Button>().ToList().FirstOrDefault(b => b.text == title);
+            var button = document.rootVisualElement.Query<Button>().ToList().FirstOrDefault(b => b.text == title || b.name == title);
             Assert.That(button, Is.Not.Null, "Missing control: " + title);
             using (var submit = NavigationSubmitEvent.GetPooled())
             { button.Focus(); submit.target = button; button.SendEvent(submit); }
