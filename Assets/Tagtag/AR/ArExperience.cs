@@ -4,7 +4,6 @@ using System.Collections.Generic;
 using Unity.Collections;
 using Unity.XR.CoreUtils;
 using UnityEngine;
-using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.XR;
 using UnityEngine.UIElements;
@@ -243,7 +242,7 @@ namespace Tagtag.AR
             {
                 var first = Input.GetTouch(0);
                 var second = Input.GetTouch(1);
-                if (TouchOnUi(first.fingerId, first.position) || TouchOnUi(second.fingerId, second.position))
+                if (TouchOnUi(first.position) || TouchOnUi(second.position))
                 { gestureActive = false; return; }
                 var delta = second.position - first.position;
                 if (gestureActive)
@@ -262,7 +261,7 @@ namespace Tagtag.AR
             gestureActive = false;
             if (Input.touchCount != 1) return;
             var touch = Input.GetTouch(0);
-            if (touch.phase != UnityEngine.TouchPhase.Ended || TouchOnUi(touch.fingerId, touch.position)) return;
+            if (touch.phase != UnityEngine.TouchPhase.Ended || TouchOnUi(touch.position)) return;
             if (anchor == null && TrySurface(touch.position, out var pose)) PlaceAnchor(pose);
         }
 
@@ -317,7 +316,7 @@ namespace Tagtag.AR
         {
             if (Input.touchCount != 1 || !CanCollect) return;
             var touch = Input.GetTouch(0);
-            if (touch.phase != UnityEngine.TouchPhase.Ended || TouchOnUi(touch.fingerId, touch.position)) return;
+            if (touch.phase != UnityEngine.TouchPhase.Ended || TouchOnUi(touch.position)) return;
             var ray = camera.ScreenPointToRay(touch.position);
             if (!Physics.Raycast(ray, out var hit, 3.25f)) return;
             if (hit.collider == null || hit.collider.gameObject != visual) return;
@@ -326,9 +325,8 @@ namespace Tagtag.AR
             StickerTapped?.Invoke(recoveredStickerId);
         }
 
-        private bool TouchOnUi(int fingerId, Vector2 screenPoint)
+        private bool TouchOnUi(Vector2 screenPoint)
         {
-            if (EventSystem.current != null && EventSystem.current.IsPointerOverGameObject(fingerId)) return true;
             var document = GetComponent<UIDocument>();
             var root = document == null ? null : document.rootVisualElement;
             var panel = root?.panel;
