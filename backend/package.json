@@ -1,0 +1,16 @@
+{
+  "name": "tagtag-backend",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "start": "node src/server.js",
+    "test": "node --test test/*.test.js",
+    "test:emulator": "node --test test/*.emulator.test.js",
+    "cleanup": "node src/cleanup.js"
+  },
+  "dependencies": {
+    "firebase-admin": "^13.5.0"
+  }
+}
