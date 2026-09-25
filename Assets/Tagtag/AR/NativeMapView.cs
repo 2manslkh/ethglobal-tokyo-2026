@@ -26,6 +26,8 @@ namespace Tagtag.AR
         [DllImport("__Internal")] private static extern void TagtagMapShow(float x, float y, float width, float height,
             float screenWidth, float screenHeight, double latitude, double longitude, string pins);
         [DllImport("__Internal")] private static extern void TagtagMapHide();
+        [DllImport("__Internal")] private static extern void TagtagMapDispose();
+        [DllImport("__Internal")] private static extern void TagtagMapSetReducedMotion(bool reduced);
         [DllImport("__Internal")] private static extern void TagtagMapRecenter(double latitude, double longitude);
         [DllImport("__Internal")] private static extern IntPtr TagtagMapPoll();
         [DllImport("__Internal")] private static extern void TagtagMapFree(IntPtr pointer);
@@ -48,6 +50,7 @@ namespace Tagtag.AR
             }
             var encoded = JsonUtility.ToJson(pins);
 #if UNITY_IOS && !UNITY_EDITOR
+            TagtagMapSetReducedMotion(PlayerPrefs.GetInt("tagtag.reducedMotion", 0) != 0);
             TagtagMapShow(screenRect.x, screenRect.y, screenRect.width, screenRect.height,
                 Screen.width, Screen.height, location.latitude, location.longitude,
                 encoded == lastPins ? null : encoded);
@@ -60,7 +63,6 @@ namespace Tagtag.AR
         {
             if (!visible) return;
             visible = false;
-            lastPins = null;
 #if UNITY_IOS && !UNITY_EDITOR
             TagtagMapHide();
 #endif
@@ -87,6 +89,12 @@ namespace Tagtag.AR
 #endif
         }
 
-        private void OnDestroy() { Hide(); }
+        private void OnDestroy()
+        {
+            Hide();
+#if UNITY_IOS && !UNITY_EDITOR
+            TagtagMapDispose();
+#endif
+        }
     }
 }

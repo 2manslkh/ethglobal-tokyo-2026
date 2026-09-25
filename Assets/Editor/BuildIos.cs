@@ -150,6 +150,20 @@ public static class BuildIos
         project.AddFrameworkToProject(framework, "Security.framework", false);
         project.SetBuildProperty(main, "DEVELOPMENT_TEAM", "5Y6QUA9GA6");
         project.SetBuildProperty(framework, "CLANG_ENABLE_MODULES", "YES");
+        // MapKit lives above Unity's renderer, so bundle the same die-cut artwork for UIKit.
+        var mapResources = Path.Combine(output, "TagtagMapResources");
+        Directory.CreateDirectory(mapResources);
+        for (var pose = 1; pose <= 4; pose++)
+        {
+            var filename = "taggi-" + pose + ".png";
+            File.Copy(Path.Combine("Assets/Resources/Tagtag/Presets", filename), Path.Combine(mapResources, filename), true);
+            var resourceGuid = project.AddFile("TagtagMapResources/" + filename, "TagtagMapResources/" + filename, PBXSourceTree.Source);
+            project.AddFileToBuild(main, resourceGuid);
+        }
+        const string clusterFont = "InstrumentSemibold.ttf";
+        File.Copy(Path.Combine("Assets/Resources/Tagtag/Fonts", clusterFont), Path.Combine(mapResources, clusterFont), true);
+        var fontGuid = project.AddFile("TagtagMapResources/" + clusterFont, "TagtagMapResources/" + clusterFont, PBXSourceTree.Source);
+        project.AddFileToBuild(main, fontGuid);
         project.WriteToFile(path);
 
         var infoPath = Path.Combine(output, "Info.plist");
@@ -159,6 +173,9 @@ public static class BuildIos
         info.root.SetString("NSCameraUsageDescription", CameraUsageDescription);
         info.root.SetString("NSLocationWhenInUseUsageDescription", LocationUsageDescription);
         info.root.SetBoolean("UIRequiresFullScreen", true);
+        var bundledFonts = info.root.values.ContainsKey("UIAppFonts")
+            ? info.root["UIAppFonts"].AsArray() : info.root.CreateArray("UIAppFonts");
+        bundledFonts.AddString(clusterFont);
         var googleScheme = Environment.GetEnvironmentVariable("TAGTAG_GOOGLE_REVERSED_CLIENT_ID");
         if (string.IsNullOrWhiteSpace(googleScheme))
         {
