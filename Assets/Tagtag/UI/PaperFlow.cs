@@ -20,6 +20,16 @@ namespace Tagtag.UI
 
     public static class PaperFlow
     {
+        public const string EmptyBookInvitation = "Your next little discovery is out there.";
+
+        public static string StatusMessage(AppState state, bool invitationAlreadyShown)
+        {
+            if (state == null) return "";
+            if (!string.IsNullOrWhiteSpace(state.error)) return state.error;
+            string message = state.status ?? "";
+            return invitationAlreadyShown && message == EmptyBookInvitation ? "" : message;
+        }
+
         public static CameraMessage Camera(CameraPresentationState state)
         {
             switch (state)

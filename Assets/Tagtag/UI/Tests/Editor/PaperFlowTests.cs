@@ -91,5 +91,18 @@ namespace Tagtag.UI.Tests
             state.detail = null;
             Assert.IsFalse(PaperFlow.ShouldAnimateCollection(AppPage.Stick, state, null));
         }
+
+        [Test]
+        public void EmptyHomeInvitationDoesNotRepeatAsStatusButOtherNoticesRemain()
+        {
+            AppState state = new AppState { page = AppPage.Home,
+                status = "Your next little discovery is out there." };
+            Assert.AreEqual("", PaperFlow.StatusMessage(state, true));
+            Assert.AreEqual(state.status, PaperFlow.StatusMessage(state, false));
+            state.status = "Nearby stickers updated";
+            Assert.AreEqual(state.status, PaperFlow.StatusMessage(state, true));
+            state.error = "Could not load your book";
+            Assert.AreEqual(state.error, PaperFlow.StatusMessage(state, true));
+        }
     }
 }

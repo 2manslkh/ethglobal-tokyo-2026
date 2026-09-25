@@ -111,7 +111,7 @@ namespace Tagtag.UI
                 homeInvitation.style.alignItems = Align.Center;
                 homeInvitation.style.justifyContent = Justify.Center;
                 Art(homeInvitation, "taggi-1", 72f);
-                Label invitation = Text(homeInvitation, "Your next little discovery is out there.", 18, true);
+                Label invitation = Text(homeInvitation, PaperFlow.EmptyBookInvitation, 18, true);
                 invitation.style.unityTextAlign = TextAnchor.MiddleCenter;
                 invitation.style.marginTop = 6f;
                 Action(homeInvitation, "Explore nearby", () => controller.Navigate(AppPage.Explore)).style.marginTop = 8f;

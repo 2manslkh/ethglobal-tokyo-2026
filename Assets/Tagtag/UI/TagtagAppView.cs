@@ -499,7 +499,9 @@ namespace Tagtag.UI
         private void UpdateStatus(AppState state)
         {
             if (statusLabel == null) return;
-            string message = !string.IsNullOrWhiteSpace(state.error) ? state.error : state.status;
+            bool invitationAlreadyShown = state.page == AppPage.Home && !state.accountOpen &&
+                homeInvitation != null && statusLabel == screenStatusLabel;
+            string message = PaperFlow.StatusMessage(state, invitationAlreadyShown);
             statusLabel.text = message ?? "";
             bool error = !string.IsNullOrWhiteSpace(state.error);
             statusNotice.style.display = string.IsNullOrWhiteSpace(message) ? DisplayStyle.None : DisplayStyle.Flex;
