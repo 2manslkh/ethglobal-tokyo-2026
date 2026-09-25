@@ -1,0 +1,5 @@
+{
+    "name": "Tagtag.UI",
+    "rootNamespace": "Tagtag.UI",
+    "references": ["Tagtag.Core"]
+}
