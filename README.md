@@ -20,3 +20,12 @@ To create a fun and engaging way to discover unique curated experiences.
 2. Google AR Core
 3. Supabase
 4. Ethereum
+
+## Unity project
+
+Open this repository root as a project in Unity Hub with Unity Editor `6000.5.5f1`.
+The committed `Assets/`, `Packages/`, and `ProjectSettings/` directories form the
+project. Unity generates local `Library/`, `Temp/`, `Logs/`, and `UserSettings/`
+directories on first open; these are ignored by Git. The project is an empty
+starter: AR Core, Supabase, Ethereum integration, scenes, and tests are not yet
+configured.

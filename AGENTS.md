@@ -2,11 +2,11 @@
 
 ## Project Structure & Module Organization
 
-This repository is in the planning stage. `README.md` describes the proposed Unity AR sticker hunt and links to Figma. `docs/handwritten-notes/` contains planning photos. There is no Unity project or test suite yet. When adding Unity, keep `Assets/`, `Packages/`, and `ProjectSettings/` together at the root, and document added services or smart contracts in the README.
+This repository has a Unity starter project. `Assets/` holds project content; `Packages/` and `ProjectSettings/` hold Unity configuration. `README.md` describes the proposed AR sticker hunt and links to Figma. `docs/handwritten-notes/` contains planning photos. Document added services or smart contracts in the README.
 
 ## Build, Test, and Development Commands
 
-No build, run, formatting, or test command is configured yet. Read the brief with `cat README.md` and inspect tracked files with `git ls-files`. Once code is added, document the Unity Editor version, platform setup, and reproducible build and test commands here and in the README.
+Open the repository root in Unity Hub with Editor `6000.5.5f1`. No build, formatting, or test command is configured yet. Read the brief with `cat README.md` and inspect tracked files with `git ls-files`. Once code is added, document reproducible build and test commands here and in the README.
 
 ## Coding Style & Naming Conventions
 
