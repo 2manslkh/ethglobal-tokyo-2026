@@ -20,6 +20,9 @@ namespace Tagtag.Services
         private readonly PendingPublication publications;
         private bool synchronizing;
         private bool nearbyRefreshQueued;
+        private bool draftEditRejected;
+        private readonly LocalBlocks localBlocks = new LocalBlocks();
+        private HashSet<string> blockedAuthors = new HashSet<string>();
         private readonly DeviceLocation location = new DeviceLocation();
         private RecoveryData recovery;
         private PlacementDraft pendingDraft;
@@ -39,6 +42,7 @@ namespace Tagtag.Services
             State.user = session.Current;
             State.collection = cache.Read(State.user?.uid);
             RestorePublication();
+            blockedAuthors = localBlocks.Read(State.user?.uid); ApplyBlocks();
             State.status = State.user == null ? "Your next little discovery is out there." : "Your sticker book is ready.";
             ar.Changed += Notify;
             ar.StickerTapped += Collect;
@@ -75,6 +79,7 @@ namespace Tagtag.Services
                     State.user = await session.SignIn(credential);
                     State.collection = cache.Read(State.user.uid);
                     RestorePublication();
+                    blockedAuthors = localBlocks.Read(State.user.uid); ApplyBlocks();
                     State.status = "You're signed in. Welcome to tagtag.";
                     await SyncAccount();
                 });
@@ -84,7 +89,7 @@ namespace Tagtag.Services
         {
             if (State.busy) return;
             accountGeneration++; session.SignOut(); State.user = null; recovery = null;
-            State.collection.Clear(); State.authored.Clear(); State.detail = null; State.selected = null;
+            blockedAuthors.Clear(); State.collection.Clear(); State.authored.Clear(); State.detail = null; State.selected = null;
             Ar.CancelPlacement(); pendingDraft = null; State.hasPendingPublication = false;
             State.draftNote = State.draftTeaser = State.draftPlace = State.selectedPreset = "";
             State.status = "Signed out."; State.error = ""; Notify();
@@ -97,6 +102,7 @@ namespace Tagtag.Services
             State.location = await location.Current();
             var result = await api.Call<SummaryList>("POST", "/v1/nearby", new LocationRequest { location = State.location }, await session.Token(false));
             State.nearby = (result.items ?? Array.Empty<StickerSummary>()).ToList();
+                ApplyBlocks();
                 State.status = State.nearby.Count == 0 ? "No stickers nearby yet. Leave the first one." : "Little discoveries around you.";
             });
         }
@@ -133,12 +139,14 @@ namespace Tagtag.Services
         public void SetDraft(string place, string teaser, string note)
         {
             // Preserve the operation ID only while the payload stays the same.
-            if ((State.draftPlace != place || State.draftTeaser != teaser || State.draftNote != note) && !ClearPublication()) { Notify(); return; }
+            if ((State.draftPlace != place || State.draftTeaser != teaser || State.draftNote != note) && !ClearPublication()) { draftEditRejected = true; Notify(); return; }
+            draftEditRejected = false;
             State.draftPlace = place ?? ""; State.draftTeaser = teaser ?? ""; State.draftNote = note ?? "";
         }
         public void Publish()
         {
             if (!RequireAccount() || State.busy) return;
+            if (draftEditRejected) { State.error = "Your edit could not be saved. Retry the edit before publishing."; Notify(); return; }
             if (pendingDraft == null && !Ar.CanPublish) { State.error = "Move slowly until the surface is mapped and Taggi is placed."; Notify(); return; }
             if (string.IsNullOrWhiteSpace(State.draftTeaser) || string.IsNullOrWhiteSpace(State.draftNote))
             { State.error = "Add a teaser and a note before publishing."; Notify(); return; }
@@ -207,15 +215,23 @@ namespace Tagtag.Services
         }
         public void Block(string authorId)
         {
-            if (!RequireAccount()) return;
+            if (!RequireAccount() || string.IsNullOrEmpty(authorId) || authorId == State.user.uid) return;
+            blockedAuthors.Add(authorId); localBlocks.Save(State.user.uid, blockedAuthors);
+            ApplyBlocks(); recovery = null; Ar.CancelPlacement(); SaveCollection();
+            State.status = "This person's stickers are now hidden."; Notify();
             Run(async () =>
             {
                 await api.Call<OkResult>("POST", "/v1/blocks", new BlockRequest { authorId = authorId }, await session.Token());
-                State.nearby.RemoveAll(item => item.authorId == authorId);
-                if (State.selected?.authorId == authorId) State.selected = null;
-                if (State.detail?.authorId == authorId) State.detail = null;
-                recovery = null; Ar.CancelPlacement(); await SyncAccount(); State.status = "This person's stickers are now hidden.";
+                await SyncAccount();
             });
+        }
+        private void ApplyBlocks()
+        {
+            State.nearby.RemoveAll(item => blockedAuthors.Contains(item.authorId));
+            foreach (var item in State.collection)
+                if (blockedAuthors.Contains(item.authorId)) { item.unavailable = true; item.note = ""; }
+            if (State.selected != null && blockedAuthors.Contains(State.selected.authorId)) State.selected = null;
+            if (State.detail != null && blockedAuthors.Contains(State.detail.authorId)) State.detail = null;
         }
         public void Withdraw(string id)
         {
@@ -230,17 +246,19 @@ namespace Tagtag.Services
                 string uid = State.user.uid;
                 await api.Call<OkResult>("DELETE", "/v1/account", null, await session.Token());
                 session.SignOut(); accountGeneration++;
-                try { cache.Remove(uid); publications.Remove(uid); }
+                try { cache.Remove(uid); publications.Remove(uid); localBlocks.Remove(uid); }
                 catch { /* Account access is revoked even when local file removal must wait. */ }
-                State.user = null; State.collection.Clear(); State.authored.Clear(); State.nearby.Clear(); State.detail = null; State.selected = null;
+                State.user = null; blockedAuthors.Clear(); State.collection.Clear(); State.authored.Clear(); State.nearby.Clear(); State.detail = null; State.selected = null;
                 pendingDraft = null; State.hasPendingPublication = false; recovery = null; Ar.CancelPlacement(); State.draftNote = State.draftTeaser = State.draftPlace = State.selectedPreset = "";
                 State.status = "Your account has been deleted.";
             });
         }
         private async Task SyncAccount()
         {
+            foreach (string authorId in blockedAuthors.ToArray())
+                await api.Call<OkResult>("POST", "/v1/blocks", new BlockRequest { authorId = authorId }, await session.Token());
             var collection = await api.Call<CollectionList>("GET", "/v1/collection", null, await session.Token());
-            State.collection = CollectionBook.Normalize(collection.items); SaveCollection();
+            State.collection = CollectionBook.Normalize(collection.items); ApplyBlocks(); SaveCollection();
             if (State.detail != null) State.detail = State.collection.FirstOrDefault(item => item.id == State.detail.id);
             var authored = await api.Call<SummaryList>("GET", "/v1/authored", null, await session.Token());
             State.authored = (authored.items ?? Array.Empty<StickerSummary>()).ToList();
