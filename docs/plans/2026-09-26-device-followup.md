@@ -30,4 +30,4 @@ Run all Edit Mode and mounted UI/actual-scene Play Mode tests. Inspect updated s
 - `848668b`: mounted UI resource/action/geometry regressions.
 - `6bc01fc`: explicit AVFoundation export linkage.
 
-Final Edit Mode passed 79/79; Play Mode passed 2/2; both standalone player callbacks passed. Export, unsigned compilation, signing, and USB installation succeeded. Physical retest is requested and remains a separate device-owner result. Detailed logs and capture links are in `docs/DEVICE_VERIFICATION.md`.
+Final Edit Mode passed 79/79; Play Mode passed 2/2; both standalone player callbacks passed. Export, unsigned compilation, signing, and USB installation succeeded. The device owner confirmed “Camera opens and navigation works”; detailed permission/interruption cases remain unverified. Detailed logs and capture links are in `docs/DEVICE_VERIFICATION.md`.

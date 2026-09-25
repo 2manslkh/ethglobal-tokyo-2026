@@ -71,7 +71,7 @@ The device owner has offered to test the iPhone once the new build is installed.
 
 | Case | Expected observation | Current result |
 | --- | --- | --- |
-| Cold start → STICK | Paper/Taggi remains visible until the first valid camera frame; no blank scene | Failed in paper UI build: permission-denied cover despite Settings access. Follow-up retest pending. |
+| Cold start → STICK | Paper/Taggi remains visible until the first valid camera frame; no blank scene | Paper UI build failed with false permission denial. Follow-up: owner confirms camera opens; first-frame cover timing not separately recorded. |
 | Camera permission denied → Settings → return | Truthful recovery prompt; fresh preparation before live imagery | Pending |
 | Home/Explore/STICK switching | Paper screens remain opaque; camera restarts without stale imagery | Pending |
 | Background/interruption → resume | Cover returns immediately; camera reveals only after a new frame | Pending |
@@ -79,7 +79,7 @@ The device owner has offered to test the iPhone once the new build is installed.
 | Note editing with keyboard | Fields and actions remain reachable; draft and selection survive status updates | Pending |
 | Explore → sheet → Explore | Map hides under the overlay and restores the same viewport | Pending |
 
-Video has not yet been recorded. Hardware startup, camera permissions/lifecycle, software-keyboard clearance, and native-map interaction are unverified for this pass until device results are entered here.
+No device video has been received. The owner confirms camera opening and navigation in the follow-up below. First-frame cover timing, detailed permission/lifecycle recovery, software-keyboard clearance, and native-map interaction remain unverified.
 
 ## Device feedback follow-up — 2026-09-26
 
@@ -99,4 +99,4 @@ The owner also requested Taggi roof/star/map navigation art and Shadows Into Lig
 - Separate ARKit preparation and iOS export passed. The Xcode Sources phase includes `TagtagCameraPermission.mm`; AVFoundation is linked explicitly. Generated IL2CPP code calls both bridge functions, and both symbols are present in the linked UnityFramework binary.
 - Unsigned Xcode compilation and automatic development signing passed (`/private/tmp/tagtag-device-followup-xcode-unsigned.log`, `/private/tmp/tagtag-device-followup-xcode-signed.log`). USB installation on Dawg. returned `InstallComplete` without uninstalling (`/private/tmp/tagtag-device-followup-install.log`).
 - Isolated arm64 simulator preparation, export, and Xcode build passed. Installed and launched on iPhone 17 Pro, iOS 26.2; the [native Home capture](verification/device-followup/simulator-home.png) confirms the handwritten heading, Instrument control text, three Taggi icons, and safe-area layout. Interactive native-map/keyboard checks remain unverified because the Simulator desktop application is unavailable on this Mac.
-- The owner was asked to retest the installed follow-up: STICK cold startup, Settings return, tab switching, background/resume, and leaving Explore immediately during location acquisition. Physical results and device video are still pending.
+- Physical retest on Dawg. (iPhone 15 Pro Max, iOS 26.6.1 / 23G83): the owner replied **“Camera opens and navigation works”** after installing this follow-up. This confirms live camera opening and that Explore no longer traps navigation. Settings permission return, first-frame cover timing, and background/interruption recovery were not individually reported; no device video was received, so those detailed cases remain unverified.
