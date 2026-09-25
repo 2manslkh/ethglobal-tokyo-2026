@@ -50,6 +50,8 @@ namespace Tagtag.AR
         private bool recovered;
         private bool wasTracking;
         private bool wasMapped;
+        private bool wasAnchorTracking;
+        private bool appliedMap;
         private Pose previewPose;
         private float widthMeters = 0.2f;
         private float twistDegrees;
@@ -193,10 +195,12 @@ namespace Tagtag.AR
             if (!active || rig == null) return;
             var tracking = IsTracking;
             var mapped = MapReady;
-            if (tracking != wasTracking || mapped != wasMapped)
+            var anchorTracking = anchor != null && anchor.trackingState == TrackingState.Tracking;
+            if (tracking != wasTracking || mapped != wasMapped || anchorTracking != wasAnchorTracking)
             {
                 wasTracking = tracking;
                 wasMapped = mapped;
+                wasAnchorTracking = anchorTracking;
                 Changed?.Invoke();
             }
             if (anchor != null && visual != null)
@@ -427,6 +431,7 @@ namespace Tagtag.AR
                 { SetStatus("This spatial map cannot be read."); busy = false; yield break; }
                 using (worldMap) ArKit.ApplyWorldMap(worldMap);
             }
+            appliedMap = true;
             cameraFrameAt = 0;
             SetStatus("Scan the original spot. The sticker appears only after its anchor matches.");
             var gate = new RecoveryGate();
@@ -488,6 +493,13 @@ namespace Tagtag.AR
             recoveryRoutine = null;
 #if UNITY_IOS
             DisposeMapRequest();
+            if (appliedMap && ArKit != null)
+            {
+                ArKit.ApplyWorldMap(default);
+                session.Reset();
+                cameraFrameAt = 0;
+            }
+            appliedMap = false;
 #endif
             busy = false;
         }
