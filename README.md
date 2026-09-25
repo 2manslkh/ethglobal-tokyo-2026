@@ -27,7 +27,7 @@ Open this repository root as a project in Unity Hub with Unity Editor `6000.5.5f
 The committed `Assets/`, `Packages/`, and `ProjectSettings/` directories form the
 project. Unity generates local `Library/`, `Temp/`, `Logs/`, and `UserSettings/`
 directories on first open; these are ignored by Git. The `StickerHunt` scene
-opens a discovery starter screen with Taggi's name and a working button. AR placement, locations,
+opens a discovery starter screen with Taggi's portrait and a working button. AR placement, locations,
 Supabase, and Ethereum integration are planned but are not part of this build.
 
 ## Build for iPhone
@@ -51,8 +51,9 @@ xcodebuild -project Build/iOS/Unity-iPhone.xcodeproj -scheme Unity-iPhone \
   -derivedDataPath Build/DerivedData CODE_SIGNING_ALLOWED=NO build
 ```
 
-For a device build, sign into an Apple Development account in Xcode and replace
-`YOUR_TEAM_ID` with its team ID:
+For a device build, use an Apple Development team with a provisioning profile
+that includes the device. Sign into Xcode to create one if needed, then replace
+`YOUR_TEAM_ID` with the team's ID:
 
 ```sh
 xcodebuild -project Build/iOS/Unity-iPhone.xcodeproj -scheme Unity-iPhone \

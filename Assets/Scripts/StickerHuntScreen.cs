@@ -7,7 +7,7 @@ namespace StickerHunt
     public sealed class StickerHuntScreen : MonoBehaviour
     {
         private static readonly Color Background = new Color32(15, 21, 37, 255);
-        private static readonly Color Card = new Color32(28, 38, 59, 255);
+        private static readonly Color Card = new Color32(255, 255, 255, 255);
         private static readonly Color Mint = new Color32(130, 243, 195, 255);
         private static readonly Color White = new Color32(245, 249, 255, 255);
         private static readonly Color Muted = new Color32(155, 171, 192, 255);
@@ -36,6 +36,7 @@ namespace StickerHunt
             scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.MatchWidthOrHeight;
             scaler.matchWidthOrHeight = 0;
 
+            Panel(canvas.transform, "Background", Background, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
             safeArea = Panel(canvas.transform, "Safe Area", Background, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
             ApplySafeArea();
             BuildContent();
@@ -73,13 +74,19 @@ namespace StickerHunt
 
             RectTransform feature = Panel(safeArea, "Featured discovery", Card,
                 new Vector2(0, 0.31f), new Vector2(1, 0.67f), new Vector2(24, 0), new Vector2(-24, 0));
-            Text icon = Label(feature, "✦", 72, FontStyle.Normal, Mint,
-                new Vector2(0, 0.37f), new Vector2(1, 1), Vector2.zero, Vector2.zero);
-            icon.alignment = TextAnchor.MiddleCenter;
-            Text featureTitle = Label(feature, "Meet Taggi", 21, FontStyle.Bold, White,
+            GameObject portrait = new GameObject("Taggi portrait", typeof(RectTransform), typeof(RawImage));
+            portrait.transform.SetParent(feature, false);
+            RectTransform portraitRect = portrait.GetComponent<RectTransform>();
+            portraitRect.anchorMin = new Vector2(0.5f, 1);
+            portraitRect.anchorMax = new Vector2(0.5f, 1);
+            portraitRect.sizeDelta = new Vector2(110, 110);
+            portraitRect.anchoredPosition = new Vector2(0, -62);
+            portrait.GetComponent<RawImage>().texture = Resources.Load<Texture2D>("Taggi");
+            Text featureTitle = Label(feature, "Meet Taggi", 21, FontStyle.Bold, Background,
                 new Vector2(0, 0.19f), new Vector2(1, 0.37f), new Vector2(16, 0), new Vector2(-16, 0));
             featureTitle.alignment = TextAnchor.MiddleCenter;
-            Text featureNote = Label(feature, "Your sticker hunting companion", 14, FontStyle.Normal, Muted,
+            Text featureNote = Label(feature, "Your sticker hunting companion", 14, FontStyle.Normal,
+                new Color32(78, 94, 112, 255),
                 new Vector2(0, 0.06f), new Vector2(1, 0.19f), new Vector2(12, 0), new Vector2(-12, 0));
             featureNote.alignment = TextAnchor.MiddleCenter;
 
