@@ -51,5 +51,21 @@ namespace Tagtag.UI.Tests
             Assert.IsTrue(result[0].unavailable);
             Assert.AreEqual(6, source.Count);
         }
+
+        [Test]
+        public void MapStaysHiddenUnderAccountAndDetailSheets()
+        {
+            AppState state = new AppState { page = AppPage.Explore, location = new LocationFix() };
+            Assert.IsTrue(MapPresentation.ShouldShow(state, false));
+            Assert.IsFalse(MapPresentation.ShouldShow(state, true));
+            state.accountOpen = true;
+            Assert.IsFalse(MapPresentation.ShouldShow(state, false));
+            state.accountOpen = false;
+            state.page = AppPage.Stick;
+            Assert.IsFalse(MapPresentation.ShouldShow(state, false));
+            state.page = AppPage.Explore;
+            state.location = null;
+            Assert.IsFalse(MapPresentation.ShouldShow(state, false));
+        }
     }
 }
