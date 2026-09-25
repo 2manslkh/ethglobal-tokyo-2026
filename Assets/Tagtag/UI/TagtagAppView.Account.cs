@@ -309,8 +309,10 @@ namespace Tagtag.UI
                 sheet == Sheet.Collected ? "Collected sticker" : sheet == Sheet.Report ? "Report sticker" :
                 sheet == Sheet.Withdraw ? "Withdraw sticker" : "Block author";
             Sheet openedSheet = sheet;
+            string collectedId = sheetStickerId;
             Action returnFocus = openedSheet == Sheet.Note || openedSheet == Sheet.Picker ?
-                () => FocusSheetTrigger(openedSheet) : null;
+                () => FocusSheetTrigger(openedSheet) : openedSheet == Sheet.Collected ?
+                () => FocusCollectedCell(collectedId) : null;
             sheetView = new PaperSheet(title, CloseSheet, reducedMotion, returnFocus, "Close");
             sheetView.style.bottom = SheetBottom();
             ApplySheetHeight();

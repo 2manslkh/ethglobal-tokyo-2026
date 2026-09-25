@@ -133,6 +133,26 @@ namespace Tagtag.UI
             QueueRender();
         }
 
+        private void FocusCollectedCell(string id)
+        {
+            if (homeBook == null || string.IsNullOrEmpty(id)) return;
+            int index = homeItems.FindIndex(item => item.id == id);
+            if (index < 0) return;
+            int page = index / BookPaging.PageSize;
+            if (page != bookPage)
+            {
+                bookPage = page;
+                RefreshHome(controller.State);
+            }
+            VisualElement currentCell = null;
+            homeBook.Query<VisualElement>().ForEach(element =>
+            {
+                if (currentCell == null && element.userData is string stickerId && stickerId == id)
+                    currentCell = element;
+            });
+            if (currentCell != null && currentCell.panel != null) currentCell.Focus();
+        }
+
         private void OnBookPointerDown(VisualElement book, PointerDownEvent evt)
         {
             bookPressed = true;
