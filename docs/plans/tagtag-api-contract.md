@@ -34,4 +34,4 @@ Defaults: location ≤30s old and accuracy ≤50m; recovery/collection within 10
 
 ## Ownership and coordination
 
-UI agent owns UI/Resources art. AR agent owns AR/native/Packages/Editor build. Backend agent owns backend and Firebase config. Coordinator owns Core/Services/Application and docs. Do not run Unity concurrently; coordinator performs combined Unity builds. Do not stage, commit, reset, or revert another worker's changes. Tell coordinator when ready for integration. Read-only existing Unity implementation is available for behavior/API inspection; generated deliverables must contain only tagtag branding and third-party licensing where required.
+UI agent owns UI/Resources art. AR agent owns AR/native/Packages/Editor build. Backend agent owns backend and Firebase config. Coordinator owns Core/Services/Application and docs. Do not run Unity concurrently; coordinator performs combined Unity builds. Do not stage, commit, reset, or revert another worker's changes. Tell coordinator when ready for integration. Deliverables use tagtag branding and preserve required third-party license notices.

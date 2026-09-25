@@ -1,69 +1,59 @@
 # tagtag
 
-Figma: <https://www.figma.com/design/8EuygwbCLAfBuSCuH1Yc5d/Untitled?node-id=1-21&t=6h6X6aktQUN8mjbW-1>
+Leave a little discovery. Find one worth keeping.
 
-## Description
+tagtag is an iPhone AR sticker app starring **Taggi**. Its paper-white interface follows [DESIGN.md](DESIGN.md), with four die-cut mascot presets and three tabs:
 
-tagtag is an AR app built in Unity to allow users to place and find stickers in the real world. These stickers are collectible NFTs that represent unique locations for individuals. Taggi is the app's mascot.
+- **Home:** a personal sticker book with 20 spaces per page, collection details, and account controls.
+- **STICK:** place a sticker on a tracked surface, write a public teaser and private note, then publish. Recover a nearby sticker's AR map and tap it within three metres to collect a copy and reveal its note.
+- **Explore:** a native Apple street map with sticker pins, clusters, and teaser sheets.
 
-## Problem Statement
+Browsing is available before sign-in. Publishing and collecting require Apple or Google sign-in. Collection leaves the original sticker available. Account-specific collections are cached offline; removed content is updated at the next successful sync.
 
-People want to find unique curated experiences and have a desigre to experience new things all the time, but they don't know where to find them.
+## Stack
 
-## Goal
+Unity `6000.5.5f1`, UI Toolkit, AR Foundation/ARKit, native MapKit and AuthenticationServices, Firebase Authentication, Firestore, private Cloud Storage, and a Node.js API on Cloud Run. This release uses app-based collections. See [PRODUCT.md](PRODUCT.md), the [implementation plan](docs/plans/2026-09-26-tagtag.md), and [API contract](docs/plans/tagtag-api-contract.md).
 
-To create a fun and engaging way to discover unique curated experiences.
+## Development
 
-## Techstack
+Open the repository root in Unity Hub with Editor `6000.5.5f1` and iOS Build Support. Project content is under `Assets/Tagtag/`; native bridges are in `Assets/Plugins/iOS/`. Generated exports, build caches, and local settings are ignored by Git.
 
-1. Unity
-2. Google AR Core
-3. Supabase
-4. Ethereum
+Run behavior tests from the repository root:
 
-## Unity project
+```sh
+/Applications/Unity/Hub/Editor/6000.5.5f1/Unity.app/Contents/MacOS/Unity \
+  -batchmode -nographics -projectPath "$PWD" -buildTarget iOS \
+  -runTests -testPlatform EditMode -testResults /tmp/tagtag-tests.xml \
+  -logFile /tmp/tagtag-tests.log
+```
 
-Open this repository root as a project in Unity Hub with Unity Editor `6000.5.5f1`.
-The committed `Assets/`, `Packages/`, and `ProjectSettings/` directories form the
-project. Unity generates local `Library/`, `Temp/`, `Logs/`, and `UserSettings/`
-directories on first open; these are ignored by Git. The `StickerHunt` scene
-opens a discovery starter screen with Taggi's portrait and a working button. AR placement, locations,
-Supabase, and Ethereum integration are planned but are not part of this build.
+Backend commands are documented in [backend/README.md](backend/README.md). Live infrastructure and maintenance are recorded in [deployment](docs/DEPLOYMENT.md).
 
-## Build for iPhone
+## iPhone build
 
-Install Unity Editor `6000.5.5f1` with iOS Build Support and Xcode. From the
-repository root, export the Xcode project with:
+Prepare ARKit in a separate invocation so its loader settings are imported before export:
 
 ```sh
 /Applications/Unity/Hub/Editor/6000.5.5f1/Unity.app/Contents/MacOS/Unity \
   -batchmode -nographics -quit -projectPath "$PWD" -buildTarget iOS \
-  -executeMethod BuildIos.Build -logFile /tmp/tagtag-unity.log
+  -executeMethod BuildIos.PrepareArKit -logFile /tmp/tagtag-prepare.log
+/Applications/Unity/Hub/Editor/6000.5.5f1/Unity.app/Contents/MacOS/Unity \
+  -batchmode -nographics -quit -projectPath "$PWD" -buildTarget iOS \
+  -executeMethod BuildIos.Build -logFile /tmp/tagtag-export.log
 ```
 
-The scene is the build entry point, and the development bundle ID is
-`com.kenk.tagtag`. Unity writes the Xcode project to `Build/iOS`, which is
-ignored by Git. To check that the Xcode project compiles before signing:
+The entry scene is `Assets/Scenes/Tagtag.unity`, the bundle is `com.kenk.tagtag`, and the export is `Build/iOS`. Public service configuration belongs in `Assets/Resources/Tagtag/ServiceConfiguration.json`: `apiBaseUrl`, `firebaseApiKey`, `googleClientId`, and `googleReversedClientId`. Firebase API keys identify the project; authorization is enforced by Firebase tokens and the API. Never bundle service-account keys, OAuth client secrets, or signing private keys.
 
-```sh
-xcodebuild -project Build/iOS/Unity-iPhone.xcodeproj -scheme Unity-iPhone \
-  -configuration Debug -sdk iphoneos -destination 'generic/platform=iOS' \
-  -derivedDataPath Build/DerivedData CODE_SIGNING_ALLOWED=NO build
-```
-
-For a device build, use an Apple Development team with a provisioning profile
-that includes the device. Sign into Xcode to create one if needed, then replace
-`YOUR_TEAM_ID` with the team's ID:
+Build with automatic development signing and a provisioning profile that supports Sign in with Apple:
 
 ```sh
 xcodebuild -project Build/iOS/Unity-iPhone.xcodeproj -scheme Unity-iPhone \
   -configuration Debug -sdk iphoneos -destination 'generic/platform=iOS' \
   -derivedDataPath Build/DerivedData -allowProvisioningUpdates \
-  DEVELOPMENT_TEAM=YOUR_TEAM_ID CODE_SIGN_STYLE=Automatic build
+  DEVELOPMENT_TEAM=5Y6QUA9GA6 CODE_SIGN_STYLE=Automatic build
 ```
 
-Connect, unlock, and trust the iPhone, then check its identifier with
-`xcrun devicectl list devices`. When it reports available, install and launch:
+For a compilation-only check, replace signing arguments with `CODE_SIGNING_ALLOWED=NO`. Connect, unlock, and trust the iPhone; enable Developer Mode if requested. Inspect its identifier with `xcrun devicectl list devices`, then:
 
 ```sh
 xcrun devicectl device install app --device YOUR_DEVICE_ID \
@@ -71,5 +61,10 @@ xcrun devicectl device install app --device YOUR_DEVICE_ID \
 xcrun devicectl device process launch --device YOUR_DEVICE_ID com.kenk.tagtag
 ```
 
-For this first build, verify that the screen opens and tapping **Explore nearby**
-shows “Discovery map coming soon.” No automated test framework is configured yet.
+If CoreDevice cannot see a trusted USB phone, the verified installation fallback is `ios-deploy --id YOUR_USB_UDID --no-wifi --bundle Build/DerivedData/Build/Products/Debug-iphoneos/tagtag.app`. Open tagtag manually if the debugging service cannot launch it. Changing signing teams may require removing the previous installation, which deletes its local data; obtain the device owner's approval first.
+
+## Verification
+
+Automated tests cover book pagination, swipe/tap distinctions, collection ordering, map visibility, AR gates, API authorization, idempotent operations, and failure paths. AR recovery and native sign-in require physical devices. Follow [device verification](docs/DEVICE_VERIFICATION.md); record results before claiming the shared journey works.
+
+An AR tap plus a server discovery session is a gameplay gate, not cryptographic proof of presence. World-map recovery depends on recognizable surroundings. The server never includes full notes in nearby summaries.

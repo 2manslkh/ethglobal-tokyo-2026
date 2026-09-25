@@ -2,11 +2,11 @@
 
 ## Project Structure & Module Organization
 
-This repository has the tagtag Unity starter project. Taggi is the mascot. `Assets/` holds project content; `Packages/` and `ProjectSettings/` hold Unity configuration. `README.md` describes the proposed AR sticker hunt and links to Figma. `docs/handwritten-notes/` contains planning photos. Document added services or smart contracts in the README.
+This repository has the tagtag Unity app. Taggi is the mascot. `Assets/` holds project content; `Packages/` and `ProjectSettings/` hold Unity configuration. `README.md` describes the app and build workflow; `DESIGN.md` defines its visual direction. `docs/handwritten-notes/` contains planning photos. Document added services or smart contracts in the README.
 
 ## Build, Test, and Development Commands
 
-Open the repository root in Unity Hub with Editor `6000.5.5f1` and iOS Build Support. Read the brief with `cat README.md` and inspect tracked files with `git ls-files`. Export iOS with `/Applications/Unity/Hub/Editor/6000.5.5f1/Unity.app/Contents/MacOS/Unity -batchmode -nographics -quit -projectPath "$PWD" -buildTarget iOS -executeMethod BuildIos.Build -logFile /tmp/tagtag-unity.log`. Check the Xcode build with `xcodebuild -project Build/iOS/Unity-iPhone.xcodeproj -scheme Unity-iPhone -configuration Debug -sdk iphoneos -destination 'generic/platform=iOS' -derivedDataPath Build/DerivedData CODE_SIGNING_ALLOWED=NO build`. See README for signing, installation, and launch commands. No automated test command is configured; manually open the app and tap **Explore nearby** to check its response.
+Open the repository root in Unity Hub with Editor `6000.5.5f1` and iOS Build Support. Read the brief with `cat README.md` and inspect tracked files with `git ls-files`. Export iOS with `/Applications/Unity/Hub/Editor/6000.5.5f1/Unity.app/Contents/MacOS/Unity -batchmode -nographics -quit -projectPath "$PWD" -buildTarget iOS -executeMethod BuildIos.Build -logFile /tmp/tagtag-unity.log`. Check the Xcode build with `xcodebuild -project Build/iOS/Unity-iPhone.xcodeproj -scheme Unity-iPhone -configuration Debug -sdk iphoneos -destination 'generic/platform=iOS' -derivedDataPath Build/DerivedData CODE_SIGNING_ALLOWED=NO build`. See README for signing, installation, and launch commands. Run Edit Mode tests with the command in README. Run backend tests with `cd backend && npm test`. Prepare ARKit in a separate Unity invocation before export; see README. Record physical-device results in `docs/DEVICE_VERIFICATION.md`.
 
 ## Coding Style & Naming Conventions
 
@@ -14,7 +14,7 @@ Use descriptive names that match the app's concepts: stickers, locations, collec
 
 ## Testing Guidelines
 
-There is no test framework or coverage target in this repository. Add Unity Test Framework tests when gameplay or location logic is introduced, placing them in clearly named Edit Mode or Play Mode test assemblies. Name tests for the behavior they verify, and include the test command and results in the pull request. For AR features that require a device, record the device and manual verification steps.
+Unity Test Framework assemblies live beside their feature modules under `Assets/Tagtag/`. Add behavior tests when gameplay or location logic changes, placing them in clearly named Edit Mode or Play Mode test assemblies. Name tests for the behavior they verify, and include the test command and results in the pull request. For AR features that require a device, record the device and manual verification steps.
 
 ## Commit & Pull Request Guidelines
 
