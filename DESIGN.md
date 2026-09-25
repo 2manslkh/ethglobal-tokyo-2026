@@ -63,14 +63,5 @@ Explore shows sticker locations on a street map so users can discover places
 to visit. The map provides access to teasers; unlocking the full note and
 collecting a sticker require finding and tapping it in STICK's AR view.
 
-The map pin style, clustering behavior, and teaser presentation are still open
-design decisions.
-
-## Project Reference
-
-The existing app at `~/Desktop/coding-projects/sticker-app` is a reference for
-the collection-focused Home, sticker book, combined discovery and placement
-camera, and map-based Explore screen.
-
-This document records the current design direction. It does not imply that
-these screens or behaviors are implemented in the Unity starter project.
+Use die-cut sticker pins and count clusters. Selecting a pin opens a teaser
+sheet with a Find in AR action.

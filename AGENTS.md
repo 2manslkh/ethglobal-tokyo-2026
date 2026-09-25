@@ -23,3 +23,11 @@ Recent commits include `feat: update README` and `docs: add figma link`, alongsi
 ## Versioning
 
 Use Semantic Versioning for releases: `MAJOR.MINOR.PATCH`. Increment `MAJOR` for incompatible changes, `MINOR` for backward-compatible features, and `PATCH` for backward-compatible fixes. Tag releases as `vX.Y.Z` and record the version in the release notes once a releasable application exists.
+
+## Orchestration
+
+Use Herdr to orchestrate subagents. Give each feature its own named tab; use panes within that tab for related subtasks. Preserve the user's focused tab. Assign exclusive file ownership before parallel edits, and keep integration and Unity builds with the coordinator.
+
+Choose the model and thinking level for each assignment and record them in the execution plan. Use GPT-6-Sol with high thinking for feature implementation, native integration, and backend work; medium for bounded changes. Reserve GPT-6-Astra with high thinking for complex architecture or security review, and GPT-6-Luna with medium thinking for straightforward documentation or mechanical edits. Honor any model explicitly requested by the user. The current UI, AR, and backend agents use GPT-6-Sol with high thinking.
+
+Each subagent must commit completed, verified pieces frequently, following the atomic commit rules above. Stage only explicitly owned paths, inspect the staged diff, and coordinate Git writes so agents do not share the index concurrently. Report each commit and its verification to the coordinator; the coordinator pushes integrated commits after checking them.
