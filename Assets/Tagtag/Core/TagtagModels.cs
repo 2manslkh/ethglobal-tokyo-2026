@@ -69,7 +69,7 @@ namespace Tagtag
         public StickerSummary selected;
         public CollectedSticker detail;
         public string status = "", error = "", selectedPreset = "", draftPlace = "", draftTeaser = "", draftNote = "";
-        public bool busy, accountOpen, servicesConfigured;
+        public bool busy, accountOpen, servicesConfigured, hasPendingPublication;
     }
     public interface IArExperience
     {
