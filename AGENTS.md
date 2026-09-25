@@ -6,7 +6,7 @@ This repository has a Unity starter project. `Assets/` holds project content; `P
 
 ## Build, Test, and Development Commands
 
-Open the repository root in Unity Hub with Editor `6000.5.5f1`. No build, formatting, or test command is configured yet. Read the brief with `cat README.md` and inspect tracked files with `git ls-files`. Once code is added, document reproducible build and test commands here and in the README.
+Open the repository root in Unity Hub with Editor `6000.5.5f1` and iOS Build Support. Read the brief with `cat README.md` and inspect tracked files with `git ls-files`. Export iOS with `/Applications/Unity/Hub/Editor/6000.5.5f1/Unity.app/Contents/MacOS/Unity -batchmode -nographics -quit -projectPath "$PWD" -buildTarget iOS -executeMethod BuildIos.Build -logFile /tmp/stickerhunt-unity.log`. Check the Xcode build with `xcodebuild -project Build/iOS/Unity-iPhone.xcodeproj -scheme Unity-iPhone -configuration Debug -sdk iphoneos -destination 'generic/platform=iOS' -derivedDataPath Build/DerivedData CODE_SIGNING_ALLOWED=NO build`. See README for signing, installation, and launch commands. No automated test command is configured; manually open the app and tap **Explore nearby** to check its response.
 
 ## Coding Style & Naming Conventions
 
