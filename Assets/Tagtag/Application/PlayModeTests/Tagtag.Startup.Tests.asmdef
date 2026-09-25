@@ -1,0 +1,5 @@
+{
+    "name": "Tagtag.Startup.Tests",
+    "references": ["Tagtag.Application", "Tagtag.UI"],
+    "optionalUnityReferences": ["TestAssemblies"]
+}

@@ -15,7 +15,7 @@ Unity 6000.5.5f1; bundle `com.kenk.tagtag`; Apple team `5Y6QUA9GA6`. Target: Daw
 
 On 2026-09-26, the signed build installed on Dawg., iPhone 15 Pro Max running iOS 26.6.1 (23G83), through USB with `ios-deploy`. The user approved replacing the previous installation after the signing-team change. A Documents backup was attempted and contained no files. Installation returned `InstallComplete`; a subsequent `--exists --bundle_id com.kenk.tagtag` check returned `true`.
 
-CoreDevice still reported the phone unavailable despite valid USB trust pairing. The USB launch attempt failed because its developer-image service was unavailable, and screenshot capture could not start. Manual launch and a Home screenshot have been requested; installation alone does not verify runtime behavior.
+CoreDevice still reported the phone unavailable despite valid USB trust pairing. The USB launch attempt failed because its developer-image service was unavailable, and screenshot capture could not start. The user subsequently reported a black screen on manual launch; see the startup investigation below.
 
 Record device/iOS/build, observed result, and screenshot paths for each check:
 
@@ -37,6 +37,13 @@ Record device/iOS/build, observed result, and screenshot paths for each check:
 - Compiled app metadata verified: display name `tagtag`, bundle `com.kenk.tagtag`, version `0.1.0`, build `0`, `AppIcon` catalog reference, and the updated camera/location descriptions. `BuildIos.ConfigureAppMetadata` also exposes a **tagtag > Configure App Metadata** editor menu command.
 - [Icon preview](verification/app-icon-preview.png) inspected at 60-point home-screen and 29-point settings sizes with rounded corners. This is a rendered preview of exported assets, not a device screenshot.
 - Physical branding verification is **pending**: CoreDevice reported no available physical iPhone during this check. On an available iPhone, install the updated build, confirm the home-screen name/icon, and check both permission prompts on a fresh permission state. Record the device, iOS version, and screenshots here.
+
+## Startup rendering — 2026-09-26
+
+- Reproduced the player failure independently of the phone: Unity reported missing ICU text data and threw `NullReferenceException` while measuring UI text. The editor had rendered the same scene successfully, so the previous logic-only tests did not detect it.
+- The UI created `PanelSettings` entirely at runtime. Added a saved Resources panel with its theme, text data, and shader references, and instantiate that panel for the runtime document.
+- Added `EntrySceneRendersHomeOnFirstLaunch`, which loads the actual entry scene, checks Home controls, renders the panel to a texture, and requires a visible paper background. The built macOS test player passed and produced this [Home capture](verification/tagtag-startup-player.png), with no missing-ICU or null-reference errors.
+- The player's editor connection timed out on this Mac. A test-only result callback saved the passing NUnit case to `Application.temporaryCachePath/tagtag-startup-result.xml`; the captured result is also at `/private/tmp/tagtag-startup-player-result.xml`. This verifies the player render, not native iPhone AR or authentication.
 
 ## Current limits
 

@@ -146,7 +146,11 @@ namespace Tagtag.UI
 
             if (document.panelSettings == null)
             {
-                ownedPanelSettings = ScriptableObject.CreateInstance<PanelSettings>();
+                // A saved panel keeps Unity's text and rendering resources in player builds.
+                var template = Resources.Load<PanelSettings>("Tagtag/UI/TagtagPanel");
+                if (template == null)
+                    throw new InvalidOperationException("The tagtag UI panel asset is missing.");
+                ownedPanelSettings = Instantiate(template);
                 ownedPanelSettings.name = "Tagtag runtime panel";
                 ownedPanelSettings.scaleMode = PanelScaleMode.ScaleWithScreenSize;
                 ownedPanelSettings.referenceResolution = new Vector2Int(390, 844);
