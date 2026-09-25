@@ -32,6 +32,7 @@ export class MemoryAdapter {
         return { uid: token, name: token, admin: token === 'admin' };
     }
     async deleteAuth(token) { if (this.deleteAuthFailure) throw this.deleteAuthFailure; this.deletedUsers.add(token); }
+    async userExists(uid) { return !this.deletedUsers.has(uid); }
     async signUpload(id) { return { uploadUrl: `https://upload.example/${id}`, uploadHeaders: { 'content-type': 'application/octet-stream', 'x-goog-content-length-range': '1,16777216' } }; }
     async signDownload(id) { return `https://download.example/${id}`; }
     upload(id, size) { this.uploads.set(id, size); }

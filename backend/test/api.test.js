@@ -7,9 +7,9 @@ import { MemoryAdapter } from './memory.js';
 const fix = (time = 1_000_000, latitude = 35.68) => ({ latitude, longitude: 139.76, accuracyMeters: 8, measuredUnixSeconds: time });
 const draft = (operationId = 'op-one', time = 1_000_000) => ({ operationId, presetId: 'taggi-1', place: 'Tokyo', teaser: 'A little hello', note: 'The secret note', location: fix(time), position: { x: 0, y: 0, z: 0 }, rotation: { x: 0, y: 0, z: 0, w: 1 }, widthMeters: 0.2, mapBytes: 12 });
 
-async function fixture() {
+async function fixture(options = {}) {
     const adapter = new MemoryAdapter();
-    const server = createServer(createApi({ adapter, now: () => 1_000_000, ids: (() => { let n = 0; return () => `id-${++n}`; })() }));
+    const server = createServer(createApi({ adapter, now: () => 1_000_000, ids: (() => { let n = 0; return () => `id-${++n}`; })(), ...options }));
     await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
     const root = `http://127.0.0.1:${server.address().port}`;
     async function call(method, path, body, user = 'alice') {
@@ -176,6 +176,19 @@ test('only admin claim can list reports and runtime cannot change custom claims'
     } finally { await f.close(); }
 });
 
+test('operator can list removed stickers and restore a moderated publication', async () => {
+    const f = await fixture();
+    try {
+        const id = await f.publish();
+        assert.equal((await f.call('GET', '/v1/admin/removed', undefined, 'bob')).status, 403);
+        await f.call('POST', `/v1/admin/stickers/${id}/moderate`, { status: 'removed' }, 'admin');
+        assert.deepEqual((await f.call('GET', '/v1/admin/removed', undefined, 'admin')).data.items.map(item => item.id), [id]);
+        await f.call('POST', `/v1/admin/stickers/${id}/moderate`, { status: 'published' }, 'admin');
+        assert.equal((await f.call('GET', '/v1/admin/removed', undefined, 'admin')).data.items.length, 0);
+        assert.equal((await f.call('POST', '/v1/nearby', { location: fix() }, null)).data.items.length, 1);
+    } finally { await f.close(); }
+});
+
 test('failed self-service account deletion keeps authored and collected content', async () => {
     const f = await fixture();
     try {
@@ -185,5 +198,42 @@ test('failed self-service account deletion keeps authored and collected content'
         assert.equal(response.status, 401);
         assert.equal((await f.adapter.get('stickers', id)).status, 'published');
         assert.equal((await f.call('GET', '/v1/authored', undefined, 'alice')).status, 200);
+    } finally { await f.close(); }
+});
+
+test('author tombstone hides notes while cleanup is pending after Auth deletion', async () => {
+    const f = await fixture({ deleteAccountData: async () => { throw new Error('cleanup unavailable'); } });
+    try {
+        const id = await f.publish();
+        const recovery = await f.call('POST', `/v1/stickers/${id}/recover`, { location: fix() }, 'bob');
+        await f.call('POST', `/v1/stickers/${id}/collect`, { discoveryId: recovery.data.discoveryId, location: fix() }, 'bob');
+        const deleted = await f.call('DELETE', '/v1/account', undefined, 'alice');
+        assert.equal(deleted.status, 200);
+        assert.equal(deleted.data.cleanupPending, true);
+        assert.equal((await f.call('POST', '/v1/nearby', { location: fix() }, null)).data.items.length, 0);
+        assert.equal((await f.call('POST', `/v1/stickers/${id}/recover`, { location: fix() }, 'bob')).status, 404);
+        const entry = (await f.call('GET', '/v1/collection', undefined, 'bob')).data.items[0];
+        assert.equal(entry.unavailable, true);
+        assert.equal(entry.note, '');
+    } finally { await f.close(); }
+});
+
+test('per-instance limiter bounds anonymous browsing before store query', async () => {
+    const f = await fixture();
+    try {
+        const statuses = await Promise.all(Array.from({ length: 31 }, () => f.call('POST', '/v1/nearby', { location: fix() }, null)));
+        assert.equal(statuses.filter(item => item.status === 200).length, 30);
+        assert.equal(statuses.filter(item => item.status === 429).length, 1);
+    } finally { await f.close(); }
+});
+
+test('per-instance limiter bounds recovery and reports per user', async () => {
+    const f = await fixture();
+    try {
+        const id = await f.publish();
+        const recoveries = await Promise.all(Array.from({ length: 21 }, () => f.call('POST', `/v1/stickers/${id}/recover`, { location: fix() }, 'bob')));
+        assert.equal(recoveries.filter(item => item.status === 429).length, 1);
+        const reports = await Promise.all(Array.from({ length: 11 }, () => f.call('POST', `/v1/stickers/${id}/report`, { reason: 'unsafe' }, 'bob')));
+        assert.equal(reports.filter(item => item.status === 429).length, 1);
     } finally { await f.close(); }
 });

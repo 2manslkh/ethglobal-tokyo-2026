@@ -1,11 +1,12 @@
 import { createHash, randomUUID } from 'node:crypto';
 import { distanceMeters, geohash, neighboringCells } from './geo.js';
+import { deleteAccountData as removeAccountData } from './account.js';
 
 const MAX_MAP = 16 * 1024 * 1024;
 const PRESETS = new Set(['taggi-1', 'taggi-2', 'taggi-3', 'taggi-4']);
 const MAX_BODY = 32768;
 const DISCOVERY_SECONDS = 300;
-const NEARBY_METERS = 5000;
+const NEARBY_METERS = 2000;
 
 class ApiError extends Error {
     constructor(status, code, message) { super(message); this.status = status; this.code = code; }
@@ -65,8 +66,17 @@ async function bodyJson(request) {
     }
 }
 
-export function createApi({ adapter, now = () => Math.floor(Date.now() / 1000), ids = randomUUID }) {
+export function createApi({ adapter, now = () => Math.floor(Date.now() / 1000), ids = randomUUID, deleteAccountData = removeAccountData }) {
     if (!adapter) throw new Error('Adapter required');
+    const limits = new Map();
+    const rateLimit = (scope, key, max, seconds) => {
+        const timestamp = now();
+        const id = `${scope}\0${key}`;
+        const state = limits.get(id);
+        if (!state || state.until <= timestamp) limits.set(id, { count: 1, until: timestamp + seconds });
+        else if (++state.count > max) throw new ApiError(429, 'rate_limited', 'Too many requests');
+        if (limits.size > 10000) for (const [entry, value] of limits) if (value.until <= timestamp) limits.delete(entry);
+    };
     const location = value => {
         const point = coordinates(value);
         number(value.accuracyMeters, 0, 50, 'accuracyMeters');
@@ -92,13 +102,15 @@ export function createApi({ adapter, now = () => Math.floor(Date.now() / 1000), 
     const active = async (id) => {
         const sticker = await adapter.get('stickers', id);
         if (!sticker || sticker.status !== 'published') missing();
+        if ((await adapter.get('accounts', sticker.authorId))?.deleted) missing();
         return sticker;
     };
     const isBlocked = async (uid, authorId) => !!(await adapter.get('blocks', digest(`${uid}\0${authorId}`)));
     const collected = async (uid, id, collectedAt) => {
         const sticker = await adapter.get('stickers', id);
         const blocked = sticker && await isBlocked(uid, sticker.authorId);
-        const unavailable = !sticker || sticker.status === 'removed' || sticker.status === 'deleted' || blocked;
+        const authorDeleted = sticker && (await adapter.get('accounts', sticker.authorId))?.deleted;
+        const unavailable = !sticker || sticker.status === 'removed' || sticker.status === 'deleted' || blocked || authorDeleted;
         return sticker ? { ...summary(sticker), note: unavailable ? '' : sticker.note, collectedAt, unavailable: !!unavailable } : {
             id, presetId: '', authorId: '', authorName: '', place: '', teaser: '', latitude: 0, longitude: 0, revision: 0, createdAt: 0,
             note: '', collectedAt, unavailable: true
@@ -130,21 +142,29 @@ export function createApi({ adapter, now = () => Math.floor(Date.now() / 1000), 
                 return response.end(adminCss);
             }
             if (method === 'GET' && path === '/admin-config') {
-                const apiKey = process.env.FIREBASE_WEB_API_KEY;
-                const authDomain = process.env.FIREBASE_AUTH_DOMAIN;
+                const apiKey = process.env.FIREBASE_API_KEY;
+                const authDomain = process.env.FIREBASE_AUTH_DOMAIN || (process.env.GOOGLE_CLOUD_PROJECT ? `${process.env.GOOGLE_CLOUD_PROJECT}.firebaseapp.com` : '');
                 if (!apiKey || !authDomain) throw new ApiError(503, 'not_configured', 'Admin sign-in unavailable');
                 return send(response, 200, { apiKey, authDomain });
             }
             const segments = path.split('/').filter(Boolean);
             if (segments[0] !== 'v1') throw new ApiError(404, 'not_found', 'Route not found');
+            const forwarded = request.headers['x-forwarded-for'];
+            const ip = typeof forwarded === 'string' ? forwarded.split(',').at(-1).trim() : request.socket.remoteAddress || 'unknown';
+            rateLimit('ip', ip, 120, 60);
 
             if (method === 'POST' && path === '/v1/nearby') {
+                rateLimit('nearby', ip, 30, 60);
                 const user = await auth(request, true);
                 const point = location((await bodyJson(request)).location);
                 const blocks = user ? await adapter.query('blocks', [['userId', '==', user.uid]], 1000) : [];
                 const excluded = new Set(blocks.map(item => item.authorId));
                 const candidates = await adapter.query('stickers', [['geoCell', 'in', neighboringCells(point.latitude, point.longitude)], ['status', '==', 'published']], 500);
-                const items = candidates.filter(item => !excluded.has(item.authorId) && distanceMeters(point, item) <= NEARBY_METERS)
+                const near = candidates.filter(item => !excluded.has(item.authorId) && distanceMeters(point, item) <= NEARBY_METERS);
+                const authors = [...new Set(near.map(item => item.authorId))];
+                const accounts = await Promise.all(authors.map(id => adapter.get('accounts', id)));
+                const deletedAuthors = new Set(authors.filter((_, index) => accounts[index]?.deleted));
+                const items = near.filter(item => !deletedAuthors.has(item.authorId))
                     .sort((a, b) => distanceMeters(point, a) - distanceMeters(point, b)).slice(0, 100).map(summary);
                 return send(response, 200, { items });
             }
@@ -214,6 +234,7 @@ export function createApi({ adapter, now = () => Math.floor(Date.now() / 1000), 
             }
 
             if (method === 'POST' && segments[1] === 'stickers' && segments[3] === 'recover' && segments.length === 4) {
+                rateLimit('recover', user.uid, 20, 60);
                 const point = location((await bodyJson(request)).location);
                 const sticker = await active(segments[2]);
                 if (await isBlocked(user.uid, sticker.authorId)) denied();
@@ -251,11 +272,13 @@ export function createApi({ adapter, now = () => Math.floor(Date.now() / 1000), 
             }
 
             if (method === 'GET' && path === '/v1/collection') {
+                rateLimit('collection', user.uid, 60, 60);
                 const entries = await adapter.query('collections', [['userId', '==', user.uid]], 1000);
                 const items = await Promise.all(entries.sort((a, b) => a.collectedAt - b.collectedAt).map(item => collected(user.uid, item.stickerId, item.collectedAt)));
                 return send(response, 200, { items });
             }
             if (method === 'GET' && path === '/v1/authored') {
+                rateLimit('authored', user.uid, 60, 60);
                 const entries = await adapter.query('stickers', [['authorId', '==', user.uid]], 1000);
                 return send(response, 200, { items: entries.filter(item => item.status === 'published' || item.status === 'withdrawn').sort((a, b) => b.createdAt - a.createdAt).map(summary) });
             }
@@ -272,6 +295,7 @@ export function createApi({ adapter, now = () => Math.floor(Date.now() / 1000), 
                 return send(response, 200, { ok: true });
             }
             if (method === 'POST' && segments[1] === 'stickers' && segments[3] === 'report' && segments.length === 4) {
+                rateLimit('report', user.uid, 10, 3600);
                 const reason = text((await bodyJson(request)).reason, 500, 'reason');
                 const sticker = await adapter.get('stickers', segments[2]);
                 if (!sticker || !['published', 'withdrawn', 'removed'].includes(sticker.status)) missing();
@@ -294,7 +318,7 @@ export function createApi({ adapter, now = () => Math.floor(Date.now() / 1000), 
                 return send(response, 200, { ok: true });
             }
             if (method === 'DELETE' && path === '/v1/account') {
-                await adapter.transaction(async tx => { await tx.set('accounts', user.uid, { id: user.uid, deleted: true, deletedAt: now() }); });
+                await adapter.transaction(async tx => { await tx.set('accounts', user.uid, { id: user.uid, deleted: true, cleaned: false, deletedAt: now() }); });
                 try {
                     await adapter.deleteAuth(request.headers.authorization.slice(7));
                 } catch (error) {
@@ -302,24 +326,23 @@ export function createApi({ adapter, now = () => Math.floor(Date.now() / 1000), 
                     if (error.code === 'auth/recent-login-required') throw new ApiError(401, 'recent_login_required', 'Sign in again before deleting account');
                     throw error;
                 }
-                await adapter.set('accounts', user.uid, { id: user.uid, deleted: true, authDeleted: true, deletedAt: now() });
-                const authored = await adapter.query('stickers', [['authorId', '==', user.uid]], 10000);
-                for (const sticker of authored) {
-                    await adapter.set('stickers', sticker.id, { ...sticker, status: 'deleted', note: '', revision: sticker.revision + 1 });
-                    await adapter.deleteMap(sticker.id);
+                try {
+                    await adapter.set('accounts', user.uid, { id: user.uid, deleted: true, authDeleted: true, cleaned: false, deletedAt: now() });
+                    await deleteAccountData(adapter, user.uid, now());
+                    return send(response, 200, { ok: true });
+                } catch {
+                    return send(response, 200, { ok: true, cleanupPending: true });
                 }
-                for (const name of ['collections', 'blocks', 'reports', 'discoveries']) {
-                    const entries = await adapter.query(name, [[name === 'reports' ? 'reporterId' : 'userId', '==', user.uid]], 10000);
-                    for (const item of entries) await adapter.delete(name, item.id);
-                }
-                await adapter.set('accounts', user.uid, { id: user.uid, deleted: true, authDeleted: true, cleaned: true, deletedAt: now() });
-                return send(response, 200, { ok: true });
             }
             if (segments[1] === 'admin') {
                 if (!user.admin) denied();
                 if (method === 'GET' && path === '/v1/admin/reports') {
                     const entries = await adapter.query('reports', [['status', '==', 'open']], 200);
                     return send(response, 200, { items: entries.sort((a, b) => a.createdAt - b.createdAt) });
+                }
+                if (method === 'GET' && path === '/v1/admin/removed') {
+                    const entries = await adapter.query('stickers', [['status', '==', 'removed']], 200);
+                    return send(response, 200, { items: entries.sort((a, b) => b.createdAt - a.createdAt).map(summary) });
                 }
                 if (method === 'POST' && segments[2] === 'stickers' && segments[4] === 'moderate' && segments.length === 5) {
                     const status = (await bodyJson(request)).status;
