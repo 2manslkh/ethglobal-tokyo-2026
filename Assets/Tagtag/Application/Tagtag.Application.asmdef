@@ -1,0 +1,1 @@
+{"name":"Tagtag.Application","references":["Tagtag.Core","Tagtag.Services","Tagtag.UI","Tagtag.AR"]}
