@@ -7,6 +7,7 @@ using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.XR;
+using UnityEngine.UIElements;
 using UnityEngine.XR.ARFoundation;
 using UnityEngine.XR.ARSubsystems;
 #if UNITY_IOS
@@ -237,6 +238,8 @@ namespace Tagtag.AR
             {
                 var first = Input.GetTouch(0);
                 var second = Input.GetTouch(1);
+                if (TouchOnUi(first.fingerId, first.position) || TouchOnUi(second.fingerId, second.position))
+                { gestureActive = false; return; }
                 var delta = second.position - first.position;
                 if (gestureActive)
                 {
@@ -254,7 +257,7 @@ namespace Tagtag.AR
             gestureActive = false;
             if (Input.touchCount != 1) return;
             var touch = Input.GetTouch(0);
-            if (touch.phase != UnityEngine.TouchPhase.Ended || TouchOnUi(touch.fingerId)) return;
+            if (touch.phase != UnityEngine.TouchPhase.Ended || TouchOnUi(touch.fingerId, touch.position)) return;
             if (anchor == null && TrySurface(touch.position, out var pose)) PlaceAnchor(pose);
         }
 
@@ -309,7 +312,7 @@ namespace Tagtag.AR
         {
             if (Input.touchCount != 1 || !CanCollect) return;
             var touch = Input.GetTouch(0);
-            if (touch.phase != UnityEngine.TouchPhase.Ended || TouchOnUi(touch.fingerId)) return;
+            if (touch.phase != UnityEngine.TouchPhase.Ended || TouchOnUi(touch.fingerId, touch.position)) return;
             var ray = camera.ScreenPointToRay(touch.position);
             if (!Physics.Raycast(ray, out var hit, 3.25f)) return;
             if (hit.collider == null || hit.collider.gameObject != visual) return;
@@ -318,9 +321,21 @@ namespace Tagtag.AR
             StickerTapped?.Invoke(recoveredStickerId);
         }
 
-        private static bool TouchOnUi(int fingerId)
+        private bool TouchOnUi(int fingerId, Vector2 screenPoint)
         {
-            return EventSystem.current != null && EventSystem.current.IsPointerOverGameObject(fingerId);
+            if (EventSystem.current != null && EventSystem.current.IsPointerOverGameObject(fingerId)) return true;
+            var document = GetComponent<UIDocument>();
+            var root = document == null ? null : document.rootVisualElement;
+            var panel = root?.panel;
+            if (panel == null) return false;
+            var topLeft = new Vector2(screenPoint.x, Screen.height - screenPoint.y);
+            var point = RuntimePanelUtils.ScreenToPanel(panel, topLeft);
+            for (var element = panel.Pick(point); element != null && element != root; element = element.parent)
+            {
+                if (element is Button || element is TextField || element is ScrollView ||
+                    element.resolvedStyle.backgroundColor.a > 0.1f) return true;
+            }
+            return false;
         }
 
         private void CreateVisual(string id)
