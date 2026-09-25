@@ -74,12 +74,14 @@ namespace Tagtag.Services
 
     public sealed class DeviceLocation
     {
-        public async System.Threading.Tasks.Task<LocationFix> Current()
+        public async System.Threading.Tasks.Task<LocationFix> Current(System.Threading.CancellationToken cancellation = default)
         {
+            cancellation.ThrowIfCancellationRequested();
             if (Input.location.status == LocationServiceStatus.Stopped) Input.location.Start(10, 2);
             var deadline = DateTime.UtcNow.AddSeconds(20);
             while (DateTime.UtcNow < deadline)
             {
+                cancellation.ThrowIfCancellationRequested();
                 if (Input.location.status == LocationServiceStatus.Failed)
                     throw new ApiFailure(Input.location.isEnabledByUser ? "Location is unavailable. Try again outdoors." : "Allow Location in Settings to find and place stickers.");
                 if (Input.location.status == LocationServiceStatus.Running)
@@ -89,7 +91,7 @@ namespace Tagtag.Services
                         accuracyMeters = value.horizontalAccuracy, measuredUnixSeconds = (long)value.timestamp };
                     if (CollectionBook.FreshLocation(fix, DateTimeOffset.UtcNow.ToUnixTimeSeconds())) return fix;
                 }
-                await System.Threading.Tasks.Task.Delay(250);
+                await System.Threading.Tasks.Task.Delay(250, cancellation);
             }
             throw new ApiFailure(Input.location.isEnabledByUser ? "We need a more accurate location. Move outdoors and try again." : "Allow Location in Settings to find and place stickers.");
         }

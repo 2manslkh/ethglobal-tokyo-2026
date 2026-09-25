@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using UnityEngine;
 
@@ -24,18 +25,27 @@ namespace Tagtag.Services
         private readonly LocalBlocks localBlocks = new LocalBlocks();
         private HashSet<string> blockedAuthors = new HashSet<string>();
         private readonly DeviceLocation location = new DeviceLocation();
+        private readonly Func<CancellationToken, Task<LocationFix>> locateNearby;
+        private readonly Func<LocationFix, Task<StickerSummary[]>> loadNearby;
+        private CancellationTokenSource nearbyCancellation;
+        private const string NearbyLoadingMessage = "Finding nearby stickers. You can keep exploring the app.";
         private RecoveryData recovery;
         private PlacementDraft pendingDraft;
         private int accountGeneration;
         private bool disposed;
 
-        public TagtagController(ServiceConfiguration configuration, IArExperience ar, IMapExperience map, INativeIdentity identity)
+        public TagtagController(ServiceConfiguration configuration, IArExperience ar, IMapExperience map, INativeIdentity identity,
+            Func<CancellationToken, Task<LocationFix>> locateNearby = null,
+            Func<LocationFix, Task<StickerSummary[]>> loadNearby = null)
         {
             this.configuration = configuration;
             this.identity = identity;
             Ar = ar; Map = map;
             api = new TagtagApi(configuration);
             session = new FirebaseSession(configuration, identity);
+            this.locateNearby = locateNearby ?? (token => location.Current(token));
+            this.loadNearby = loadNearby ?? (async fix =>
+                (await api.Call<SummaryList>("POST", "/v1/nearby", new LocationRequest { location = fix }, await session.Token(false))).items);
             cache = new LocalCollection(System.IO.Path.Combine(Application.persistentDataPath, "collections"));
             publications = new PendingPublication(System.IO.Path.Combine(Application.persistentDataPath, "publications"));
             State.servicesConfigured = configuration.Configured;
@@ -53,6 +63,7 @@ namespace Tagtag.Services
         public void Dispose()
         {
             disposed = true; accountGeneration++;
+            CancelNearby();
             Ar.Changed -= Notify; Ar.StickerTapped -= Collect; Map.StickerSelected -= SelectSticker;
             Ar.Exit(); Map.Hide();
         }
@@ -60,16 +71,23 @@ namespace Tagtag.Services
         public void Navigate(AppPage page)
         {
             if (State.busy && !synchronizing) return;
+            if (page != AppPage.Explore) CancelNearby();
             if (State.page == AppPage.Stick && page != AppPage.Stick) Ar.Exit();
             Map.Hide(); State.page = page; State.error = ""; State.detail = null; State.accountOpen = false;
             if (page == AppPage.Stick) Ar.Enter();
             Notify();
             if (page == AppPage.Explore && State.nearby.Count == 0) RefreshNearby();
         }
-        public void SetAccountOpen(bool open) { State.accountOpen = open; Map.Hide(); Notify(); }
+        public void SetAccountOpen(bool open)
+        {
+            if (open) CancelNearby(true);
+            State.accountOpen = open; Map.Hide(); Notify();
+            if (!open) ResumeNearby();
+        }
         public void SignIn(string provider)
         {
             if (State.busy) return;
+            CancelNearby();
             State.busy = true; State.error = ""; Notify();
             identity.SignIn(provider, configuration, credential =>
             {
@@ -88,23 +106,78 @@ namespace Tagtag.Services
         public void SignOut()
         {
             if (State.busy) return;
+            CancelNearby();
             accountGeneration++; session.SignOut(); State.user = null; recovery = null;
             blockedAuthors.Clear(); State.collection.Clear(); State.authored.Clear(); State.detail = null; State.selected = null;
             Ar.CancelPlacement(); pendingDraft = null; State.hasPendingPublication = false;
             State.draftNote = State.draftTeaser = State.draftPlace = State.selectedPreset = "";
             State.status = "Signed out."; State.error = ""; Notify();
         }
-        public void RefreshNearby()
+        public void RefreshNearby() => RefreshNearby(false);
+
+        private async void RefreshNearby(bool preserveForegroundError)
         {
+            if (disposed || State.page != AppPage.Explore || State.accountOpen) return;
             if (State.busy) { nearbyRefreshQueued = true; return; }
-            Run(async () =>
+            if (State.nearbyLoading) return;
+            nearbyRefreshQueued = false;
+            var request = nearbyCancellation = new CancellationTokenSource();
+            int generation = accountGeneration;
+            State.nearbyLoading = true;
+            if (!preserveForegroundError) State.error = "";
+            State.status = NearbyLoadingMessage;
+            Notify();
+            try
             {
-            State.location = await location.Current();
-            var result = await api.Call<SummaryList>("POST", "/v1/nearby", new LocationRequest { location = State.location }, await session.Token(false));
-            State.nearby = (result.items ?? Array.Empty<StickerSummary>()).ToList();
+                var fix = await locateNearby(request.Token);
+                if (!CurrentNearby(request, generation)) return;
+                State.location = fix;
+                Notify();
+                var items = await loadNearby(fix);
+                if (!CurrentNearby(request, generation)) return;
+                State.nearby = (items ?? Array.Empty<StickerSummary>()).ToList();
                 ApplyBlocks();
                 State.status = State.nearby.Count == 0 ? "No stickers nearby yet. Leave the first one." : "Little discoveries around you.";
-            });
+            }
+            catch (OperationCanceledException) { }
+            catch (Exception error)
+            {
+                if (CurrentNearby(request, generation) && (!preserveForegroundError || string.IsNullOrEmpty(State.error)))
+                    State.error = error is ApiFailure ? error.Message : "Nearby stickers could not load. Please try again.";
+            }
+            finally
+            {
+                bool identityChanged = !disposed && generation == accountGeneration && State.user != session.Current;
+                if (identityChanged) State.user = session.Current;
+                if (nearbyCancellation == request)
+                {
+                    nearbyCancellation = null;
+                    State.nearbyLoading = false;
+                    Notify();
+                }
+                else if (identityChanged) Notify();
+                request.Dispose();
+            }
+        }
+
+        private bool CurrentNearby(CancellationTokenSource request, int generation) =>
+            !disposed && nearbyCancellation == request && !request.IsCancellationRequested &&
+            generation == accountGeneration && State.page == AppPage.Explore && !State.accountOpen;
+
+        private void CancelNearby(bool resumeOnReturn = false)
+        {
+            var previous = nearbyCancellation;
+            nearbyRefreshQueued = resumeOnReturn && (State.nearbyLoading || nearbyRefreshQueued);
+            nearbyCancellation = null;
+            State.nearbyLoading = false;
+            if (State.status == NearbyLoadingMessage) State.status = "";
+            previous?.Cancel();
+        }
+
+        private void ResumeNearby()
+        {
+            if (nearbyRefreshQueued && !disposed && State.page == AppPage.Explore && !State.accountOpen && !State.busy)
+                RefreshNearby(true);
         }
         public void SelectSticker(string id)
         {
@@ -296,6 +369,7 @@ namespace Tagtag.Services
         private async void Run(Func<Task> work)
         {
             if (State.busy || disposed) return;
+            CancelNearby(true);
             State.busy = true; State.error = ""; int generation = accountGeneration; Notify();
             try { await work(); }
             catch (Exception error)
@@ -306,11 +380,7 @@ namespace Tagtag.Services
             finally
             {
                 State.busy = false; State.user = session.Current; Notify();
-                if (nearbyRefreshQueued && !disposed)
-                {
-                    nearbyRefreshQueued = false;
-                    if (State.page == AppPage.Explore) RefreshNearby();
-                }
+                ResumeNearby();
             }
         }
         private static string Path(string id) => "/v1/stickers/" + Uri.EscapeDataString(id);
