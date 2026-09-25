@@ -141,7 +141,7 @@ Stock Unity styling is not an acceptable fallback.
 ### Camera preparation and recovery
 
 Cover the camera region with an opaque paper-white surface, Taggi, and concise
-status text until camera imagery is ready. Keep navigation available. Reveal the
+status text until camera imagery is ready. Keep the camera Close control available. Reveal the
 live camera only after a valid frame is available for display, not after an
 arbitrary delay or merely because the AR view has mounted.
 
@@ -233,13 +233,28 @@ backings for camera controls and guidance, and paper-toned sheets for reading an
 composition. Follow the preparation and recovery rules above before revealing
 the feed. Collection gets a small confirmation after success.
 
-For the first version, placement uses a preset sticker library:
+Camera mode fills the screen and hides the generic app header and bottom tab bar.
+A floating Close control returns to the destination that opened the camera. A
+circular 88-point STICK action opens **Your stickers**, the four-pose inventory.
+Keep the camera controls on readable paper backings rather than importing native
+glass. This flow adapts `sticker-app`'s `DeviceApp.CameraScreen`, `SurfaceTap`,
+`SurfaceGesture`, and `DeviceARSession.Placement` implementations.
 
-1. Open the sticker picker from the AR view.
-2. Choose a preset sticker.
-3. Position the sticker, pinch to resize it, and twist to rotate it.
-4. Add a teaser and the full note.
-5. Confirm placement at the current location.
+1. Open the inventory and choose a Taggi pose. Show its artwork/name without
+   placing a preview automatically.
+2. Distinguish finding tracking, finding a surface, and a surface ready for a tap.
+   Outline tracked, unsubsumed plane boundaries in yellow while choosing a spot.
+3. A short tap inside a tracked polygon places the preview. Drag, long press,
+   cancellation, controls, sheets, and multi-touch must not initiate placement.
+4. Drag along the original surface, pinch to resize, and twist to rotate. Provide
+   accessible size/rotation controls and a secondary move-to-camera-center action.
+5. Write the place, clue, and full note in the existing sheet. Explicit publishing
+   still requires sign-in, mapped tracking, and all existing service gates.
+
+Opening any sheet or losing camera readiness blocks placement and collection
+input. Surface-found guidance is not publish readiness. Rendering uses a bundled
+material/shader asset so the player retains the artwork shader and its transparent
+silhouette.
 
 ### Explore
 

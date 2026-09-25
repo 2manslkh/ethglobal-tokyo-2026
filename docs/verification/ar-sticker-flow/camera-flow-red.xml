@@ -1,0 +1,7 @@
+<test-case id="1009" name="CameraInventoryFlowUsesFullScreenAndExplicitPlacement" fullname="Tagtag.Tests.PaperVisualTests.CameraInventoryFlowUsesFullScreenAndExplicitPlacement" methodname="CameraInventoryFlowUsesFullScreenAndExplicitPlacement" classname="Tagtag.Tests.PaperVisualTests" runstate="Runnable" seed="2036825378" result="Failed" start-time="2026-09-25 20:41:22Z" end-time="2026-09-25 20:41:22Z" duration="0.745323" asserts="0"><properties><property name="_JOINTYPE" value="UnityCombinatorial" /><property name="retryIteration" value="0" /><property name="repeatIteration" value="0" /></properties><failure><message><![CDATA[  Camera mode must remove the bottom navigation.
+  Expected: null
+  But was:  <PaperButton Tab Home (x:20.00, y:6.00, width:111.00, height:74.00) world rect: (x:20.00, y:763.00, width:111.00, height:74.00)>
+]]></message><stack-trace><![CDATA[at Tagtag.Tests.PaperVisualTests+<CameraInventoryFlowUsesFullScreenAndExplicitPlacement>d__6.MoveNext () [0x00197] in /private/tmp/tagtag-paper-ui/Assets/Tagtag/Application/PlayModeTests/PaperVisualTests.cs:44
+at UnityEngine.TestTools.TestEnumerator+<Execute>d__7.MoveNext () [0x0003a] in ./Library/PackageCache/com.unity.test-framework@1405238725ab/UnityEngine.TestRunner/NUnitExtensions/Attributes/TestEnumerator.cs:44
+]]></stack-trace></failure><output><![CDATA[Paper UI capture: /var/folders/_r/65qcktj96mgb6y7948nn9g9m0000gn/T/tagtag/tagtag/tagtag-paper-review/camera-fullscreen-preparing.png
+]]></output></test-case>

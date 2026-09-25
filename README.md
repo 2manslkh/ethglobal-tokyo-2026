@@ -35,6 +35,10 @@ The paper UI uses a persistent shell and updates mounted controls when applicati
 
 For mounted-view and visual regression checks, run Unity without `-nographics`, using `-buildTarget StandaloneOSX -testPlatform PlayMode -testFilter Tagtag.Tests.PaperVisualTests`. The fixture checks draft/caret/focus/scroll continuity, sign-in return, duplicate activation, and synced collection details. It captures normal and compact layouts under `Application.temporaryCachePath/tagtag-paper-review`; its standalone result is `tagtag-paper-visual-result.xml`. The neutral background in the live-camera fixture is simulated imagery. Native maps, the software keyboard, permissions, and AR still require simulator or physical-device checks.
 
+STICK uses a full-screen camera with Close and a four-pose sticker inventory. Choose a design, scan for a yellow surface outline, then tap to attach it. Drag on the original surface, pinch or twist to adjust, or open Size & rotation for accessible controls. Write note becomes available after attachment; publishing still requires a tracked anchor and a mapped environment. The bundled [sticker material and shader](Assets/Tagtag/AR/SOURCE_PROVENANCE.md) keep artwork and transparent edges available in stripped player builds.
+
+Run graphics-enabled placement and rendering checks with `-buildTarget StandaloneOSX -testPlatform PlayMode -testFilter Tagtag`. Repeat with `-testPlatform StandaloneOSX` to verify shader inclusion in a built player. The test callback writes the complete suite to `Application.temporaryCachePath/tagtag-player-result.xml`, and the real sticker render to `tagtag-sticker-render.png`.
+
 ## iPhone build
 
 Prepare ARKit in a separate invocation so its loader settings are imported before export:
