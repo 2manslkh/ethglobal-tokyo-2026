@@ -136,10 +136,11 @@ public static class BuildIos
         var project = new PBXProject();
         project.ReadFromFile(path);
         var arKitLibraries = Path.Combine(output, "Libraries/com.unity.xr.arkit");
-        if (!Directory.Exists(arKitLibraries) ||
-            Directory.GetFiles(arKitLibraries, "libUnityARKit.a", SearchOption.AllDirectories).Length == 0 ||
-            !File.ReadAllText(path).Contains("libUnityARKit.a") ||
-            !File.ReadAllText(path).Contains("ARKit.framework"))
+        if (PlayerSettings.iOS.sdkVersion != iOSSdkVersion.SimulatorSDK &&
+            (!Directory.Exists(arKitLibraries) ||
+                Directory.GetFiles(arKitLibraries, "libUnityARKit.a", SearchOption.AllDirectories).Length == 0 ||
+                !File.ReadAllText(path).Contains("libUnityARKit.a") ||
+                !File.ReadAllText(path).Contains("ARKit.framework")))
             throw new InvalidOperationException("ARKit native libraries are missing. Run BuildIos.PrepareArKit in a separate Unity invocation before BuildIos.Build.");
         var main = project.GetUnityMainTargetGuid();
         var framework = project.GetUnityFrameworkTargetGuid();
