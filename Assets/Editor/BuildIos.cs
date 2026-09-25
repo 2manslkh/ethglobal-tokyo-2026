@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using Tagtag;
 using UnityEditor;
@@ -37,6 +38,14 @@ public static class BuildIos
             throw new InvalidOperationException("Could not assign the ARKit loader to iOS.");
         manager.automaticLoading = true;
         manager.automaticRunning = true;
+        const string arKitDefine = "UNITY_XR_ARKIT_LOADER_ENABLED";
+        var defines = new List<string>(PlayerSettings.GetScriptingDefineSymbols(NamedBuildTarget.iOS)
+            .Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries));
+        if (!defines.Contains(arKitDefine))
+        {
+            defines.Add(arKitDefine);
+            PlayerSettings.SetScriptingDefineSymbols(NamedBuildTarget.iOS, string.Join(";", defines));
+        }
         var serialized = new SerializedObject(Unsupported.GetSerializedAssetInterfaceSingleton("PlayerSettings"));
         serialized.FindProperty("activeInputHandler").intValue = 2;
         serialized.ApplyModifiedPropertiesWithoutUndo();
@@ -53,6 +62,9 @@ public static class BuildIos
     public static void Build()
     {
         PrepareArKit();
+#if !UNITY_XR_ARKIT_LOADER_ENABLED
+        throw new InvalidOperationException("ARKit was just configured. Run BuildIos.Build in a new Unity invocation so its native build processor is compiled.");
+#endif
         EnsureScene();
         PlayerSettings.companyName = "tagtag";
         PlayerSettings.productName = "tagtag";
