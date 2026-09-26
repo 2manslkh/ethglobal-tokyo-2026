@@ -15,8 +15,13 @@ passed 22/22 (`/tmp/tagtag-collect-location-edit.xml`), including immediate
 return of a fresh 2,000.149 m fix. ARKit preparation, Unity iOS export, and
 automatically signed Xcode Debug/iphoneos build succeeded. Logs:
 `/tmp/tagtag-collect-accuracy-{prepare,export,xcode}.log`. The new API revision
-is live; iPhone installation and physical collection verification are pending
-because Dawg. disconnected before installation.
+is live. After Dawg. (iPhone 15 Pro Max) reconnected, CoreDevice installed the
+signed app over the existing installation and launched `com.kenk.tagtag`; both
+commands exited 0 and the tagtag process appeared in the device process list.
+No uninstall or data reset was performed. Install and launch logs:
+`/tmp/tagtag-collect-accuracy-{install-success,launch-success}.log`. Physical
+collection speed and completion remain to be checked with a fresh sticker
+search on the phone.
 
 ## Sticker particles and camera tap — 2026-09-26
 
