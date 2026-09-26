@@ -38,14 +38,12 @@ namespace Tagtag.UI
     {
         public readonly string Title;
         public readonly string Guidance;
-        public readonly bool ShowAdjustments;
         public readonly bool CanWriteNote;
 
-        public PaperStickState(string title, string guidance, bool showAdjustments, bool canWriteNote)
+        public PaperStickState(string title, string guidance, bool canWriteNote)
         {
             Title = title;
             Guidance = guidance;
-            ShowAdjustments = showAdjustments;
             CanWriteNote = canWriteNote;
         }
     }
@@ -54,7 +52,7 @@ namespace Tagtag.UI
     {
         public const string EmptyBookInvitation = "Your next little discovery is out there.";
 
-        public static bool ShowGlobalChrome(AppState state) => state == null ||
+        public static bool ShowBottomNavigation(AppState state) => state == null ||
             state.accountOpen || state.page != AppPage.Stick;
         public static PaperStickState StickPlacement(AppState state, bool tracking, bool surface,
             bool preview, bool placementBusy)
@@ -67,7 +65,7 @@ namespace Tagtag.UI
                 !surface && !preview ? "Scan a wall or table for a surface." :
                 !preview ? "Surface found. Tap it to place Taggi." :
                 "Drag to move. Pinch to resize. Twist to rotate.";
-            return new PaperStickState("Place sticker", guidance, selected && preview,
+            return new PaperStickState("Place Sticker", guidance,
                 selected && (preview || retry) && state != null && !state.busy && !placementBusy);
         }
         public static string PresetName(string presetId)

@@ -12,22 +12,6 @@ namespace Tagtag.UI
             controller.Navigate(cameraReturnPage == AppPage.Explore ? AppPage.Explore : AppPage.Home);
         }
 
-        private void AddAdjustment(VisualElement row, string label, float widthDeltaCm, float rotationDelta)
-        {
-            Button button = Action(row, label, () =>
-            {
-                IArExperience ar = controller?.Ar;
-                if (!CanAdjustCamera(ar)) return;
-                float width = Mathf.Clamp(ar.PlacementWidthMeters * 100f + widthDeltaCm, 10f, 50f) / 100f;
-                float rotation = PaperSurfaceGesture.Wrap(ar.PlacementRotationDegrees + rotationDelta);
-                ar.AdjustPlacement(width, rotation);
-            }, false);
-            button.name = "STICK " + label;
-            button.style.flexGrow = 1f;
-            button.style.flexBasis = 0f;
-            button.style.minWidth = 0f;
-        }
-
         private bool CameraInputReady(IArExperience ar)
         {
             if (ar == null || controller == null) return false;

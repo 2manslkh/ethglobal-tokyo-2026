@@ -45,6 +45,10 @@ namespace Tagtag.Tests
             Assert.That(document.rootVisualElement.Query<Label>().ToList().Any(label => label.text == "tagtag"), Is.False,
                 "Camera mode must remove the generic app header.");
             Assert.That(document.rootVisualElement.Q<Button>("STICK Close"), Is.Not.Null);
+            var close = document.rootVisualElement.Q<Button>("STICK Close");
+            Assert.That(close.layout.width, Is.EqualTo(48f).Within(.1f));
+            Assert.That(close.layout.height, Is.EqualTo(48f).Within(.1f));
+            Assert.That(close.tooltip, Is.EqualTo("Close camera"));
             Assert.That(controller.Camera.InteractionBlocked, Is.True);
             controller.Camera.CameraPresentation = CameraPresentationState.Live;
             controller.Camera.IsTracking = true;
@@ -71,7 +75,6 @@ namespace Tagtag.Tests
             yield return Capture("camera-finding-surface");
             Assert.That(controller.State.selectedPreset, Is.EqualTo("taggi-2"));
             Assert.That(controller.Camera.PlaceCalls, Is.Zero, "Selecting inventory art must not place it automatically.");
-            Assert.That(document.rootVisualElement.Q<Image>("STICK Selected Artwork")?.image, Is.Not.Null);
             var write = document.rootVisualElement.Q<Button>("STICK Write note");
             Assert.That(write == null || !write.enabledSelf, Is.True, "Place a preview before writing its note.");
             controller.Camera.HasPlacementSurface = true;
@@ -88,15 +91,12 @@ namespace Tagtag.Tests
             yield return Capture("camera-adjusting-preview");
             Assert.That(controller.Camera.PlaceCalls, Is.EqualTo(1));
             Assert.That(controller.Camera.CanPublish, Is.False, "Fixture keeps mapping incomplete to test independent note access.");
-            var adjustments = document.rootVisualElement.Q<Foldout>("STICK Adjustments");
-            Assert.That(adjustments.value, Is.False, "Adjustment controls start collapsed to leave room for the camera.");
-            adjustments.value = true;
-            yield return Capture("camera-adjustments-expanded");
-            Submit("STICK Smaller");
-            Submit("STICK Rotate left");
-            Assert.That(controller.Camera.PlacementWidthMeters, Is.EqualTo(.19f).Within(.001f));
-            Assert.That(controller.Camera.PlacementRotationDegrees, Is.EqualTo(-5f).Within(.001f));
-            adjustments.value = false;
+            Assert.That(document.rootVisualElement.Q("STICK Adjustments"), Is.Null);
+            var card = document.rootVisualElement.Q("STICK title sticker");
+            Assert.That(card.Query<Label>().ToList().Select(label => label.text), Is.EqualTo(new[] { "Place Sticker" }));
+            Assert.That(card.Query<Image>().ToList(), Is.Empty);
+            Assert.That(document.rootVisualElement.Q("STICK Placement Guidance").worldBound.yMin,
+                Is.GreaterThanOrEqualTo(card.worldBound.yMax));
             Submit("STICK Write note");
             yield return Capture("camera-note-after-placement");
             Assert.That(document.rootVisualElement.Q<TextField>("Your note"), Is.Not.Null);
@@ -138,7 +138,14 @@ namespace Tagtag.Tests
             document.panelSettings.clearColor = true;
             document.panelSettings.colorClearValue = new Color32(218, 225, 222, 255);
             yield return Capture("home-empty");
-            var brand = document.rootVisualElement.Query<Label>().ToList().First(label => label.text == "tagtag");
+            Assert.That(document.rootVisualElement.Query<Label>().ToList().Any(label => label.text == "tagtag"), Is.False);
+            var brand = document.rootVisualElement.Query<Label>().ToList().First(label => label.text == "Your sticker book");
+            Submit("Home Profile");
+            yield return new WaitForSecondsRealtime(.4f);
+            Assert.That(document.rootVisualElement.Q<Button>("Action Continue with Apple"), Is.Not.Null);
+            Submit("Continue exploring");
+            yield return new WaitForSecondsRealtime(.4f);
+            Assert.That(controller.State.page, Is.EqualTo(AppPage.Home));
             Assert.That(brand.resolvedStyle.unityFont, Is.SameAs(Resources.Load<Font>("Tagtag/Fonts/ShadowsIntoLight")));
             foreach (var label in document.rootVisualElement.Query<Label>(className: "nav-label").ToList())
                 Assert.That(label.resolvedStyle.unityFont, Is.SameAs(Resources.Load<Font>("Tagtag/Fonts/InstrumentSemibold")));
@@ -216,6 +223,12 @@ namespace Tagtag.Tests
             controller.Camera.CameraPresentation = CameraPresentationState.Live;
             controller.Notify();
             yield return Capture("camera-live-guidance");
+            controller.State.selected = Sticker(0);
+            controller.Notify();
+            yield return Capture("camera-discovery");
+            StringAssert.Contains("Look beside the little red bridge.", document.rootVisualElement.Q<Label>("STICK Placement Guidance").text);
+            controller.State.selected = null;
+            controller.Notify();
             Assert.That(document.rootVisualElement.Q("Opaque camera cover").resolvedStyle.display, Is.EqualTo(DisplayStyle.None));
             Submit("STICK Inventory");
             yield return Capture("pose-picker");
@@ -294,13 +307,19 @@ namespace Tagtag.Tests
             yield return new WaitForSecondsRealtime(.4f);
             controller.Navigate(AppPage.Home);
             yield return new WaitForSecondsRealtime(.4f);
-            Submit("Sign in");
+            Submit("Home Profile");
             yield return new WaitForSecondsRealtime(.4f);
             controller.SignIn("apple");
             yield return new WaitForSecondsRealtime(.4f);
             Assert.That(document.rootVisualElement.Q<PaperSheet>(), Is.Null,
                 "An abandoned publish sign-in must not reopen the old sheet during a later sign-in.");
-            controller.SetAccountOpen(false);
+            Submit("Back");
+            yield return new WaitForSecondsRealtime(.4f);
+            Submit("Home Profile");
+            yield return new WaitForSecondsRealtime(.4f);
+            Assert.That(document.rootVisualElement.Q<ScrollView>("Account scroll"), Is.Not.Null);
+            Assert.That(document.rootVisualElement.Query<Label>().ToList().Any(label => label.text == "Aki"), Is.True);
+            Submit("Back");
 
             controller.Navigate(AppPage.Explore);
             yield return Capture("explore-empty");
@@ -396,14 +415,40 @@ namespace Tagtag.Tests
             yield return Capture("camera-compact-largest-reduced-motion");
             var compactInventory = document.rootVisualElement.Q<Button>("STICK Inventory");
             Assert.That(compactInventory.worldBound.yMax, Is.LessThanOrEqualTo(document.rootVisualElement.worldBound.yMax));
-            var compactAdjustments = document.rootVisualElement.Q<Foldout>("STICK Adjustments");
-            compactAdjustments.value = true;
-            yield return Capture("camera-adjustments-compact-largest-reduced-motion");
+            Assert.That(document.rootVisualElement.Q("STICK Adjustments"), Is.Null);
             Assert.That(document.rootVisualElement.Q("STICK camera dock").worldBound.yMin,
                 Is.GreaterThanOrEqualTo(document.rootVisualElement.Q("STICK camera header").worldBound.yMax));
-            compactAdjustments.value = false;
             Submit("STICK Inventory");
             yield return Capture("inventory-compact-largest-reduced-motion");
+            Submit("Close");
+            yield return new WaitForSecondsRealtime(.4f);
+            controller.State.selectedPreset = null;
+            controller.State.selected = Sticker(0);
+            controller.Notify();
+            yield return Capture("camera-discovery-compact-largest");
+            foreach (var presentation in new[] { CameraPresentationState.Preparing,
+                CameraPresentationState.PermissionDenied, CameraPresentationState.Interrupted,
+                CameraPresentationState.Unavailable })
+            {
+                controller.Camera.CameraPresentation = presentation;
+                controller.Notify();
+                yield return Capture("camera-recovery-compact-" + presentation);
+                Assert.That(controller.Camera.InteractionBlocked, Is.True);
+                var recovery = document.rootVisualElement.Q<ScrollView>("Camera recovery scroll");
+                Assert.That(recovery, Is.Not.Null, "Recovery must scroll between camera controls at large text sizes.");
+                Assert.That(recovery.worldBound.yMin, Is.GreaterThanOrEqualTo(document.rootVisualElement.Q("STICK camera header").worldBound.yMax));
+                Assert.That(recovery.worldBound.yMax, Is.LessThanOrEqualTo(document.rootVisualElement.Q("STICK camera dock").worldBound.yMin));
+                var recoveryAction = recovery.Q<Button>();
+                if (recoveryAction.resolvedStyle.display != DisplayStyle.None)
+                {
+                    recovery.ScrollTo(recoveryAction);
+                    yield return null;
+                    yield return null;
+                    Assert.That(recoveryAction.worldBound.yMin, Is.GreaterThanOrEqualTo(recovery.worldBound.yMin));
+                    Assert.That(recoveryAction.worldBound.yMax, Is.LessThanOrEqualTo(recovery.worldBound.yMax + 1f));
+                    yield return Capture("camera-recovery-compact-" + presentation + "-action");
+                }
+            }
         }
 
         private void Submit(string title)

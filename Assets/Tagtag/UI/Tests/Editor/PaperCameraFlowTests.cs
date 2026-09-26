@@ -6,14 +6,14 @@ namespace Tagtag.UI.Tests
     public sealed class PaperCameraFlowTests
     {
         [Test]
-        public void StickUsesFullScreenCameraChromeAndAccountRestoresItsOwnHeader()
+        public void StickHidesBottomNavigation()
         {
             AppState state = new AppState { page = AppPage.Home };
-            Assert.IsTrue(PaperFlow.ShowGlobalChrome(state));
+            Assert.IsTrue(PaperFlow.ShowBottomNavigation(state));
             state.page = AppPage.Stick;
-            Assert.IsFalse(PaperFlow.ShowGlobalChrome(state));
+            Assert.IsFalse(PaperFlow.ShowBottomNavigation(state));
             state.accountOpen = true;
-            Assert.IsTrue(PaperFlow.ShowGlobalChrome(state));
+            Assert.IsTrue(PaperFlow.ShowBottomNavigation(state));
         }
 
         [Test]
@@ -27,8 +27,8 @@ namespace Tagtag.UI.Tests
             Assert.AreEqual("Surface found. Tap it to place Taggi.",
                 PaperFlow.StickPlacement(state, true, true, false, false).Guidance);
             PaperStickState placed = PaperFlow.StickPlacement(state, true, true, true, false);
-            Assert.AreEqual("Place sticker", placed.Title);
-            Assert.IsTrue(placed.ShowAdjustments);
+            Assert.AreEqual("Place Sticker", placed.Title);
+            StringAssert.Contains("Pinch to resize. Twist to rotate.", placed.Guidance);
             Assert.IsTrue(placed.CanWriteNote);
             Assert.AreEqual("Taggi pose 1", PaperFlow.PresetName("taggi-1"));
         }

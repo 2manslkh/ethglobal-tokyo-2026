@@ -23,7 +23,7 @@ namespace Tagtag.Tests
             var root = document.rootVisualElement;
             Assert.That(root, Is.Not.Null);
             Assert.That(root.childCount, Is.GreaterThan(0), "Startup must render Home, not leave an empty panel.");
-            Assert.That(root.Query<Label>().ToList().Any(label => label.text == "tagtag"), Is.True);
+            Assert.That(root.Query<Label>().ToList().Any(label => label.text == "Your sticker book"), Is.True);
             Assert.That(root.Query<Label>().ToList().Count(label => label.text == "Your next little discovery is out there."), Is.LessThanOrEqualTo(1),
                 "The empty book invitation must not be repeated as a status notice.");
             var explore = root.Q<Button>("Tab Explore");

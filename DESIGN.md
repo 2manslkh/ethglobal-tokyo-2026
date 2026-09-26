@@ -211,7 +211,9 @@ sticker, reveal the full note, and collect a copy.
 ### Home
 
 Home shows the total number of stickers collected and the user's collection
-as a sticker book.
+as a sticker book. A profile icon beside “Your sticker book” opens sign-in for
+guests and account settings for signed-in users. There is no global brand/sign-in
+bar or reserved header space; screen titles and browsing tab navigation remain.
 
 Treat Home as a calm personal keepsake. Sticker artwork is the focal point;
 totals and page controls are secondary. A warm paper surface and gentle sticker
@@ -233,21 +235,28 @@ backings for camera controls and guidance, and paper-toned sheets for reading an
 composition. Follow the preparation and recovery rules above before revealing
 the feed. Collection gets a small confirmation after success.
 
-Camera mode fills the screen and hides the generic app header and bottom tab bar.
-A floating Close control returns to the destination that opened the camera. A
+Camera mode fills the screen and hides the bottom tab bar. The native iOS status
+bar stays visible, with dark text on an opaque paper backing above safe-area
+controls. A 48-point circular paper-white Close sticker uses an inset charcoal
+dotted circle, centered X, subtle shadow, and “Close camera” accessible label. It
+returns to the destination that opened the camera. A
 circular 88-point STICK action opens **Your stickers**, the four-pose inventory.
 Keep the camera controls on readable paper backings rather than importing native
 glass. This flow adapts `sticker-app`'s `DeviceApp.CameraScreen`, `SurfaceTap`,
 `SurfaceGesture`, and `DeviceARSession.Placement` implementations.
 
-1. Open the inventory and choose a Taggi pose. Show its artwork/name without
-   placing a preview automatically.
+1. Open the inventory and choose a Taggi pose without placing a preview automatically.
+   The top placement sticker is a sharp-cornered paper-white rectangle with an
+   inset dotted border and only **Place Sticker** centered inside. Keep tracking,
+   placement guidance, discovery clues, and recovery messages in a separate compact
+   scrollable paper notice below it. Dotted outlines do not intercept input.
 2. Distinguish finding tracking, finding a surface, and a surface ready for a tap.
    Outline tracked, unsubsumed plane boundaries in yellow while choosing a spot.
 3. A short tap inside a tracked polygon places the preview. Drag, long press,
    cancellation, controls, sheets, and multi-touch must not initiate placement.
-4. Drag along the original surface, pinch to resize, and twist to rotate. Provide
-   accessible size/rotation controls and a secondary move-to-camera-center action.
+4. Adjust with gestures only: drag along the original surface, pinch to resize,
+   and twist to rotate. Retain the 10–50 cm size limits and input blocking; there
+   is no size/rotation panel or move-to-center action.
 5. Write the place, clue, and full note in the existing sheet. Explicit publishing
    still requires sign-in, mapped tracking, and all existing service gates.
 
