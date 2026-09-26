@@ -47,6 +47,50 @@ namespace Tagtag.UI.Tests
         }
 
         [Test]
+        public void CustomDesignUsesTheSamePlacementAndPublishReadiness()
+        {
+            AppState state = new AppState { page = AppPage.Stick, selectedDesign = "my-design",
+                selected = new StickerSummary { id = "nearby" } };
+            Assert.IsTrue(PaperFlow.HasPlacementSelection(state));
+            Assert.IsFalse(PaperFlow.ShowDiscoveryRetry(state));
+            Assert.AreEqual("Surface found. Tap it to place your sticker.",
+                PaperFlow.StickPlacement(state, true, true, false, false).Guidance);
+            Assert.AreEqual("Place your sticker on a tracked surface before publishing.",
+                PaperFlow.PublishNotice("Park", "By the gate", "A quiet place",
+                    true, false, false, false, false, false, true));
+            Assert.IsTrue(PaperFlow.StickPlacement(state, true, true, true, false).CanWriteNote);
+            state.draftPlace = "Park";
+            state.draftTeaser = "By the gate";
+            state.draftNote = "A quiet place";
+            Assert.IsFalse(PaperFlow.ShouldClearPublishedDraft(true, state));
+            state.selectedDesign = "";
+            state.draftPlace = state.draftTeaser = state.draftNote = "";
+            Assert.IsTrue(PaperFlow.ShouldClearPublishedDraft(true, state));
+        }
+
+        [Test]
+        public void PolaroidCanUseLibraryOrCameraButPendingSaveBlocksEverySource()
+        {
+            AppState state = new AppState { creationCapabilities = 1 };
+            Assert.IsTrue(PaperCreation.CanStart("import", state));
+            Assert.IsTrue(PaperCreation.CanStart("polaroid", state));
+            Assert.IsFalse(PaperCreation.CanStart("ai", state));
+            StringAssert.Contains("photo library", PaperCreation.PolaroidNotice(state.creationCapabilities));
+            state.creationCapabilities = 2;
+            Assert.IsFalse(PaperCreation.CanStart("import", state));
+            Assert.IsTrue(PaperCreation.CanStart("polaroid", state));
+            StringAssert.Contains("front or rear camera", PaperCreation.PolaroidNotice(state.creationCapabilities));
+            state.creationCapabilities = 1 | 2 | 4;
+            StringAssert.Contains("photo library", PaperCreation.PolaroidNotice(state.creationCapabilities));
+            StringAssert.Contains("front or rear camera", PaperCreation.PolaroidNotice(state.creationCapabilities));
+            Assert.IsTrue(PaperCreation.CanStart("ai", state));
+            state.hasPendingDesign = true;
+            Assert.IsFalse(PaperCreation.CanStart("import", state));
+            Assert.IsFalse(PaperCreation.CanStart("polaroid", state));
+            Assert.IsFalse(PaperCreation.CanStart("ai", state));
+        }
+
+        [Test]
         public void DiscoveryRetainsTheSelectedClueAndRetryUntilAPlacementIsChosen()
         {
             AppState state = new AppState { page = AppPage.Stick,

@@ -60,17 +60,20 @@ namespace Tagtag.UI
         public static PaperStickState StickPlacement(AppState state, bool tracking, bool surface,
             bool preview, bool placementBusy)
         {
-            bool selected = !string.IsNullOrEmpty(state?.selectedPreset);
+            bool selected = HasPlacementSelection(state);
             bool retry = state != null && state.hasPendingPublication;
+            string artwork = !string.IsNullOrEmpty(state?.selectedDesign) ? "your sticker" : "Taggi";
             string guidance = !selected ? "Choose a sticker to place." :
-                placementBusy ? "Placing Taggi…" :
+                placementBusy ? "Placing " + artwork + "…" :
                 !tracking ? "Move slowly to start tracking." :
                 !surface && !preview ? "Scan a wall or table for a surface." :
-                !preview ? "Surface found. Tap it to place Taggi." :
+                !preview ? "Surface found. Tap it to place " + artwork + "." :
                 "Drag to move. Pinch to resize. Twist to rotate.";
             return new PaperStickState("Place Sticker", guidance,
                 selected && (preview || retry) && state != null && !state.busy && !placementBusy);
         }
+        public static bool HasPlacementSelection(AppState state) => state != null &&
+            (!string.IsNullOrEmpty(state.selectedPreset) || !string.IsNullOrEmpty(state.selectedDesign));
         public static string PresetName(string presetId)
         {
             switch (presetId)
@@ -87,10 +90,12 @@ namespace Tagtag.UI
             if (sticker == null) return "Look around slowly for Taggi.";
             string place = string.IsNullOrWhiteSpace(sticker.place) ? "the place" : sticker.place.Trim();
             string clue = string.IsNullOrWhiteSpace(sticker.teaser) ? "Look for the sticker." : sticker.teaser.Trim();
-            return "Find " + place + ": " + clue + " Tap Taggi in AR to unlock the full note.";
+            return "Find " + place + ": " + clue +
+                (string.IsNullOrEmpty(sticker.designId) ? " Tap Taggi in AR to unlock the full note." :
+                    " Tap the sticker in AR to unlock the full note.");
         }
         public static bool ShowDiscoveryRetry(AppState state) => state?.selected != null &&
-            string.IsNullOrEmpty(state.selectedPreset);
+            !HasPlacementSelection(state);
         public static bool BlockCameraInteraction(AppState state, bool sheetOpen,
             CameraPresentationState camera, bool tracking = true) => state == null ||
                 state.page != AppPage.Stick || state.accountOpen || state.busy || sheetOpen ||
@@ -155,7 +160,7 @@ namespace Tagtag.UI
 
         public static string PublishNotice(string place, string teaser, string note,
             bool tracking, bool hasPlacement, bool placementTracked, bool cameraCanPublish,
-            bool busy, bool pending)
+            bool busy, bool pending, bool customDesign = false)
         {
             if (busy) return "Publishing is in progress.";
             if (pending) return "Your saved placement is ready to retry. Location is checked again after you tap.";
@@ -173,16 +178,17 @@ namespace Tagtag.UI
                 return "Still needed: " + needed + ".";
             }
             if (!tracking) return "Move slowly until AR tracking is stable.";
-            if (!hasPlacement) return "Place Taggi on a tracked surface before publishing.";
-            if (!placementTracked) return "Keep Taggi visible until its surface anchor is tracked.";
-            if (!cameraCanPublish) return "Scan around Taggi from more angles until the spatial map is ready.";
+            string artwork = customDesign ? "your sticker" : "Taggi";
+            if (!hasPlacement) return "Place " + artwork + " on a tracked surface before publishing.";
+            if (!placementTracked) return "Keep " + artwork + " visible until its surface anchor is tracked.";
+            if (!cameraCanPublish) return "Scan around " + artwork + " from more angles until the spatial map is ready.";
             return "Ready to publish. Location is checked after you tap.";
         }
 
         public static bool ShouldClearPublishedDraft(bool submitted, AppState state)
         {
             return submitted && state != null && !state.busy && !state.hasPendingPublication &&
-                string.IsNullOrEmpty(state.error) && string.IsNullOrEmpty(state.selectedPreset) &&
+                string.IsNullOrEmpty(state.error) && !HasPlacementSelection(state) &&
                 string.IsNullOrEmpty(state.draftPlace) && string.IsNullOrEmpty(state.draftTeaser) &&
                 string.IsNullOrEmpty(state.draftNote);
         }
@@ -191,6 +197,32 @@ namespace Tagtag.UI
         {
             return previousPage == AppPage.Stick && state != null && state.page == AppPage.Home &&
                 !string.IsNullOrEmpty(state.detail?.id) && state.detail.id != lastPresentedId;
+        }
+    }
+
+    public static class PaperCreation
+    {
+        public static bool CanStart(string source, AppState state)
+        {
+            if (state == null || state.busy || state.hasPendingDesign) return false;
+            int capabilities = state.creationCapabilities;
+            switch (source)
+            {
+                case "import": return (capabilities & 1) != 0;
+                case "polaroid": return (capabilities & (1 | 2)) != 0;
+                case "ai": return (capabilities & 4) != 0;
+                default: return false;
+            }
+        }
+
+        public static string PolaroidNotice(int capabilities)
+        {
+            bool library = (capabilities & 1) != 0;
+            bool camera = (capabilities & 2) != 0;
+            if (library && camera) return "Choose a photo library image or use the front or rear camera, then crop and caption it.";
+            if (library) return "Choose a photo library image, then crop and caption it.";
+            if (camera) return "Use the front or rear camera, then crop and caption it.";
+            return "Polaroid creation is unavailable on this device.";
         }
     }
 

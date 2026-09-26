@@ -12,7 +12,9 @@ cd ..
 npx --yes firebase-tools@14.21.0 emulators:exec --only auth,firestore,storage --project demo-tagtag 'cd backend && npm run test:emulator'
 ```
 
-`npm test` uses an injected adapter and real HTTP listener. The emulator command uses Firebase Auth tokens and Firestore transactions with the production adapter. The emulator substitutes only the signed Storage transport, which the Storage emulator does not implement as Google Cloud Storage V4 URLs. The API tests cover authorization, note isolation, input bounds, retries, races, quotas, blocks, moderation, deletion, and map URL gates.
+`npm test` uses an injected adapter and real HTTP listener. The emulator command uses Firebase Auth tokens and Firestore transactions with the production adapter. The emulator substitutes only the signed Storage transport, which the Storage emulator does not implement as Google Cloud Storage V4 URLs. The API tests cover authorization, note isolation, input bounds, retries, races, quotas, blocks, moderation, deletion, map URL gates, and custom design storage and visibility.
+
+The Storage emulator verifies design object writes, thumbnail reads, and account cleanup. It does not enforce Cloud Storage's `ifGenerationMatch: 0` conditional write in an overwrite probe, so it cannot verify that production-only storage guarantee. The HTTP tests exercise concurrent finalize requests with changed upload bytes and assert that the saved artwork stays immutable. Verify the conditional write against a private Cloud Storage test bucket before live deployment.
 
 ## Deploy
 
@@ -28,7 +30,7 @@ gcloud run deploy tagtag-api --source backend --project <PROJECT_ID> --region as
 
 The Cloud Run service accepts anonymous `/v1/nearby` and `/health`; every other `/v1` route verifies a Firebase ID token, including revocation. Grant the runtime service account `roles/datastore.user` on the project, `roles/storage.objectAdmin` on the private map bucket, `firebaseauth.users.get` through a custom project role, and `iam.serviceAccounts.signBlob` on itself for V4 signed URLs. A broader self-scoped `roles/iam.serviceAccountTokenCreator` also provides signing. It does not need Firebase Auth admin or user deletion permission. Enable the Identity Toolkit and IAM Service Account Credentials APIs.
 
-Run cleanup as a Cloud Run job using the same image, service account, and environment variables. Set command to `node` and arguments to `src/cleanup.js`; schedule it at least hourly with Cloud Scheduler and a service account permitted to run that job. The worker removes pending publications older than one hour, expired discovery sessions, and account tombstones whose Firebase Auth user no longer exists. If the user has just deleted Auth but cleanup is unavailable, `DELETE /v1/account` returns `{ok:true,cleanupPending:true}` and the tombstone hides their stickers and notes immediately. An Auth token requiring recent login returns `401 recent_login_required` before any content is removed.
+Run cleanup as a Cloud Run job using the same image, service account, and environment variables. Set command to `node` and arguments to `src/cleanup.js`; schedule it at least hourly with Cloud Scheduler and a service account permitted to run that job. The worker removes pending publications older than one hour, abandons unfinished design uploads after one hour, sweeps unreferenced design assets, removes expired discovery sessions, and processes account tombstones whose Firebase Auth user no longer exists. The asset sweep also recovers from a finalize process that stops during account or design deletion. If the user has just deleted Auth but cleanup is unavailable, `DELETE /v1/account` returns `{ok:true,cleanupPending:true}` and the tombstone hides their stickers and notes immediately. An Auth token requiring recent login returns `401 recent_login_required` before any content is removed.
 
 The operator page is `/admin`. Configure Google and/or Apple as Firebase Auth providers and authorize the deployed origin. The page reads reports and submits moderation actions through admin-claim protected API routes. Grant or remove claims only from an operator workstation with privileged credentials:
 
@@ -54,7 +56,20 @@ Firestore collections:
 | `reports` | One report per reporter/sticker with moderation state |
 | `quotas` | Per-user UTC-day publication counts |
 | `accounts` | Deletion tombstones and cleanup state |
+| `designs` | Private owner, immutable operation, decoded dimensions, lifecycle and publication references |
+| `designQuotas` | Per-user UTC-day design creation counts |
+| `designCounts` | Per-user active design count |
 
 The nearby response maps only public summary fields. Publication operation IDs and collection IDs are deterministic per user, so retries do not duplicate them. A retry can use a fresh location within 100 m of its first placement; the original coordinate stays fixed. Text bounds are in the shared API contract. The built-in filter rejects configured spam or abuse phrases; add comma-separated phrases with `TAGTAG_BLOCKED_PHRASES` at deployment.
+
+### Custom designs
+
+`POST /v1/designs/prepare` accepts `{operationId,name,kind,imageBytes,width,height}` with `kind` `image`, `ai`, or `polaroid`. It returns `{id,uploadUrl,uploadHeaders}`. Upload the final PNG as a raw PUT with exactly the returned headers, then call `POST /v1/designs/:id/finalize` to receive `{design}`. `GET /v1/designs` returns the signed-in owner's ready designs as `{items}`; `DELETE /v1/designs/:id` archives the library entry. Prepare and finalize retries preserve the operation's identity and final artwork. An abandoned upload's operation ID stays reserved.
+
+If prepare retries an archived or abandoned design with the same payload, the API returns `409 design_expired`. A changed payload with the same operation ID remains `409 conflict`. Clients may use `design_expired` to retry retained pixels under a fresh operation ID.
+
+The PNG must be at most 5 MiB with a longest edge of 1024 pixels. Finalize checks the stored byte count and MIME type, decodes the image with a one-megapixel limit, checks the declared dimensions, strips metadata by re-encoding, and stores a separate thumbnail at most 256 pixels on its longest edge. The server uses decoded dimensions for publication. Each user can prepare 20 designs per UTC day and hold 100 active designs. The API stores final artwork and thumbnails in private `designs/<id>/` objects and returns five-minute signed read URLs only with a permitted design or visible publication/collection response. A previously issued URL stays valid until its five-minute expiry. Withdrawal keeps collected access; moderation removal suppresses collection artwork URLs. Archived assets remain while any publication references them. Account deletion removes all owned designs and assets.
+
+Publication prepare accepts exactly one `presetId` or `designId`; the latter must name a ready design owned by the publishing account. Design summaries add `designId`, `artworkWidth`, `artworkHeight`, `artworkUrl`, and `thumbnailUrl`; preset summaries retain their existing fields. Deploy Firestore composite indexes for `designs(status, createdAt)` and `designs(ownerId, status)` with the backend before enabling client uploads.
 
 One instance limits all `/v1` calls to 120/min per observed IP, nearby to 30/min per IP, recover to 20/min per user, reports to 10/hour per user, and collection/authored reads to 60/min per user. Responses use `429 rate_limited`. These in-memory limits reset on restart and are not a global cost cap. Keep max instances low, set budget alerts, and monitor Firestore reads and Storage egress.

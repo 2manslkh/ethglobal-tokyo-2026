@@ -9,7 +9,7 @@ namespace Tagtag.UI
     public sealed partial class TagtagAppView : MonoBehaviour
     {
         private enum AccountScreen { Overview, SignIn, Authored, DeleteConfirmation }
-        private enum Sheet { None, Picker, Note, Collected, Report, Block, Withdraw }
+        private enum Sheet { None, Picker, DeleteDesign, Note, Collected, Report, Block, Withdraw }
 
         private static readonly Color Paper = new Color32(255, 254, 250, 255);
         private static readonly Color Ink = new Color32(32, 32, 30, 255);
@@ -61,6 +61,7 @@ namespace Tagtag.UI
         private AccountScreen accountScreen;
         private Sheet sheet;
         private string sheetStickerId;
+        private string sheetDesignId;
         private string sheetAuthorId;
         private Sheet returnAfterSignIn;
         private string returnStickerId;
@@ -88,6 +89,8 @@ namespace Tagtag.UI
         private bool publicationRequested;
         private AppPage renderedPage;
         private bool renderedAccountOpen;
+        private bool artworkSubscribed;
+        private readonly List<ArtworkNotice> artworkNotices = new List<ArtworkNotice>();
         private AppPage cameraReturnPage = AppPage.Home;
 
         public void Initialize(ITagtagController tagtagController)
@@ -99,6 +102,11 @@ namespace Tagtag.UI
 
             controller = tagtagController ?? throw new ArgumentNullException(nameof(tagtagController));
             controller.Changed += OnControllerChanged;
+            if (!artworkSubscribed)
+            {
+                StickerArtwork.Changed += OnArtworkChanged;
+                artworkSubscribed = true;
+            }
             LoadPreferences();
             EnsureDocument();
             SyncDraftFromState();
@@ -129,6 +137,7 @@ namespace Tagtag.UI
 
         private void OnDestroy()
         {
+            if (artworkSubscribed) StickerArtwork.Changed -= OnArtworkChanged;
             if (controller != null)
             {
                 controller.Changed -= OnControllerChanged;
@@ -172,7 +181,8 @@ namespace Tagtag.UI
                 }
             }
 
-            if (mapDirty && MapPresentation.ShouldShow(controller.State, sheet != Sheet.None))
+            if (mapDirty && MapPresentation.ShouldShow(controller.State,
+                    sheet != Sheet.None || controller.State.creationOpen))
             {
                 UpdateMapLayout();
             }
@@ -311,6 +321,8 @@ namespace Tagtag.UI
             }
 
             AppState state = controller.State;
+            if (state.creationOpen && !state.accountOpen && sheet == Sheet.None) sheet = Sheet.Picker;
+            if (!state.creationOpen && (sheet == Sheet.Picker || sheet == Sheet.DeleteDesign)) sheet = Sheet.None;
             if (state.accountOpen && !SignedIn(state) && accountScreen != AccountScreen.SignIn)
             {
                 accountScreen = AccountScreen.SignIn;
@@ -320,7 +332,7 @@ namespace Tagtag.UI
             {
                 accountScreen = AccountScreen.Overview;
             }
-            MapPresentation.SyncVisibility(state, sheet != Sheet.None, controller.Map);
+            MapPresentation.SyncVisibility(state, sheet != Sheet.None || state.creationOpen, controller.Map);
             string identity = state.accountOpen ? "Account:" + (accountScreen == AccountScreen.SignIn && SignedIn(state) ? AccountScreen.Overview : accountScreen) : state.page.ToString();
             bool destinationChanged = identity != renderedIdentity;
             if (destinationChanged)
@@ -335,6 +347,7 @@ namespace Tagtag.UI
                 publishButton = null;
                 publishReadinessLabel = null;
                 homeProfileButton = null;
+                homeCreateButton = null;
                 homeBook = null;
                 homeFooter = null;
                 homeInvitation = null;
@@ -383,11 +396,14 @@ namespace Tagtag.UI
                 RefreshMounted(state);
             }
 
-            string sheetSignature = sheet + ":" + sheetStickerId + ":" + sheetAuthorId;
+            string sheetSignature = sheet + ":" + sheetStickerId + ":" + sheetDesignId + ":" + sheetAuthorId + ":" + state.accountOpen;
             if (sheetSignature != renderedSheetSignature)
             {
                 overlayHost.Clear();
-                if (sheet != Sheet.None) BuildSheet(state);
+                artworkNotices.Clear();
+                bool hideCreationSheet = state.accountOpen &&
+                    (sheet == Sheet.Picker || sheet == Sheet.DeleteDesign);
+                if (sheet != Sheet.None && !hideCreationSheet) BuildSheet(state);
                 else
                 {
                     sheetView = null;
@@ -405,7 +421,7 @@ namespace Tagtag.UI
             }
             else RefreshSheet(state);
 
-            if (MapPresentation.ShouldShow(state, sheet != Sheet.None))
+            if (MapPresentation.ShouldShow(state, sheet != Sheet.None || state.creationOpen))
             {
                 mapDirty = true;
             }
@@ -589,7 +605,7 @@ namespace Tagtag.UI
 
         private void OpenSignIn()
         {
-            if (sheet == Sheet.Note || sheet == Sheet.Report || sheet == Sheet.Block)
+            if (sheet == Sheet.Note || sheet == Sheet.Picker || sheet == Sheet.Report || sheet == Sheet.Block)
             {
                 returnAfterSignIn = sheet;
                 returnStickerId = sheetStickerId;
@@ -713,14 +729,125 @@ namespace Tagtag.UI
             parent.Add(line);
         }
 
+        private sealed class ArtworkRequest
+        {
+            public readonly string presetId, designId, artworkUrl, thumbnailUrl;
+            public readonly bool thumbnail;
+            public ArtworkRequest(string presetId, string designId, string artworkUrl, string thumbnailUrl, bool thumbnail)
+            {
+                this.presetId = presetId;
+                this.designId = designId;
+                this.artworkUrl = artworkUrl;
+                this.thumbnailUrl = thumbnailUrl;
+                this.thumbnail = thumbnail;
+            }
+        }
+
+        private sealed class ArtworkNotice
+        {
+            public readonly string designId;
+            public readonly bool thumbnail;
+            public readonly Image art;
+            public readonly Label status;
+            public readonly Button retry;
+            public ArtworkNotice(string designId, bool thumbnail, Image art, Label status, Button retry)
+            {
+                this.designId = designId;
+                this.thumbnail = thumbnail;
+                this.art = art;
+                this.status = status;
+                this.retry = retry;
+            }
+        }
+
+        private void AddArtworkNotice(VisualElement parent, Image art, string designId, bool thumbnail)
+        {
+            if (string.IsNullOrEmpty(designId)) return;
+            artworkNotices.RemoveAll(notice => notice.status.panel == null);
+            Label status = Text(parent, "", 13, false, Muted);
+            status.style.marginTop = 4f;
+            Button retry = Action(parent, "Retry artwork", controller.RefreshArtwork, false);
+            retry.style.alignSelf = Align.FlexStart;
+            retry.style.marginTop = 4f;
+            artworkNotices.Add(new ArtworkNotice(designId, thumbnail, art, status, retry));
+            RefreshArtworkNotices();
+        }
+
+        private void RefreshArtworkNotices()
+        {
+            artworkNotices.RemoveAll(notice => notice.status.panel == null);
+            foreach (ArtworkNotice notice in artworkNotices)
+            {
+                bool loaded = notice.art.image != null;
+                bool failed = !loaded && StickerArtwork.HasFailed(notice.designId, notice.thumbnail);
+                bool loading = !loaded && StickerArtwork.IsLoading(notice.designId, notice.thumbnail);
+                notice.status.text = loaded ? "" : failed ? "Artwork could not load." :
+                    loading ? "Loading artwork…" : "Artwork is unavailable.";
+                notice.status.style.display = loaded ? DisplayStyle.None : DisplayStyle.Flex;
+                notice.retry.style.display = !loaded && !loading ? DisplayStyle.Flex : DisplayStyle.None;
+            }
+        }
+
+        private void OnArtworkChanged()
+        {
+            if (root == null) return;
+            root.Query<Image>().ForEach(art =>
+            {
+                if (art.userData is ArtworkRequest request)
+                {
+                    art.image = StickerArtwork.Get(request.presetId, request.designId,
+                        request.artworkUrl, request.thumbnailUrl, request.thumbnail);
+                    if (!string.IsNullOrEmpty(request.designId))
+                    {
+                        art.style.backgroundColor = art.image == null ? Soft : Color.clear;
+                        art.tooltip = art.image == null ? "Sticker artwork not loaded" : "Sticker artwork";
+                    }
+                }
+            });
+            RefreshArtworkNotices();
+        }
+
+        private Image Art(VisualElement parent, StickerSummary sticker, float size, bool thumbnail = true)
+        {
+            return Art(parent, sticker.presetId, sticker.designId, sticker.artworkUrl,
+                sticker.thumbnailUrl, size, thumbnail, sticker.artworkWidth, sticker.artworkHeight);
+        }
+
+        private Image Art(VisualElement parent, StickerDesign design, float size, bool thumbnail = true)
+        {
+            return Art(parent, null, design.id, design.artworkUrl, design.thumbnailUrl,
+                size, thumbnail, design.width, design.height);
+        }
+
         private Image Art(VisualElement parent, string presetId, float size)
         {
+            return Art(parent, presetId, null, null, null, size, true, 0, 0);
+        }
+
+        private Image Art(VisualElement parent, string presetId, string designId,
+            string artworkUrl, string thumbnailUrl, float size, bool thumbnail, int imageWidth, int imageHeight)
+        {
             Image art = new Image();
-            art.name = "Taggi " + presetId;
-            art.image = Resources.Load<Texture2D>("Tagtag/Presets/" + presetId);
+            art.name = string.IsNullOrEmpty(designId) ? "Taggi " + presetId : "Sticker artwork " + designId;
+            art.userData = new ArtworkRequest(presetId, designId, artworkUrl, thumbnailUrl, thumbnail);
+            art.image = StickerArtwork.Get(presetId, designId, artworkUrl, thumbnailUrl, thumbnail);
+            if (art.image == null && !string.IsNullOrEmpty(presetId))
+                art.image = Resources.Load<Texture2D>("Tagtag/Presets/" + presetId);
+            if (!string.IsNullOrEmpty(designId))
+            {
+                art.style.backgroundColor = art.image == null ? Soft : Color.clear;
+                art.tooltip = art.image == null ? "Sticker artwork not loaded" : "Sticker artwork";
+            }
             art.scaleMode = ScaleMode.ScaleToFit;
-            art.style.width = size;
-            art.style.height = size;
+            float width = size, height = size;
+            if (!string.IsNullOrEmpty(designId) && imageWidth > 0 && imageHeight > 0)
+            {
+                float aspect = (float)imageWidth / imageHeight;
+                if (aspect > 1f) height = size / aspect;
+                else width = size * aspect;
+            }
+            art.style.width = width;
+            art.style.height = height;
             art.style.alignSelf = Align.Center;
             parent.Add(art);
             return art;

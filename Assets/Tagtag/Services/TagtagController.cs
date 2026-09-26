@@ -7,7 +7,7 @@ using UnityEngine;
 
 namespace Tagtag.Services
 {
-    public sealed class TagtagController : ITagtagController
+    public sealed partial class TagtagController : ITagtagController
     {
         public AppState State { get; } = new AppState();
         public IArExperience Ar { get; }
@@ -44,7 +44,7 @@ namespace Tagtag.Services
         public TagtagController(ServiceConfiguration configuration, IArExperience ar, IMapExperience map, INativeIdentity identity,
             Func<CancellationToken, Task<LocationFix>> locateNearby = null,
             Func<LocationFix, Task<StickerSummary[]>> loadNearby = null,
-            DeviceLocation deviceLocation = null)
+            DeviceLocation deviceLocation = null, IStickerCreation stickerCreation = null)
         {
             this.configuration = configuration;
             this.identity = identity;
@@ -61,6 +61,7 @@ namespace Tagtag.Services
             State.servicesConfigured = configuration.Configured;
             State.user = session.Current;
             State.collection = cache.Read(State.user?.uid);
+            InitializeCreation(stickerCreation);
             RestorePublication();
             blockedAuthors = localBlocks.Read(State.user?.uid); ApplyBlocks();
             State.status = State.user == null ? "Your next little discovery is out there." : "Your sticker book is ready.";
@@ -78,6 +79,8 @@ namespace Tagtag.Services
             captureCancellation?.Cancel();
             CancelNearby();
             location.Dispose();
+            creation?.Cancel();
+            if (creationObject != null) StickerArtwork.Release(creationObject);
             Ar.Changed -= Notify; Ar.StickerTapped -= Collect; Map.StickerSelected -= SelectSticker;
             Ar.Exit(); Map.Hide();
         }
@@ -97,15 +100,16 @@ namespace Tagtag.Services
             {
                 location.Resume();
                 if (State.page == AppPage.Stick && !State.accountOpen &&
-                    (!string.IsNullOrEmpty(State.selectedPreset) || pendingDraft != null)) location.Prewarm();
+                    (!string.IsNullOrEmpty(State.selectedPreset) || !string.IsNullOrEmpty(State.selectedDesign) || pendingDraft != null)) location.Prewarm();
                 ResumeNearby();
             }
         }
         public void Navigate(AppPage page)
         {
-            if (State.busy && !synchronizing) return;
+            if (nativeCreationOpen || State.busy && !synchronizing) return;
             if (page != AppPage.Explore) CancelNearby();
             if (State.page == AppPage.Stick && page != AppPage.Stick) Ar.Exit();
+            State.creationOpen = false;
             if (page == AppPage.Home || State.page == AppPage.Stick && page != AppPage.Stick) location.Stop();
             Map.Hide(); State.page = page; State.error = ""; State.locationSettingsRequired = false;
             State.detail = null; State.accountOpen = false;
@@ -118,6 +122,7 @@ namespace Tagtag.Services
                     if (!suspended) location.Prewarm();
                 }
             }
+            if (page == AppPage.Stick && pendingDraft == null && !string.IsNullOrEmpty(State.selectedDesign)) RestoreSelectedArtwork();
             Notify();
             if (page == AppPage.Explore && State.nearby.Count == 0) RefreshNearby();
         }
@@ -128,7 +133,7 @@ namespace Tagtag.Services
             if (!open)
             {
                 if (State.page == AppPage.Stick && !suspended &&
-                    (!string.IsNullOrEmpty(State.selectedPreset) || pendingDraft != null)) location.Prewarm();
+                    (!string.IsNullOrEmpty(State.selectedPreset) || !string.IsNullOrEmpty(State.selectedDesign) || pendingDraft != null)) location.Prewarm();
                 ResumeNearby();
             }
         }
@@ -144,10 +149,12 @@ namespace Tagtag.Services
                 {
                     State.user = await session.SignIn(credential);
                     State.collection = cache.Read(State.user.uid);
+                    designs.ClaimGuest(State.user.uid); RestoreDesigns();
                     RestorePublication();
                     blockedAuthors = localBlocks.Read(State.user.uid); ApplyBlocks();
                     State.status = "You're signed in. Welcome to tagtag.";
                     await SyncAccount();
+                    if (State.hasPendingDesign) await SaveCreatedDesign();
                 });
             }, message => { State.busy = false; State.error = message; Notify(); });
         }
@@ -157,9 +164,10 @@ namespace Tagtag.Services
             CancelNearby();
             location.Stop();
             accountGeneration++; session.SignOut(); State.user = null; recovery = null;
+            RestoreDesigns(); State.creationOpen = false; State.selectedDesign = "";
             blockedAuthors.Clear(); State.collection.Clear(); State.authored.Clear(); State.detail = null; State.selected = null;
             Ar.CancelPlacement(); pendingDraft = null; State.hasPendingPublication = false;
-            State.draftNote = State.draftTeaser = State.draftPlace = State.selectedPreset = "";
+            State.draftNote = State.draftTeaser = State.draftPlace = State.selectedPreset = State.selectedDesign = "";
             State.status = "Signed out."; State.error = ""; State.locationSettingsRequired = false; Notify();
         }
         public void RefreshNearby() => RefreshNearby(false);
@@ -187,6 +195,7 @@ namespace Tagtag.Services
                 if (!CurrentNearby(request, generation)) return;
                 State.nearby = (items ?? Array.Empty<StickerSummary>()).ToList();
                 ApplyBlocks();
+                foreach (var item in State.nearby) if (!string.IsNullOrEmpty(item.designId)) StickerArtwork.Authorize(item.designId);
                 State.status = State.nearby.Count == 0 ? "No stickers nearby yet. Leave the first one." : "Little discoveries around you.";
             }
             catch (OperationCanceledException) { }
@@ -201,7 +210,7 @@ namespace Tagtag.Services
             finally
             {
                 bool identityChanged = !disposed && generation == accountGeneration && State.user != session.Current;
-                if (identityChanged) State.user = session.Current;
+                if (identityChanged) { State.user = session.Current; RestoreDesigns(); State.selectedDesign = ""; }
                 if (nearbyCancellation == request)
                 {
                     nearbyCancellation = null;
@@ -249,7 +258,12 @@ namespace Tagtag.Services
                 recovery = new RecoveryData { sticker = result.sticker, discoveryId = result.discoveryId, expiresAt = result.expiresAt,
                     snapshot = new SpatialSnapshot { worldMapBase64 = Convert.ToBase64String(worldMap), position = result.position,
                         rotation = result.rotation, widthMeters = result.widthMeters } };
-                Map.Hide(); State.page = AppPage.Stick; State.selectedPreset = ""; State.accountOpen = false;
+                if (!string.IsNullOrEmpty(result.sticker.designId))
+                {
+                    var artwork = await StickerArtwork.Load(result.sticker.designId, result.sticker.artworkUrl);
+                    if (artwork == null) throw new ApiFailure("Sticker artwork could not load. Try discovery again.");
+                }
+                Map.Hide(); State.page = AppPage.Stick; State.selectedDesign = ""; State.selectedPreset = ""; State.accountOpen = false;
                 Ar.Enter(); Ar.Recover(recovery);
                 State.status = "Look around slowly, then tap the sticker when it appears.";
             });
@@ -258,10 +272,13 @@ namespace Tagtag.Services
         {
             if (State.busy || !new[] { "taggi-1", "taggi-2", "taggi-3", "taggi-4" }.Contains(presetId)) return;
             if (State.selectedPreset == presetId && pendingDraft != null) return;
-            if (!SaveEditableDraft(presetId, State.draftPlace, State.draftTeaser, State.draftNote)) { Notify(); return; }
-            if (pendingDraft != null && !ClearPublication()) { Notify(); return; }
+            string previousDesign = State.selectedDesign; State.selectedDesign = "";
+            if (!SaveEditableDraft(presetId, State.draftPlace, State.draftTeaser, State.draftNote)) { State.selectedDesign = previousDesign; Notify(); return; }
+            if (pendingDraft != null && !ClearPublication()) { State.selectedDesign = previousDesign; Notify(); return; }
             recovery = null; State.selected = null; State.selectedPreset = presetId;
-            if (State.page == AppPage.Stick) location.Prewarm();
+            if (State.creationOpen || State.page != AppPage.Stick)
+            { State.creationOpen = false; State.accountOpen = false; Map.Hide(); State.page = AppPage.Stick; Ar.Enter(); }
+            location.Prewarm();
             Ar.SelectPreset(presetId); Notify();
         }
         public void SetDraft(string place, string teaser, string note)
@@ -316,7 +333,7 @@ namespace Tagtag.Services
                             if (captureCancellation == capture) captureCancellation = null;
                         }
                     }
-                    pendingDraft = new PlacementDraft { operationId = Guid.NewGuid().ToString("N"), presetId = State.selectedPreset,
+                    pendingDraft = new PlacementDraft { operationId = Guid.NewGuid().ToString("N"), presetId = State.selectedPreset, designId = State.selectedDesign,
                         place = State.draftPlace.Trim(), teaser = State.draftTeaser.Trim(), note = State.draftNote.Trim(), snapshot = snapshot };
                     State.hasPendingPublication = true;
                     publications.Save(State.user.uid, pendingDraft);
@@ -334,7 +351,7 @@ namespace Tagtag.Services
                 string prepareToken = await session.Token();
                 EnsurePublicationActive(operationGeneration, operationAccount);
                 var result = await api.Call<PrepareResult>("POST", "/v1/publications/prepare", new PrepareRequest {
-                    operationId = draft.operationId, presetId = draft.presetId, place = draft.place, teaser = draft.teaser, note = draft.note,
+                    operationId = draft.operationId, presetId = draft.presetId, designId = draft.designId, place = draft.place, teaser = draft.teaser, note = draft.note,
                     location = draft.location, position = draft.snapshot.position, rotation = draft.snapshot.rotation,
                     widthMeters = draft.snapshot.widthMeters, mapBytes = bytes.Length }, prepareToken);
                 EnsurePublicationActive(operationGeneration, operationAccount);
@@ -360,7 +377,7 @@ namespace Tagtag.Services
                 try { editablePublications.Remove(State.user.uid); }
                 catch { throw new ApiFailure("Published online. Local draft cleanup failed; retrying will not duplicate it."); }
                 if (!ClearPublication()) throw new ApiFailure("Published online. Local draft cleanup failed; retrying will not duplicate it.");
-                State.draftNote = State.draftTeaser = State.draftPlace = State.selectedPreset = "";
+                State.draftNote = State.draftTeaser = State.draftPlace = State.selectedPreset = State.selectedDesign = "";
                 location.Stop();
                 FinishPublicationStage(false);
                 Ar.CancelPlacement(); State.status = "Taggi is out there. Your sticker is published!";
@@ -373,7 +390,7 @@ namespace Tagtag.Services
             catch { State.error = "This device could not remove the saved draft."; Notify(); return; }
             if (!ClearPublication()) { Notify(); return; }
             location.Stop();
-            recovery = null; State.selectedPreset = ""; State.selected = null;
+            recovery = null; State.selectedPreset = State.selectedDesign = ""; State.selected = null;
             State.draftPlace = State.draftTeaser = State.draftNote = "";
             Ar.CancelPlacement(); Notify();
         }
@@ -418,7 +435,7 @@ namespace Tagtag.Services
         {
             State.nearby.RemoveAll(item => blockedAuthors.Contains(item.authorId));
             foreach (var item in State.collection)
-                if (blockedAuthors.Contains(item.authorId)) { item.unavailable = true; item.note = ""; }
+                if (blockedAuthors.Contains(item.authorId)) { item.unavailable = true; item.note = ""; if (!string.IsNullOrEmpty(item.designId)) StickerArtwork.Forget(item.designId); }
             if (State.selected != null && blockedAuthors.Contains(State.selected.authorId)) State.selected = null;
             if (State.detail != null && blockedAuthors.Contains(State.detail.authorId)) State.detail = null;
         }
@@ -434,11 +451,14 @@ namespace Tagtag.Services
             {
                 string uid = State.user.uid;
                 await api.Call<OkResult>("DELETE", "/v1/account", null, await session.Token());
+                foreach (var design in State.designs) StickerArtwork.Forget(design.id);
+                foreach (var sticker in State.collection.Cast<StickerSummary>().Concat(State.authored).Concat(State.nearby))
+                    if (!string.IsNullOrEmpty(sticker.designId)) StickerArtwork.Forget(sticker.designId);
                 session.SignOut(); accountGeneration++;
-                try { cache.Remove(uid); publications.Remove(uid); editablePublications.Remove(uid); localBlocks.Remove(uid); }
+                try { cache.Remove(uid); publications.Remove(uid); editablePublications.Remove(uid); localBlocks.Remove(uid); designs.Remove(uid); }
                 catch { /* Account access is revoked even when local file removal must wait. */ }
-                State.user = null; blockedAuthors.Clear(); State.collection.Clear(); State.authored.Clear(); State.nearby.Clear(); State.detail = null; State.selected = null;
-                pendingDraft = null; State.hasPendingPublication = false; recovery = null; Ar.CancelPlacement(); State.draftNote = State.draftTeaser = State.draftPlace = State.selectedPreset = "";
+                State.user = null; RestoreDesigns(); blockedAuthors.Clear(); State.collection.Clear(); State.authored.Clear(); State.nearby.Clear(); State.detail = null; State.selected = null;
+                pendingDraft = null; State.hasPendingPublication = false; recovery = null; Ar.CancelPlacement(); State.draftNote = State.draftTeaser = State.draftPlace = State.selectedPreset = State.selectedDesign = "";
                 State.status = "Your account has been deleted.";
             });
         }
@@ -447,10 +467,15 @@ namespace Tagtag.Services
             foreach (string authorId in blockedAuthors.ToArray())
                 await api.Call<OkResult>("POST", "/v1/blocks", new BlockRequest { authorId = authorId }, await session.Token());
             var collection = await api.Call<CollectionList>("GET", "/v1/collection", null, await session.Token());
-            State.collection = CollectionBook.Normalize(collection.items); ApplyBlocks(); SaveCollection();
+            State.collection = CollectionBook.Normalize(collection.items);
+            foreach (var item in State.collection) if (item.unavailable && !string.IsNullOrEmpty(item.designId)) StickerArtwork.Forget(item.designId);
+            ApplyBlocks(); SaveCollection();
             if (State.detail != null) State.detail = State.collection.FirstOrDefault(item => item.id == State.detail.id);
             var authored = await api.Call<SummaryList>("GET", "/v1/authored", null, await session.Token());
             State.authored = (authored.items ?? Array.Empty<StickerSummary>()).ToList();
+            await SyncDesigns();
+            foreach (var item in State.collection.Where(item => !item.unavailable).Cast<StickerSummary>().Concat(State.authored))
+                if (!string.IsNullOrEmpty(item.designId)) StickerArtwork.Authorize(item.designId);
         }
         public void Resume()
         {
@@ -464,12 +489,14 @@ namespace Tagtag.Services
             if (pendingDraft != null)
             {
                 State.selectedPreset = pendingDraft.presetId;
+                State.selectedDesign = pendingDraft.designId ?? "";
                 State.draftPlace = pendingDraft.place; State.draftTeaser = pendingDraft.teaser; State.draftNote = pendingDraft.note;
                 return;
             }
             var editable = editablePublications.Read(State.user?.uid);
             if (editable == null) return;
             State.selectedPreset = editable.presetId ?? "";
+            State.selectedDesign = editable.designId ?? "";
             State.draftPlace = editable.place ?? "";
             State.draftTeaser = editable.teaser ?? "";
             State.draftNote = editable.note ?? "";
@@ -480,7 +507,7 @@ namespace Tagtag.Services
             try
             {
                 editablePublications.Save(State.user.uid, new EditablePublicationDraft
-                { presetId = presetId ?? "", place = place ?? "", teaser = teaser ?? "", note = note ?? "" });
+                { presetId = presetId ?? "", designId = State.selectedDesign ?? "", place = place ?? "", teaser = teaser ?? "", note = note ?? "" });
                 return true;
             }
             catch
@@ -563,7 +590,11 @@ namespace Tagtag.Services
                 if (publicationStage != null) FinishPublicationStage(true);
                 if (!disposed)
                 {
-                    State.busy = false; State.user = session.Current; Notify();
+                    State.busy = false;
+                    if (State.user?.uid != session.Current?.uid)
+                    { State.user = session.Current; RestoreDesigns(); State.selectedDesign = ""; }
+                    else State.user = session.Current;
+                    Notify();
                     ResumeNearby();
                 }
             }

@@ -7,10 +7,16 @@ namespace Tagtag.UI
     public sealed class PaperDottedOutline : VisualElement
     {
         private readonly bool circular;
+        private readonly float cornerRadius;
+        private readonly float spacing;
 
-        public PaperDottedOutline(bool circular)
+        public PaperDottedOutline(bool circular) : this(circular, 0f, 5f) { }
+
+        public PaperDottedOutline(bool circular, float cornerRadius, float spacing = 5f)
         {
             this.circular = circular;
+            this.cornerRadius = cornerRadius;
+            this.spacing = Mathf.Max(3f, spacing);
             pickingMode = PickingMode.Ignore;
             style.position = Position.Absolute;
             style.left = style.right = style.top = style.bottom = 0f;
@@ -36,8 +42,9 @@ namespace Tagtag.UI
             Color ink = new Color32(32, 32, 30, 255);
             const float inset = 6f;
             float horizontal = width - inset * 2f, vertical = height - inset * 2f;
-            float perimeter = circular ? 2f * Mathf.PI * (radius - inset) : 2f * (horizontal + vertical);
-            int count = Mathf.Max(4, Mathf.RoundToInt(perimeter / 5f));
+            float corner = Mathf.Clamp(cornerRadius - inset, 0f, Mathf.Min(horizontal, vertical) * .5f);
+            float perimeter = circular ? 2f * Mathf.PI * (radius - inset) : 2f * (horizontal + vertical - 4f * corner) + 2f * Mathf.PI * corner;
+            int count = Mathf.Max(4, Mathf.RoundToInt(perimeter / spacing));
             for (int index = 0; index < count; index++)
             {
                 float distance = perimeter * index / count;
@@ -47,12 +54,55 @@ namespace Tagtag.UI
                     float angle = distance / (radius - inset);
                     point = center + new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) * (radius - inset);
                 }
-                else if (distance < horizontal) point = new Vector2(inset + distance, inset);
-                else if (distance < horizontal + vertical) point = new Vector2(width - inset, inset + distance - horizontal);
-                else if (distance < 2f * horizontal + vertical) point = new Vector2(width - inset - (distance - horizontal - vertical), height - inset);
-                else point = new Vector2(inset, height - inset - (distance - 2f * horizontal - vertical));
+                else point = RoundedPoint(distance, horizontal, vertical, corner) + new Vector2(inset, inset);
                 Dot(painter, point, .85f, ink);
             }
+        }
+
+        // Walk straight edges and quarter-circle corners at uniform arc-length spacing.
+        private static Vector2 RoundedPoint(float distance, float width, float height, float radius)
+        {
+            float arc = Mathf.PI * radius * .5f;
+            for (int side = 0; side < 4; side++)
+            {
+                float edge = (side % 2 == 0 ? width : height) - 2f * radius;
+                if (distance <= edge)
+                {
+                    switch (side)
+                    {
+                        case 0: return new Vector2(radius + distance, 0f);
+                        case 1: return new Vector2(width, radius + distance);
+                        case 2: return new Vector2(width - radius - distance, height);
+                        default: return new Vector2(0f, height - radius - distance);
+                    }
+                }
+                distance -= edge;
+                if (radius > 0f && distance <= arc)
+                {
+                    Vector2 center = new Vector2(side == 0 || side == 1 ? width - radius : radius,
+                        side == 1 || side == 2 ? height - radius : radius);
+                    float angle = (side - 1) * Mathf.PI * .5f + distance / radius;
+                    return center + new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) * radius;
+                }
+                distance -= arc;
+            }
+            return new Vector2(radius, 0f);
+        }
+
+        public static void Decorate(VisualElement element, bool capsule = false, bool container = false)
+        {
+            element.AddToClassList("paper-die-cut");
+            if (capsule)
+            {
+                element.RegisterCallback<GeometryChangedEvent>(_ =>
+                {
+                    float radius = Mathf.Min(element.layout.width, element.layout.height) * .5f;
+                    if (float.IsNaN(radius) || float.IsInfinity(radius)) return;
+                    element.style.borderTopLeftRadius = element.style.borderTopRightRadius = radius;
+                    element.style.borderBottomLeftRadius = element.style.borderBottomRightRadius = radius;
+                });
+            }
+            element.Insert(0, new PaperDottedOutline(false, capsule ? 1000f : 14f, container ? 7f : 5f));
         }
 
         private static void Dot(Painter2D painter, Vector2 center, float radius, Color color)

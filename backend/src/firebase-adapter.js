@@ -2,6 +2,7 @@ import { initializeApp, applicationDefault } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
 import { getFirestore } from 'firebase-admin/firestore';
 import { getStorage } from 'firebase-admin/storage';
+import { createHash } from 'node:crypto';
 
 export function createFirebaseAdapter({ projectId = process.env.GOOGLE_CLOUD_PROJECT || process.env.GCLOUD_PROJECT,
     bucketName = process.env.TAGTAG_MAP_BUCKET } = {}) {
@@ -14,6 +15,9 @@ export function createFirebaseAdapter({ projectId = process.env.GOOGLE_CLOUD_PRO
     const ref = (name, id) => db.collection(name).doc(id);
     const pending = id => bucket.file(`pending/${id}`);
     const final = id => bucket.file(`maps/${id}`);
+    const pendingDesign = id => bucket.file(`pending-designs/${id}`);
+    const designArtwork = id => bucket.file(`designs/${id}/artwork.png`);
+    const designThumbnail = id => bucket.file(`designs/${id}/thumbnail.png`);
     const data = snapshot => snapshot.exists ? snapshot.data() : null;
 
     return {
@@ -91,6 +95,54 @@ export function createFirebaseAdapter({ projectId = process.env.GOOGLE_CLOUD_PRO
             await Promise.all([pending(id).delete({ ignoreNotFound: true }), final(id).delete({ ignoreNotFound: true })]);
         },
         async cleanupPending(id) { await pending(id).delete({ ignoreNotFound: true }); },
+        async signDesignUpload(id) {
+            const headers = { 'content-type': 'image/png', 'x-goog-content-length-range': '1,5242880' };
+            const [uploadUrl] = await pendingDesign(id).getSignedUrl({ version: 'v4', action: 'write', expires: Date.now() + 5 * 60 * 1000,
+                contentType: headers['content-type'], extensionHeaders: { 'x-goog-content-length-range': headers['x-goog-content-length-range'] } });
+            return { uploadUrl, uploadHeaders: headers };
+        },
+        async designMetadata(id) {
+            try {
+                const [metadata] = await pendingDesign(id).getMetadata();
+                return { size: Number(metadata.size), contentType: metadata.contentType, generation: metadata.generation };
+            } catch (error) {
+                if (error.code === 404) return null;
+                throw error;
+            }
+        },
+        async readDesignUpload(id, metadata) {
+            const [bytes] = await bucket.file(`pending-designs/${id}`, { generation: metadata.generation }).download();
+            return bytes;
+        },
+        async saveDesignAssets(id, artwork, thumbnail) {
+            const saveImmutable = async (file, bytes) => {
+                try {
+                    await file.save(bytes, { resumable: false, contentType: 'image/png', preconditionOpts: { ifGenerationMatch: 0 } });
+                } catch (error) {
+                    if (error.code !== 412) throw error;
+                    const [existing] = await file.download();
+                    const hash = value => createHash('sha256').update(value).digest('hex');
+                    if (hash(existing) !== hash(bytes)) throw Object.assign(new Error('Design asset already differs'), { code: 'asset_conflict' });
+                }
+            };
+            await saveImmutable(designArtwork(id), artwork);
+            await saveImmutable(designThumbnail(id), thumbnail);
+        },
+        async signDesignRead(id, type) {
+            const file = type === 'artwork' ? designArtwork(id) : type === 'thumbnail' ? designThumbnail(id) : null;
+            if (!file) throw new Error('Invalid design asset type');
+            const [url] = await file.getSignedUrl({ version: 'v4', action: 'read', expires: Date.now() + 5 * 60 * 1000,
+                responseType: 'image/png', responseDisposition: 'inline' });
+            return url;
+        },
+        async deleteDesignAssets(id) {
+            await Promise.all([pendingDesign(id), designArtwork(id), designThumbnail(id)].map(file => file.delete({ ignoreNotFound: true })));
+        },
+        async cleanupPendingDesign(id) { await pendingDesign(id).delete({ ignoreNotFound: true }); },
+        async listDesignAssetIds() {
+            const [files] = await bucket.getFiles({ prefix: 'designs/' });
+            return [...new Set(files.map(file => /^designs\/([a-f0-9]{64})\/(?:artwork|thumbnail)\.png$/.exec(file.name)?.[1]).filter(Boolean))];
+        },
         db, bucket
     };
 }

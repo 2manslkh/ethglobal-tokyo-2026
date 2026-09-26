@@ -197,3 +197,19 @@ The publishing changes and the navigation/camera branch are integrated at `be3cf
 
 - Unsigned Xcode compilation and automatic development signing both passed (`/private/tmp/tagtag-dogfood-xcode-unsigned.log`, `/private/tmp/tagtag-dogfood-xcode-signed.log`). The linked UnityFramework contains `TagtagLocationAuthorizationStatus` and its IL2CPP caller. The signed app is `Build/DerivedData/Build/Products/Debug-iphoneos/tagtag.app` in the isolated publishing worktree, bundle `com.kenk.tagtag`, team `5Y6QUA9GA6`.
 - After the owner connected Dawg (iPhone 15 Pro Max, iOS 26.6.1), USB installation with `ios-deploy` completed successfully (`InstallComplete`, `/private/tmp/tagtag-dogfood-install.log`). The existing app was updated without uninstalling. The owner was asked to enable Precise Location and report publication duration or the stalled progress stage. Publishing latency, Precise Location return, interruption/retry, native status-bar appearance and AR coordinate alignment remain pending hardware verification.
+
+## Custom sticker creation — 2026-09-26
+
+Implementation is isolated on `feat/sticker-creation`. Physical verification remains pending; no live Apple Intelligence, camera/selfie, two-phone custom publication, or production storage precondition success is claimed.
+
+Device acceptance:
+
+1. On an Apple Intelligence-capable phone, generate artwork, cancel and reopen, preview, save, and select it from My Stickers. On an unsupported phone, confirm unavailable guidance and working image import/Polaroid alternatives.
+2. Import JPEG/HEIC and transparent PNG from Photos and Files. Verify full-image aspect ratio, square crop, cutout/no-subject recovery, white border, and final preview. Confirm unsupported cutout keeps full-image creation available.
+3. Create front/rear-camera and library Polaroids. Confirm upright orientation, selfie mirroring, 40-character caption, frame, Edit from preview, and cancellation. Deny camera permission and confirm library imports remain usable.
+4. Save while signed out, sign in, interrupt upload, restart, and retry. Confirm one immutable design appears in the correct account, is restored on another iPhone, and cached art works offline.
+5. Place the same design twice; pinch/rotate it without stretching. Publish on phone A, recover and collect on phone B, restart, and verify matching pixels. A collector must not be able to place the creator's design.
+6. Remove the design from My Stickers and confirm published copies survive. Block/report/remove content and confirm subsequent sync hides its artwork. Delete an account and verify backend asset cleanup.
+7. Check VoiceOver, larger text, Reduce Motion, native sheet cancellation, and camera restoration with an existing placement/note.
+
+Verification: Unity Edit Mode **134/134**, graphics Play Mode **10/10**, backend **38 passed / 1 emulator-only skipped**, Firebase emulator integration **1/1**, and final unsigned iOS Xcode build passed. Captured UI fixtures are in `docs/verification/sticker-creation/`; they use synthetic artwork. The Firebase Storage emulator does not prove GCS conditional-write enforcement; see backend README before live deployment.

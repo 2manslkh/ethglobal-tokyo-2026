@@ -283,6 +283,67 @@ namespace Tagtag.Services.Tests
             }
         }
 
+        [Test]
+        public void CustomDesignSelectionRetainsCreatorOwnershipAndRestoresDraft()
+        {
+            var camera = new Camera();
+            var identity = new Identity();
+            var controller = new TagtagController(new ServiceConfiguration(), camera, new Map(), identity,
+                deviceLocation: new DeviceLocation(new TrackingLocationRuntime()));
+            string id = "design-" + Guid.NewGuid().ToString("N");
+            var texture = new Texture2D(2, 4);
+            try
+            {
+                StickerArtwork.Store(id, texture.EncodeToPNG());
+                var design = new StickerDesign { id = id, ownerId = "somebody-else", width = 2, height = 4 };
+                controller.State.designs.Add(design);
+                controller.SelectDesign(id);
+                Assert.That(controller.State.selectedDesign, Is.Empty, "Collected artwork does not grant publication rights.");
+                design.ownerId = identity.UserId;
+                controller.OpenCreation();
+                controller.SelectDesign(id);
+                Assert.That(controller.State.selectedDesign, Is.EqualTo(id));
+                Assert.That(controller.State.selectedPreset, Is.Empty);
+                Assert.That(controller.State.page, Is.EqualTo(AppPage.Stick));
+                Assert.That(controller.State.creationOpen, Is.False);
+                Assert.That(camera.SelectedDesignId, Is.EqualTo(id));
+                controller.SetDraft("Cafe", "By the window", "A quiet afternoon");
+                var saved = new EditablePublication(System.IO.Path.Combine(Application.persistentDataPath, "editable-publications")).Read(identity.UserId);
+                Assert.That(saved.designId, Is.EqualTo(id));
+                controller.SelectPreset("taggi-1");
+                Assert.That(controller.State.selectedDesign, Is.Empty);
+                Assert.That(new EditablePublication(System.IO.Path.Combine(Application.persistentDataPath, "editable-publications")).Read(identity.UserId).designId, Is.Empty);
+            }
+            finally { controller.Dispose(); StickerArtwork.Forget(id); UnityEngine.Object.DestroyImmediate(texture); }
+        }
+
+        [Test]
+        public void NativeCreationCancellationRestoresCameraAndKeepsExistingNote()
+        {
+            var camera = new Camera();
+            var creator = new CancellingCreator();
+            var controller = new TagtagController(new ServiceConfiguration(), camera, new Map(), new Identity(),
+                deviceLocation: new DeviceLocation(new TrackingLocationRuntime()), stickerCreation: creator);
+            try
+            {
+                controller.SelectPreset("taggi-1");
+                controller.SetDraft("Cafe", "Here", "Keep this note");
+                controller.CreateSticker("import");
+                Assert.That(camera.CreationSuspensions, Is.EqualTo(2));
+                Assert.That(camera.CreationSuspended, Is.False);
+                Assert.That(controller.State.draftNote, Is.EqualTo("Keep this note"));
+                Assert.That(controller.State.selectedPreset, Is.EqualTo("taggi-1"));
+                Assert.That(controller.State.hasPendingDesign, Is.False);
+            }
+            finally { controller.Dispose(); }
+        }
+        private sealed class CancellingCreator : IStickerCreation
+        {
+            public int Capabilities => 1;
+            public void Open(string source, Action<CreatedStickerImage> completed) => completed(new CreatedStickerImage { status = "cancelled" });
+            public void Cancel() { }
+        }
+
         private static TagtagController Controller(ILocationRuntime runtime) =>
             new TagtagController(new ServiceConfiguration(), new Camera(), new Map(), new Identity(),
                 deviceLocation: new DeviceLocation(runtime));
@@ -345,8 +406,13 @@ namespace Tagtag.Services.Tests
             }
         }
 
-        private sealed class Camera : IArExperience
+        private sealed class Camera : IArExperience, ICustomArtworkAr
         {
+            public string SelectedDesignId;
+            public bool CreationSuspended;
+            public int CreationSuspensions;
+            public void SelectArtwork(StickerDesign design, Texture2D texture) { SelectedDesignId = design.id; }
+            public void SuspendForCreation(bool value) { CreationSuspended = value; CreationSuspensions++; }
             public int CaptureCount;
             public bool HoldCapture;
             public bool SucceedCapture;

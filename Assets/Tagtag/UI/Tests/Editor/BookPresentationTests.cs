@@ -91,6 +91,9 @@ namespace Tagtag.UI.Tests
             replacement.unavailable = true;
             replacement.note = "";
             Assert.IsTrue(cache.NeedsRefresh(CollectionPresentation.DetailKey(replacement, false)));
+            replacement.designId = "custom-art";
+            replacement.artworkUrl = "https://example.test/artwork";
+            Assert.IsTrue(cache.NeedsRefresh(CollectionPresentation.DetailKey(replacement, false)));
             Assert.IsTrue(cache.NeedsRefresh(CollectionPresentation.DetailKey(null, false)));
         }
 
