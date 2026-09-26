@@ -46,6 +46,11 @@ namespace Tagtag.UI
         {
             bool visible = ShouldShow(state, sheetOpen);
             if (!visible) map?.Hide();
+            if (state == null || state.page != AppPage.Explore)
+            {
+                targetedMap = null;
+                targetedId = null;
+            }
             return visible;
         }
     }

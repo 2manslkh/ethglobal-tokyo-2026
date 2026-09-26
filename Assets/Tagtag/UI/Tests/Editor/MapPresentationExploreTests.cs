@@ -33,6 +33,28 @@ namespace Tagtag.UI.Tests
             Assert.That(MapPresentation.Pins(state).Count, Is.EqualTo(2));
         }
 
+        [Test]
+        public void ReopeningSamePlacedLocationAfterLeavingExploreRecentersAgain()
+        {
+            var target = new StickerSummary { id = "repeat", latitude = 35.1, longitude = 139.2 };
+            var state = new AppState { page = AppPage.Explore, mapSelection = target };
+            var map = new RecordingMap();
+
+            MapPresentation.SyncTarget(state, map);
+            MapPresentation.SyncTarget(state, map);
+            Assert.That(map.Centers, Is.EqualTo(1), "Nearby refresh must preserve the user's map pan.");
+
+            MapPresentation.SyncVisibility(state, true, map);
+            MapPresentation.SyncTarget(state, map);
+            Assert.That(map.Centers, Is.EqualTo(1), "Closing a sheet must preserve the map region.");
+
+            state.page = AppPage.Home;
+            MapPresentation.SyncVisibility(state, false, map);
+            state.page = AppPage.Explore;
+            MapPresentation.SyncTarget(state, map);
+            Assert.That(map.Centers, Is.EqualTo(2), "Opening the same placed row again is an explicit target request.");
+        }
+
         private sealed class RecordingMap : IMapExperience
         {
             public int Centers;
