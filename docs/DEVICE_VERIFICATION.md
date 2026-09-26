@@ -131,6 +131,12 @@ The repaired publishing snapshot passed **120/120 Edit Mode** (2026-09-26 00:09:
 
 Physical follow-up remains pending: with Precise Location off, check immediate Settings guidance and draft retention; enable precision, return, retry publishing, and record the slowest visible stage. Check a stationary note-writing interval, interruption during map capture/upload, no duplicate retry, stable button labels, and the emphasized collected count. No device publication success is claimed for this update yet.
 
+## Publishing location and latency follow-up — 2026-09-26
+
+Publication now starts GPS acquisition alongside AR map capture, accepts a fresh publishing fix up to 100 m, and reuses it at finalization while fresh. Nearby/recovery/collection still require 50 m. The backend was deployed to Cloud Run revision `tagtag-api-00002-4kt`; `/health` returned 200, and live nearby validation continued to reject a 75 m fix while accepting an 8 m fix.
+
+On Dawg. (iPhone 15 Pro Max, iOS 26.6.1 / 23G83), two physical attempts on the first updated build captured AR map stage at 150 ms and location-prepare failures at 19,870 ms and 20,004 ms. The location timeout reported FullAccuracy authorization, a cached 2,000 m accuracy fix, and age 72 seconds. This confirmed the location stage, rather than map capture, was the remaining wait. A follow-up fix restarts an already-running prewarmed location session when its cached timestamp is stale. Its regression test failed before that change and the full Edit Mode suite passed 124/124 afterward. The signed app containing this refresh fix was reinstalled; no publish-stage log from a subsequent retry has been captured yet, so physical publish success and latency improvement remain unverified.
+
 ## Navigation and camera simplification — 2026-09-26
 
 The global brand/sign-in header and reserved space are removed. Home's profile
