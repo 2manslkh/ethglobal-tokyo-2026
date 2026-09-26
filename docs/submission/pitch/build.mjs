@@ -27,7 +27,7 @@ const A='Assets/Resources/Tagtag/';
 let s=slide('tagtag');
 text(s,'tagtag',86,100,620,208,158,true);
 text(s,'An AR collecting game\nfor communities',92,342,660,115,42);
-text(s,'Find your places. Collect your moments.',94,530,670,58,35,true);
+text(s,'Find new places. Collect your moments',94,530,670,58,35,true);
 await image(s,A+'Presets/taggi-1.png',780,126,410,460);
 text(s,'ETHGlobal Tokyo 2026',94,650,450,30,20,false,C.muted);folio(s,1);
 
