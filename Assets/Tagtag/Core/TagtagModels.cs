@@ -122,7 +122,7 @@ namespace Tagtag
         public string placementsError = "", placementsNextCursor = "";
         public CollectedSticker detail;
         public string status = "", error = "", designError = "", selectedPreset = "", draftPlace = "", draftTeaser = "", draftNote = "";
-        public bool busy, nearbyLoading, accountOpen, servicesConfigured, hasPendingPublication;
+        public bool busy, discoveryLoading, nearbyLoading, accountOpen, servicesConfigured, hasPendingPublication;
         public bool locationSettingsRequired;
         public bool nftEnabled;
         public string walletAddress = "", walletStatus = "";

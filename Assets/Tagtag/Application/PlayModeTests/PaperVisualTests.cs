@@ -863,6 +863,35 @@ namespace Tagtag.Tests
         }
 
         [UnityTest]
+        public IEnumerator CameraCloseRemainsAvailableWhileDiscoveryLoads()
+        {
+            oldScale = PlayerPrefs.GetFloat("tagtag.textScale", 1f);
+            oldMotion = PlayerPrefs.GetInt("tagtag.reducedMotion", 0);
+            PlayerPrefs.SetInt("tagtag.reducedMotion", 1);
+            controller = new ReviewController();
+            controller.State.user = new UserSession { uid = "review" };
+            controller.Navigate(AppPage.Explore);
+            controller.State.selected = Sticker(0);
+            host = new GameObject("Discovery close review");
+            host.AddComponent<TagtagAppView>().Initialize(controller);
+            document = host.GetComponent<UIDocument>();
+            yield return null; yield return null;
+            controller.StartDiscovery();
+            controller.State.busy = true;
+            controller.Notify();
+            yield return null; yield return null;
+            var close = document.rootVisualElement.Q<Button>("STICK Close");
+            Assert.That(close.enabledInHierarchy, Is.False, "Other foreground actions keep their existing protection.");
+            controller.State.discoveryLoading = true;
+            controller.Notify();
+            yield return null; yield return null;
+            Assert.That(close.enabledInHierarchy, Is.True, "X must be available immediately during discovery loading.");
+            Submit("STICK Close");
+            yield return null; yield return null;
+            Assert.That(controller.State.page, Is.EqualTo(AppPage.Explore));
+        }
+
+        [UnityTest]
         public IEnumerator LoginSupportsRetryCompactTextAndReducedMotion()
         {
             oldScale = PlayerPrefs.GetFloat("tagtag.textScale", 1f);

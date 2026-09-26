@@ -36,6 +36,8 @@ namespace Tagtag.Services
         private const string NearbyLocationMessage = "Finding your location. You can keep exploring the app.";
         private const string NearbyFetchingMessage = "Loading nearby stickers. You can keep exploring the app.";
         private RecoveryData recovery;
+        private CancellationTokenSource discoveryCancellation;
+        private readonly Func<string, LocationFix, CancellationToken, Task<RecoveryData>> loadRecovery;
         private PlacementDraft pendingDraft;
         private int accountGeneration;
         private int publicationGeneration;
@@ -63,7 +65,8 @@ namespace Tagtag.Services
             Func<string, Task<string>> transferStatus = null,
             Func<string, Task<PlacementPage>> loadPlacements = null,
             ILocationConfirmation locationConfirmation = null,
-            Func<string, Task<PublicationLocationResult>> loadPublicationLocation = null)
+            Func<string, Task<PublicationLocationResult>> loadPublicationLocation = null,
+            Func<string, LocationFix, CancellationToken, Task<RecoveryData>> loadRecovery = null)
         {
             this.locationConfirmation = locationConfirmation;
             this.configuration = configuration;
@@ -72,6 +75,7 @@ namespace Tagtag.Services
             Ar = ar; Map = map;
             api = new TagtagApi(configuration);
             session = new FirebaseSession(configuration, identity);
+            this.loadRecovery = loadRecovery ?? LoadRecovery;
             this.loadPublicationLocation = loadPublicationLocation ?? (async operationId =>
                 await api.Call<PublicationLocationResult>("GET", "/v1/publications/operations/" + Uri.EscapeDataString(operationId),
                     null, await session.Token()));
@@ -120,6 +124,7 @@ namespace Tagtag.Services
         {
             if (disposed) return;
             disposed = true; accountGeneration++; publicationGeneration++;
+            CancelDiscovery();
             lifetimeCancellation.Cancel();
             captureCancellation?.Cancel();
             if (wallet != null) { wallet.Changed -= WalletChanged; _ = wallet.Clear(); }
@@ -165,6 +170,7 @@ namespace Tagtag.Services
                     State.hasPendingDesign = State.hasPendingPublication = false;
                     pendingDraft = null;
                     recovery = null;
+                    CancelDiscovery();
                     CancelNearby();
                     location.Stop();
                     creation?.Cancel();
@@ -181,6 +187,8 @@ namespace Tagtag.Services
             if (suspended)
             {
                 publicationGeneration++;
+                CancelDiscovery();
+                Notify();
                 CancelNearby(true);
                 captureCancellation?.Cancel();
                 location.Suspend();
@@ -197,6 +205,7 @@ namespace Tagtag.Services
         public void Navigate(AppPage page)
         {
             if (!RequireAccount()) return;
+            if (State.page == AppPage.Stick && page != AppPage.Stick) CancelDiscovery();
             if (nativeCreationOpen || State.busy && !synchronizing) return;
             if (page != AppPage.Explore) CancelNearby();
             if (State.page == AppPage.Stick && page != AppPage.Stick) Ar.Exit();
@@ -380,35 +389,96 @@ namespace Tagtag.Services
                 (State.mapSelection?.id == id ? State.mapSelection : null);
             State.error = ""; Notify();
         }
-        public void StartDiscovery()
+        public async void StartDiscovery()
         {
-            if (!RequireAccount() || State.selected == null) return;
+            if (!RequireAccount() || State.selected == null || State.busy || disposed || suspended) return;
             string id = State.selected.id;
-            Run(async () =>
+            CancelNearby();
+            var request = CancellationTokenSource.CreateLinkedTokenSource(lifetimeCancellation.Token);
+            discoveryCancellation = request;
+            int generation = accountGeneration;
+            State.busy = State.discoveryLoading = true;
+            State.error = ""; State.locationSettingsRequired = false;
+            try
             {
-                // Camera permission and live imagery must not wait for GPS or map downloads.
+                // Camera startup and Close must not wait for GPS or recovery downloads.
                 recovery = null;
                 Map.Hide(); State.page = AppPage.Stick; State.selectedDesign = ""; State.selectedPreset = ""; State.accountOpen = false;
                 Ar.CancelPlacement();
                 State.status = "Checking your location to find this sticker…";
                 Ar.Enter();
                 Notify();
-                State.location = await location.Current();
+                var fix = await location.Current(request.Token);
+                if (!CurrentDiscovery(request, generation)) return;
+                State.location = fix;
                 State.status = "Loading this sticker’s saved spot…";
                 Notify();
-                var result = await api.Call<RecoverResult>("POST", Path(id) + "/recover", new LocationRequest { location = State.location }, await session.Token());
-                byte[] worldMap = await TagtagApi.Download(result.mapUrl);
-                recovery = new RecoveryData { sticker = result.sticker, discoveryId = result.discoveryId, expiresAt = result.expiresAt,
-                    snapshot = new SpatialSnapshot { worldMapBase64 = Convert.ToBase64String(worldMap), position = result.position,
-                        rotation = result.rotation, widthMeters = result.widthMeters } };
-                if (!string.IsNullOrEmpty(result.sticker.designId))
-                {
-                    var artwork = await StickerArtwork.Load(result.sticker.designId, result.sticker.artworkUrl);
-                    if (artwork == null) throw new ApiFailure("Sticker artwork could not load. Try discovery again.");
-                }
+                var loaded = await loadRecovery(id, fix, request.Token);
+                if (!CurrentDiscovery(request, generation)) return;
+                recovery = loaded;
                 Ar.Recover(recovery);
                 State.status = "Look around slowly, then tap the sticker when it appears.";
-            });
+            }
+            catch (OperationCanceledException) when (request.IsCancellationRequested) { }
+            catch (Exception error)
+            {
+                if (CurrentDiscovery(request, generation))
+                {
+                    State.error = error is ApiFailure ? error.Message : "Sticker discovery could not load. Please try again.";
+                    State.locationSettingsRequired = error is ApiFailure failure && failure.LocationSettingsRequired;
+                    State.status = "Retry AR search when you're ready.";
+                }
+            }
+            finally
+            {
+                // A cancelled request must not unlock or overwrite a newer operation.
+                if (discoveryCancellation == request)
+                {
+                    discoveryCancellation = null;
+                    State.busy = State.discoveryLoading = false;
+                    if (!disposed)
+                    {
+                        State.user = session.Current;
+                        if (State.user == null) ClearWallet();
+                        Notify();
+                    }
+                }
+                request.Dispose();
+            }
+        }
+
+        private bool CurrentDiscovery(CancellationTokenSource request, int generation) =>
+            !disposed && !suspended && discoveryCancellation == request && !request.IsCancellationRequested &&
+            generation == accountGeneration && State.page == AppPage.Stick;
+
+        private void CancelDiscovery()
+        {
+            var request = discoveryCancellation;
+            if (request == null) return;
+            discoveryCancellation = null;
+            State.busy = State.discoveryLoading = false;
+            State.status = "";
+            recovery = null;
+            request.Cancel();
+        }
+
+        private async Task<RecoveryData> LoadRecovery(string id, LocationFix fix, CancellationToken cancellation)
+        {
+            string token = await session.Token();
+            cancellation.ThrowIfCancellationRequested();
+            var result = await api.Call<RecoverResult>("POST", Path(id) + "/recover", new LocationRequest { location = fix }, token);
+            cancellation.ThrowIfCancellationRequested();
+            byte[] worldMap = await TagtagApi.Download(result.mapUrl);
+            cancellation.ThrowIfCancellationRequested();
+            if (!string.IsNullOrEmpty(result.sticker.designId))
+            {
+                var artwork = await StickerArtwork.Load(result.sticker.designId, result.sticker.artworkUrl);
+                cancellation.ThrowIfCancellationRequested();
+                if (artwork == null) throw new ApiFailure("Sticker artwork could not load. Try discovery again.");
+            }
+            return new RecoveryData { sticker = result.sticker, discoveryId = result.discoveryId, expiresAt = result.expiresAt,
+                snapshot = new SpatialSnapshot { worldMapBase64 = Convert.ToBase64String(worldMap), position = result.position,
+                    rotation = result.rotation, widthMeters = result.widthMeters } };
         }
         public void SelectPreset(string presetId)
         {

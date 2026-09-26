@@ -447,7 +447,7 @@ namespace Tagtag.UI
             stickCancelButton.style.display = selected ? DisplayStyle.Flex : DisplayStyle.None;
             SetDisabled(stickCancelButton, state.busy || (ar?.PlacementBusy ?? false));
             SetDisabled(stickInventoryButton, state.busy || (ar?.PlacementBusy ?? false));
-            SetDisabled(stickCloseButton, state.busy);
+            SetDisabled(stickCloseButton, state.busy && !state.discoveryLoading);
             UpdateCameraInteraction();
         }
 

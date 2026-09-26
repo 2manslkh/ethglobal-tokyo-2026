@@ -362,6 +362,72 @@ namespace Tagtag.Services.Tests
         }
 
         [Test]
+        public async Task ClosingDiscoveryDuringLocationWaitLeavesCameraAndIgnoresLateFailure()
+        {
+            controller.Dispose();
+            var delay = new TaskCompletionSource<bool>();
+            var runtime = new BrowsingLocationRuntime { Accuracy = 500, PendingDelay = delay.Task };
+            controller = new TagtagController(new ServiceConfiguration(), new Camera(), new Map(),
+                new Identity { StoredSession = ValidSession }, deviceLocation: new DeviceLocation(runtime));
+            controller.State.page = AppPage.Explore;
+            controller.State.selected = new StickerSummary { id = "find-me" };
+            controller.StartDiscovery();
+            try
+            {
+                controller.Navigate(AppPage.Home);
+                Assert.That(controller.State.page, Is.EqualTo(AppPage.Home), "Close must leave AR without waiting for GPS.");
+                Assert.That(controller.State.busy, Is.False);
+            }
+            finally { delay.TrySetException(new ApiFailure("Late GPS failure")); }
+            await Task.Yield();
+            Assert.That(controller.State.page, Is.EqualTo(AppPage.Home));
+            Assert.That(controller.State.error, Is.Empty, "A cancelled search must not show a late error.");
+        }
+
+        [TestCase(false)]
+        [TestCase(true)]
+        public async Task CancelledRecoveryCannotOverwriteOrUnlockANewerSearch(bool lateFailure)
+        {
+            controller.Dispose();
+            var oldResponse = new TaskCompletionSource<RecoveryData>();
+            var newResponse = new TaskCompletionSource<RecoveryData>();
+            CancellationToken oldToken = default;
+            var camera = new Camera();
+            controller = new TagtagController(new ServiceConfiguration(), camera, new Map(),
+                new Identity { StoredSession = ValidSession },
+                locateNearby: _ => Task.FromResult(new LocationFix { accuracyMeters = 5 }),
+                loadNearby: _ => Task.FromResult(Array.Empty<StickerSummary>()),
+                deviceLocation: new DeviceLocation(new BrowsingLocationRuntime { Accuracy = 5 }),
+                loadRecovery: (id, fix, token) =>
+                {
+                    if (id == "old") { oldToken = token; return oldResponse.Task; }
+                    return newResponse.Task;
+                });
+            controller.State.page = AppPage.Explore;
+            controller.State.selected = new StickerSummary { id = "old" };
+            controller.StartDiscovery();
+            Assert.That(controller.State.discoveryLoading, Is.True);
+            controller.Navigate(AppPage.Explore);
+            Assert.That(controller.State.page, Is.EqualTo(AppPage.Explore));
+            Assert.That(oldToken.IsCancellationRequested, Is.True);
+            Assert.That(controller.State.busy, Is.False);
+            controller.State.selected = new StickerSummary { id = "new" };
+            controller.StartDiscovery();
+            if (lateFailure) oldResponse.SetException(new ApiFailure("Old download failed"));
+            else oldResponse.SetResult(new RecoveryData { sticker = new StickerSummary { id = "old" } });
+            await Task.Yield();
+            Assert.That(controller.State.busy, Is.True, "An old completion must not unlock the new search.");
+            Assert.That(controller.State.discoveryLoading, Is.True);
+            Assert.That(controller.State.error, Is.Empty);
+            Assert.That(camera.LastRecovery, Is.Null, "Cancelled results must not reach AR.");
+            newResponse.SetResult(new RecoveryData { sticker = new StickerSummary { id = "new" } });
+            await Task.Yield();
+            Assert.That(controller.State.busy, Is.False);
+            Assert.That(controller.State.discoveryLoading, Is.False);
+            Assert.That(camera.LastRecovery.sticker.id, Is.EqualTo("new"));
+        }
+
+        [Test]
         public void BrowsingStillRejectsStaleLocation()
         {
             controller.Dispose();
@@ -424,7 +490,8 @@ namespace Tagtag.Services.Tests
             public void Place(Vector2 point) { }
             public void AdjustPlacement(float width, float rotation, Vector2? point = null) { }
             public void Capture(Action<SpatialSnapshot> success, Action<string> failure) { }
-            public void Recover(RecoveryData recovery) { }
+            public RecoveryData LastRecovery;
+            public void Recover(RecoveryData recovery) { LastRecovery = recovery; }
         }
         private sealed class Map : IMapExperience
         {

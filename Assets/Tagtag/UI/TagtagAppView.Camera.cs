@@ -7,7 +7,7 @@ namespace Tagtag.UI
     {
         private void CloseCamera()
         {
-            if (controller == null || controller.State.busy) return;
+            if (controller == null || controller.State.busy && !controller.State.discoveryLoading) return;
             CancelCameraPointers();
             controller.Navigate(cameraReturnPage == AppPage.Explore ? AppPage.Explore : AppPage.Home);
         }
