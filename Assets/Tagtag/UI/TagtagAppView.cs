@@ -46,9 +46,11 @@ namespace Tagtag.UI
         private Label statusLabel;
         private VisualElement statusNotice;
         private VisualElement statusSymbol;
+        private Button statusSettingsButton;
         private Label screenStatusLabel;
         private VisualElement screenStatusNotice;
         private VisualElement screenStatusSymbol;
+        private Button screenStatusSettingsButton;
         private TextField focusedField;
         private Rect lastSafeArea;
         private int lastScreenWidth;
@@ -352,6 +354,8 @@ namespace Tagtag.UI
                 screenStatusLabel = null;
                 screenStatusNotice = null;
                 screenStatusSymbol = null;
+                screenStatusSettingsButton = null;
+                statusSettingsButton = null;
                 focusedField = null;
                 SyncDraftFromState();
                 topHost.Clear();
@@ -391,6 +395,7 @@ namespace Tagtag.UI
                     statusLabel = screenStatusLabel;
                     statusNotice = screenStatusNotice;
                     statusSymbol = screenStatusSymbol;
+                    statusSettingsButton = screenStatusSettingsButton;
                 }
                 renderedSheetSignature = sheetSignature;
             }
@@ -526,6 +531,9 @@ namespace Tagtag.UI
                 homeInvitation != null && statusLabel == screenStatusLabel) ||
                 (state.page == AppPage.Stick && !state.accountOpen);
             string message = PaperFlow.StatusMessage(state, invitationAlreadyShown);
+            bool settingsRequired = state.locationSettingsRequired;
+            if (settingsRequired && string.IsNullOrWhiteSpace(message))
+                message = "Check location access in Settings, then try again.";
             statusLabel.text = message ?? "";
             bool error = !string.IsNullOrWhiteSpace(state.error);
             statusNotice.style.display = string.IsNullOrWhiteSpace(message) ? DisplayStyle.None : DisplayStyle.Flex;
@@ -535,22 +543,36 @@ namespace Tagtag.UI
             statusSymbol.Clear();
             statusSymbol.Add(new PaperIcon(error ? "warning" : "info", 18));
             statusLabel.style.color = error ? (Color)new Color32(125, 39, 31, 255) : Ink;
+            if (statusSettingsButton != null)
+            {
+                statusSettingsButton.style.display = settingsRequired ? DisplayStyle.Flex : DisplayStyle.None;
+                SetDisabled(statusSettingsButton, state.busy);
+            }
         }
 
         private Label AddStatus(VisualElement parent, AppState state)
         {
-            statusNotice = Row(parent);
+            statusNotice = Column(parent);
             statusNotice.AddToClassList("paper-notice");
+            statusNotice.style.alignItems = Align.Stretch;
             statusNotice.style.marginTop = 10f;
             statusNotice.style.marginBottom = 8f;
-            statusSymbol = Row(statusNotice);
-            statusLabel = Text(statusNotice, "", 14, false, Ink);
+            VisualElement messageRow = Row(statusNotice);
+            messageRow.style.alignItems = Align.Center;
+            statusSymbol = Row(messageRow);
+            statusLabel = Text(messageRow, "", 14, false, Ink);
             statusLabel.AddToClassList("notice-copy");
+            statusSettingsButton = Action(statusNotice, "Open Settings", () => Application.OpenURL("app-settings:"), false);
+            statusSettingsButton.name = "Open location settings";
+            statusSettingsButton.style.alignSelf = Align.FlexStart;
+            statusSettingsButton.style.marginLeft = 26f;
+            statusSettingsButton.style.marginTop = 7f;
             if (overlayHost == null || !overlayHost.Contains(parent))
             {
                 screenStatusLabel = statusLabel;
                 screenStatusNotice = statusNotice;
                 screenStatusSymbol = statusSymbol;
+                screenStatusSettingsButton = statusSettingsButton;
             }
             UpdateStatus(state);
             return statusLabel;

@@ -109,8 +109,10 @@ namespace Tagtag.UI
             VisualElement collection = Row(content);
             collection.style.justifyContent = Justify.SpaceBetween;
             collection.style.alignItems = Align.Center;
-            Text(collection, "Collected stickers", 17, true);
-            accountCollectionCount = Text(collection, CollectionPresentation.OrderedDistinct(state.collection).Count.ToString(), 17, false, Muted);
+            Text(collection, "Collected stickers", 15, false, Muted);
+            accountCollectionCount = Text(collection, CollectionPresentation.OrderedDistinct(state.collection).Count.ToString(), 17, true);
+            accountCollectionCount.userData = 24;
+            accountCollectionCount.style.fontSize = Mathf.RoundToInt(24f * textScale);
             Action(content, "Open sticker book", () =>
             {
                 controller.SetAccountOpen(false);
@@ -296,10 +298,16 @@ namespace Tagtag.UI
         private Button sheetSubmitButton;
         private VisualElement sheetDetailHost;
         private readonly PresenterCache collectedDetailContents = new PresenterCache();
+        private bool noteFieldsBusy;
+        private PaperField noteFocusAfterBusy;
+        private int noteFocusCursor;
+        private int noteFocusSelection;
         private readonly List<PaperSelection> reportChoices = new List<PaperSelection>();
 
         private void BuildSheet(AppState state)
         {
+            noteFieldsBusy = false;
+            noteFocusAfterBusy = null;
             VisualElement scrim = new VisualElement();
             scrim.name = "Sheet scrim";
             scrim.AddToClassList("sheet-scrim");
@@ -442,7 +450,11 @@ namespace Tagtag.UI
             if (sheetView == null || sheet == Sheet.None) return;
             sheetView.style.bottom = SheetBottom();
             ApplySheetHeight();
-            if (sheet == Sheet.Note) RefreshPublish(state);
+            if (sheet == Sheet.Note)
+            {
+                RefreshNoteFieldAvailability(state);
+                RefreshPublish(state);
+            }
             if (sheet == Sheet.Collected) RefreshCollectedDetail(state);
             if (sheetSubmitButton != null) SetDisabled(sheetSubmitButton, state.busy);
             foreach (PaperSelection choice in reportChoices)
@@ -451,6 +463,43 @@ namespace Tagtag.UI
             if (sheet == Sheet.Block && sheetSubmitButton != null) SetDisabled(sheetSubmitButton, state.busy || !SignedIn(state));
             if (sheet == Sheet.Withdraw && sheetSubmitButton != null) SetDisabled(sheetSubmitButton, state.busy);
             UpdateStatus(state);
+        }
+
+        private void RefreshNoteFieldAvailability(AppState state)
+        {
+            if (state.busy && !noteFieldsBusy)
+            {
+                VisualElement focused = sheetView.panel?.focusController?.focusedElement as VisualElement;
+                PaperField field = focused as PaperField ?? focused?.GetFirstAncestorOfType<PaperField>();
+                noteFocusAfterBusy = field != null && sheetView.Contains(field) ? field : null;
+                if (noteFocusAfterBusy != null)
+                {
+                    noteFocusCursor = noteFocusAfterBusy.cursorIndex;
+                    noteFocusSelection = noteFocusAfterBusy.selectIndex;
+                }
+            }
+
+            foreach (string name in new[] { "Place", "Clue", "Your note" })
+            {
+                PaperField field = sheetView.Q<PaperField>(name);
+                if (field != null && field.enabledSelf != !state.busy) field.SetEnabled(!state.busy);
+            }
+
+            if (!state.busy && noteFieldsBusy && noteFocusAfterBusy != null)
+            {
+                PaperField restore = noteFocusAfterBusy;
+                int cursor = noteFocusCursor, selection = noteFocusSelection;
+                restore.schedule.Execute(() =>
+                {
+                    if (sheet != Sheet.Note || controller.State.busy || sheetView == null ||
+                        restore.panel == null || !restore.enabledInHierarchy || !sheetView.Contains(restore)) return;
+                    restore.Focus();
+                    restore.SelectRange(Mathf.Clamp(cursor, 0, restore.value.Length),
+                        Mathf.Clamp(selection, 0, restore.value.Length));
+                });
+                noteFocusAfterBusy = null;
+            }
+            noteFieldsBusy = state.busy;
         }
 
         private void RefreshCollectedDetail(AppState state)

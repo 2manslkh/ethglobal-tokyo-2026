@@ -58,6 +58,30 @@ namespace Tagtag.UI
         }
     }
 
+    public sealed class PaperCollectionCount : VisualElement
+    {
+        private readonly Label number;
+        private readonly Label caption;
+
+        public Label Number => number;
+        public Label Caption => caption;
+
+        public PaperCollectionCount()
+        {
+            number = new Label { name = "home-collected-number" };
+            caption = new Label { name = "home-collected-label" };
+            Add(number);
+            Add(caption);
+            SetCount(0);
+        }
+
+        public void SetCount(int count)
+        {
+            number.text = count.ToString();
+            caption.text = count == 1 ? "sticker collected" : "stickers collected";
+        }
+    }
+
     public sealed class PaperSelection : PaperButton
     {
         private readonly PaperIcon marker;

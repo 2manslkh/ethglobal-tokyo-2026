@@ -23,3 +23,7 @@ The UI components in this directory were adapted on 2026-09-26 from the user's l
 The source checkout did not contain a root code license notice. The font files and their SIL Open Font License notices are documented in `Assets/Resources/Tagtag/Fonts/README.md`.
 
 The later device UI pass uses the project-generated Taggi artwork at `Resources/Tagtag/Navigation/{home,stick,explore}.png` for tabs and the official Google Fonts Shadows Into Light face for display/title text. Its source, checksum, and license are recorded in the font README. Instrument Sans remains the readable body/control font.
+
+The dogfood control pass keeps the adapted button activation and color transitions but removes border-width changes from pointer and focus states. A deeper paper-tone fill identifies focus without changing button contents or layout. Home and Account emphasize the collected total in Instrument Sans while preserving the book grid.
+
+The shared adapted notice now places a stable recovery action below its message when the controller explicitly requires location Settings. Its visibility and disabled state update in place so a mounted note sheet and draft remain intact.

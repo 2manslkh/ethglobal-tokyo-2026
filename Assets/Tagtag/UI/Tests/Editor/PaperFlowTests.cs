@@ -100,6 +100,8 @@ namespace Tagtag.UI.Tests
                 status = "Your next little discovery is out there." };
             Assert.AreEqual("", PaperFlow.StatusMessage(state, true));
             Assert.AreEqual(state.status, PaperFlow.StatusMessage(state, false));
+            state.status = "Find your places, Collect your moments";
+            Assert.AreEqual("", PaperFlow.StatusMessage(state, true));
             state.status = "Nearby stickers updated";
             Assert.AreEqual(state.status, PaperFlow.StatusMessage(state, true));
             state.error = "Could not load your book";

@@ -10,7 +10,7 @@ namespace Tagtag.UI
         private VisualElement homeBook;
         private VisualElement homeFooter;
         private VisualElement homeInvitation;
-        private Label homeCount;
+        private PaperCollectionCount homeCount;
         private readonly PresenterCache homeContents = new PresenterCache();
         private List<CollectedSticker> homeItems = new List<CollectedSticker>();
 
@@ -26,7 +26,22 @@ namespace Tagtag.UI
             Label title = Text(page, "Your sticker book", 30, true);
             title.style.marginTop = 16f;
             title.style.marginBottom = 3f;
-            homeCount = Text(page, "", 15, false, Muted);
+            homeCount = new PaperCollectionCount();
+            homeCount.style.flexDirection = FlexDirection.Row;
+            homeCount.style.alignItems = Align.Center;
+            page.Add(homeCount);
+            homeCount.Number.userData = 24;
+            homeCount.Number.style.unityFont = SemiboldFont;
+            homeCount.Number.style.unityFontStyleAndWeight = FontStyle.Normal;
+            homeCount.Number.style.fontSize = Mathf.RoundToInt(24f * textScale);
+            homeCount.Number.style.color = Ink;
+            homeCount.Number.style.flexShrink = 0f;
+            homeCount.Caption.userData = 14;
+            homeCount.Caption.style.unityFont = BodyFont;
+            homeCount.Caption.style.unityFontStyleAndWeight = FontStyle.Normal;
+            homeCount.Caption.style.fontSize = Mathf.RoundToInt(14f * textScale);
+            homeCount.Caption.style.color = Muted;
+            homeCount.Caption.style.marginLeft = 8f;
             homeCount.style.marginBottom = 14f;
             homeBook = Column(page);
             homeBook.name = "Sticker book page";
@@ -61,7 +76,7 @@ namespace Tagtag.UI
             if (!homeContents.NeedsRefresh(key)) return;
             bookPage = page;
             homeItems = items;
-            homeCount.text = items.Count == 1 ? "1 sticker collected" : items.Count + " stickers collected";
+            homeCount.SetCount(items.Count);
             homeBook.Clear();
             for (int rowIndex = 0; rowIndex < BookPaging.Rows; rowIndex++)
             {
@@ -558,7 +573,8 @@ namespace Tagtag.UI
         private void RefreshPublish(AppState state)
         {
             if (publishButton == null) return;
-            publishButton.text = state.busy ? "Publishing…" : state.hasPendingPublication ? "Retry publish" : "Publish sticker";
+            publishButton.text = state.busy ? (publicationRequested ? "Publishing…" : "Please wait") :
+                (state.hasPendingPublication ? "Retry publish" : "Publish sticker");
             SetDisabled(publishButton, !PaperFlow.CanPresentPublish(draftPlace, draftTeaser, draftNote,
                 controller?.Ar?.CanPublish ?? false, state.busy, state.hasPendingPublication));
         }

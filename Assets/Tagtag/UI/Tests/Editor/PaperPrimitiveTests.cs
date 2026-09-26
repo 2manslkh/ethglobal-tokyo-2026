@@ -32,6 +32,29 @@ namespace Tagtag.UI.Tests
         }
 
         [Test]
+        public void CollectedCountUpdatesNumberAndCaptionWithoutReplacingTheLabels()
+        {
+            PaperCollectionCount count = new PaperCollectionCount();
+            Label number = count.Q<Label>("home-collected-number");
+            Label caption = count.Q<Label>("home-collected-label");
+
+            Assert.IsNotNull(number);
+            Assert.IsNotNull(caption);
+            Assert.AreEqual("0", number.text);
+            Assert.AreEqual("stickers collected", caption.text);
+
+            count.SetCount(1);
+            Assert.AreSame(number, count.Q<Label>("home-collected-number"));
+            Assert.AreSame(caption, count.Q<Label>("home-collected-label"));
+            Assert.AreEqual("1", number.text);
+            Assert.AreEqual("sticker collected", caption.text);
+
+            count.SetCount(23);
+            Assert.AreEqual("23", number.text);
+            Assert.AreEqual("stickers collected", caption.text);
+        }
+
+        [Test]
         public void FieldSupportTextScalesWithItsInput()
         {
             PaperField field = new PaperField("Note", "Hello", 2000, true, "Unlocked after discovery", true);

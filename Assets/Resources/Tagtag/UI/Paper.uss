@@ -1,27 +1,35 @@
 .paper-app { background-color:#fffefa; color:#20201e; }
 .paper-app .unity-label { white-space:normal; flex-shrink:1; -unity-text-align:upper-left; }
-.paper-app .paper-button { min-height:48px; margin:2px 0; padding:10px 16px; border-width:0; border-radius:14px; color:#20201e; background-color:#f2f0e9; white-space:normal; -unity-text-align:middle-center; flex-shrink:0; transition-property:background-color,border-color,color; transition-duration:120ms; transition-timing-function:ease-out; }
+.paper-app .paper-button { min-height:48px; margin:2px 0; padding:10px 16px; border-width:0; border-radius:14px; color:#20201e; background-color:#f2f0e9; white-space:normal; -unity-text-align:middle-center; flex-shrink:0; transition-property:background-color,color; transition-duration:120ms; transition-timing-function:ease-out; }
 .paper-app .paper-button.primary { background-color:#ffe15a; }
 .paper-app .paper-button.quiet { background-color:transparent; }
-.paper-app .paper-button.danger { background-color:#fff7f4; color:#a62920; border-width:1px; border-color:#a62920; }
-.paper-app .paper-button:hover { background-color:#e8e6df; }
+.paper-app .paper-button.danger { background-color:#fff7f4; color:#a62920; }
+.paper-app .paper-button:hover { background-color:#e8e6df; border-width:0; }
 .paper-app .paper-button.primary:hover { background-color:#f5d448; }
-.paper-app .paper-button:active { background-color:#dcd9cf; }
+.paper-app .paper-button:active { background-color:#dcd9cf; border-width:0; }
 .paper-app .paper-button.primary:active { background-color:#e9c83e; }
 .paper-app .paper-button:disabled { opacity:1; color:#68665f; background-color:#ebe9e2; }
-.paper-app .paper-button:focus { border-width:2px; border-color:#20201e; }
-.paper-app .paper-button.auth-provider-apple,.paper-app .paper-button.auth-provider-google { min-height:54px; color:#20201e; background-color:#ffffff; border-width:1px; border-color:#cbc9c1; }
+.paper-app .paper-button.auth-provider-apple,.paper-app .paper-button.auth-provider-google { min-height:54px; color:#20201e; background-color:#ffffff; border-width:0; }
 .paper-app .paper-button.auth-provider-apple:hover,.paper-app .paper-button.auth-provider-google:hover { background-color:#f2f0e9; }
 .paper-app .paper-button.auth-provider-apple:active,.paper-app .paper-button.auth-provider-google:active { background-color:#e6e3da; }
-.paper-app .paper-button.auth-provider-apple:disabled,.paper-app .paper-button.auth-provider-google:disabled { color:#68665f; background-color:#ebe9e2; border-color:#cbc9c1; }
+.paper-app .paper-button.auth-provider-apple:disabled,.paper-app .paper-button.auth-provider-google:disabled { color:#68665f; background-color:#ebe9e2; }
 .paper-app .paper-button.camera-close { background-color:#fffefa; }
 .paper-app .paper-button.camera-close:hover { background-color:#e8e6df; }
 .paper-app .paper-button.camera-close:active { background-color:#dcd9cf; }
 .paper-app .camera-adjustments .unity-foldout__toggle { min-height:44px; }
 .paper-app .icon-button { min-width:48px; padding:10px; align-items:center; justify-content:center; }
-.paper-app .paper-selection { min-height:52px; padding-right:32px; -unity-text-align:middle-left; border-width:1px; border-color:#d2d0c8; }
-.paper-app .paper-selection.selected { border-color:#20201e; background-color:#fff6d2; }
+.paper-app .paper-selection { min-height:52px; padding-right:32px; -unity-text-align:middle-left; border-width:0; }
+.paper-app .paper-selection.selected { background-color:#fff6d2; }
 .paper-app .selection-check { position:absolute; right:10px; top:17px; }
+.paper-app .paper-button:focus { border-width:0; background-color:#d4d0c4; }
+.paper-app .paper-button.primary:focus { background-color:#e7c43a; }
+.paper-app .paper-button.quiet:focus,.paper-app .paper-button.auth-provider-apple:focus,.paper-app .paper-button.auth-provider-google:focus,.paper-app .paper-button.camera-close:focus { background-color:#dfdcd1; }
+.paper-app .paper-button.danger:focus { background-color:#f0d7d0; }
+.paper-app .paper-selection.selected:focus { background-color:#f2dfa0; }
+.paper-app .paper-button:focus:active { background-color:#c7c2b5; }
+.paper-app .paper-button.primary:focus:active { background-color:#ddba2f; }
+.paper-app .paper-button.danger:focus:active { background-color:#e7c8c0; }
+.paper-app .paper-selection.selected:focus:active { background-color:#e9d18a; }
 .paper-app .paper-field { margin-top:12px; color:#20201e; min-height:76px; flex-direction:column; align-items:stretch; flex-shrink:0; min-width:0; }
 .paper-app .paper-field.multiline { min-height:172px; }
 .paper-app .paper-field .unity-base-field__label { width:auto; min-width:0; align-self:stretch; margin-bottom:7px; color:#20201e; white-space:normal; }

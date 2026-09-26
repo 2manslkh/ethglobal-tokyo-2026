@@ -52,7 +52,8 @@ namespace Tagtag.UI
 
     public static class PaperFlow
     {
-        public const string EmptyBookInvitation = "Your next little discovery is out there.";
+        public const string EmptyBookInvitation = "Find your places, Collect your moments";
+        private const string ServiceEmptyBookStatus = "Your next little discovery is out there.";
 
         public static bool ShowGlobalChrome(AppState state) => state == null ||
             state.accountOpen || state.page != AppPage.Stick;
@@ -100,7 +101,7 @@ namespace Tagtag.UI
             if (state == null) return "";
             if (!string.IsNullOrWhiteSpace(state.error)) return state.error;
             string message = state.status ?? "";
-            return invitationAlreadyShown && message == EmptyBookInvitation ? "" : message;
+            return invitationAlreadyShown && (message == EmptyBookInvitation || message == ServiceEmptyBookStatus) ? "" : message;
         }
 
         public static NearbyStatus Nearby(AppState state, bool hasMap)
