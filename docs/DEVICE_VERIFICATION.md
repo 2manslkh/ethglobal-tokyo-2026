@@ -1,5 +1,27 @@
 # Device verification
 
+## Reference photo recovery and map integration — 2026-09-26
+
+Combined source `2329063` includes the reference photo visibility/loading fixes,
+discovery error and Settings notice, overlapping-map selection, and celebrations.
+
+- Photo regression reproduced both the live-camera visibility gate and the
+  missing discovery error notice, then passed after fixes.
+- Full mounted PaperVisualTests: 11/11 passed (`/tmp/tagtag-photo-final-play.xml`).
+- Full Edit Mode suite after map integration: 217/217 passed
+  (`/tmp/tagtag-photo-edit.xml`).
+- Separate ARKit preparation, iOS export, and signed Debug build succeeded.
+  Logs: `/tmp/tagtag-photo-{prepare,export,signed}.log`.
+- Installation is **pending**: Dawg. became unavailable before installation.
+  CoreDevice returned error 4016, and USB-only ios-deploy detection found no
+  device. No app was uninstalled or data reset. Log:
+  `/tmp/tagtag-photo-install.log`.
+- Reconnect/unlock the iPhone, install the prepared app, and verify discovery
+  with Precise Location enabled. Physical photo recovery is not yet verified.
+
+See [reference photo diagnosis](verification/reference-photo.md) for the saved
+photo and location evidence.
+
 ## Closing a loading AR search — 2026-09-26
 
 Source `034236e` keeps X enabled during discovery loading. Closing cancels the

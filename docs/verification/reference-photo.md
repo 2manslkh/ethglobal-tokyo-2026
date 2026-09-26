@@ -51,3 +51,10 @@ errors, and location settings recovery in the bottom controls. The focused
 regression passes (`/tmp/tagtag-photo-status-green.xml`).
 
 Final full mounted UI suite: 11/11 passed (`/tmp/tagtag-photo-final-play.xml`).
+
+## iPhone build
+
+Source `2329063` passed separate ARKit preparation, iOS export, and signed
+Debug build. Installation is pending reconnection of Dawg.; CoreDevice reported
+4016/unavailable and USB-only detection found no device. See
+[device verification](../DEVICE_VERIFICATION.md) for the handoff.
