@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using UnityEngine.UIElements;
 
@@ -9,7 +10,7 @@ namespace Tagtag.UI
     public sealed partial class TagtagAppView : MonoBehaviour
     {
         private enum AccountScreen { Overview, SignIn, Authored, DeleteConfirmation }
-        private enum Sheet { None, Picker, Creator, DeleteDesign, Note, Collected, Report, Block, Withdraw }
+        private enum Sheet { None, Picker, Creator, HomeDesignPreview, DeleteDesign, Note, Collected, Report, Block, Withdraw }
 
         private static readonly Color Paper = new Color32(255, 254, 250, 255);
         private static readonly Color Ink = new Color32(32, 32, 30, 255);
@@ -320,8 +321,18 @@ namespace Tagtag.UI
             }
 
             AppState state = controller.State;
+            SyncHomeIdentity(state);
+            SyncDeleteDesign(state);
+            SyncHomePlacement(state);
+            if (sheet == Sheet.HomeDesignPreview &&
+                (state.page != AppPage.Home || HomeOwnedDesigns(state).All(design => design.id != sheetDesignId)))
+            {
+                sheet = Sheet.None;
+                sheetDesignId = null;
+            }
             if (state.creationOpen && !state.accountOpen && sheet == Sheet.None) sheet = Sheet.Picker;
-            if (!state.creationOpen && (sheet == Sheet.Picker || sheet == Sheet.Creator || sheet == Sheet.DeleteDesign)) sheet = Sheet.None;
+            if (!state.creationOpen && (sheet == Sheet.Picker || sheet == Sheet.Creator ||
+                (sheet == Sheet.DeleteDesign && !deleteDesignFromHome))) sheet = Sheet.None;
             if (state.accountOpen && !SignedIn(state) && accountScreen != AccountScreen.SignIn)
             {
                 accountScreen = AccountScreen.SignIn;
@@ -336,6 +347,7 @@ namespace Tagtag.UI
             bool destinationChanged = identity != renderedIdentity;
             if (destinationChanged)
             {
+                CaptureHomeScroll();
                 if (!state.accountOpen && state.page == AppPage.Stick &&
                     renderedIdentity != null && renderedPage != AppPage.Stick)
                     cameraReturnPage = renderedPage == AppPage.Explore ? AppPage.Explore : AppPage.Home;
@@ -349,6 +361,15 @@ namespace Tagtag.UI
                 homeBook = null;
                 homeFooter = null;
                 homeInvitation = null;
+                homeScroll = null;
+                homeCollectedSection = null;
+                homeDesignSection = null;
+                homeDesignGrid = null;
+                homeDesignStatus = null;
+                homeCollectedTab = null;
+                homeDesignTab = null;
+                homeRefreshDesigns = null;
+                homeSignInButton = null;
                 explorePreview = null;
                 exploreLocationNotice = null;
                 exploreMapMessage = null;
@@ -397,7 +418,7 @@ namespace Tagtag.UI
             if (sheetSignature != renderedSheetSignature)
             {
                 overlayHost.Clear();
-                artworkNotices.Clear();
+                artworkNotices.RemoveAll(notice => notice.status.panel == null);
                 bool hideCreationSheet = state.accountOpen &&
                     (sheet == Sheet.Picker || sheet == Sheet.Creator || sheet == Sheet.DeleteDesign);
                 if (sheet != Sheet.None && !hideCreationSheet) BuildSheet(state);

@@ -771,7 +771,7 @@ namespace Tagtag.Tests
             Assert.That(document.rootVisualElement.Query<Label>().ToList().Any(label => label.text == "An afternoon in Tokyo"), Is.True,
                 "Creator management retains names to identify saved designs.");
             Assert.That(document.rootVisualElement.Query<Button>().ToList().Any(button => button.text == "Remove from My Stickers"), Is.True);
-            var art = document.rootVisualElement.Q<Image>("Sticker artwork creation-review-image");
+            var art = creationSheet.Q<Image>("Sticker artwork creation-review-image");
             Assert.That(art, Is.Not.Null);
             Assert.That(art.image, Is.Not.Null);
             Assert.That(art.resolvedStyle.height, Is.GreaterThan(art.resolvedStyle.width));

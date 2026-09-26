@@ -388,6 +388,8 @@ namespace Tagtag.UI
         private VisualElement creationLibraryHost;
         private Button creationImportButton, creationCameraButton, creationAiButton;
         private Button creationRetryButton, creationRefreshButton;
+        private Button deleteDesignConfirmButton, deleteDesignCancelButton;
+        private bool deleteDesignPending;
         private Label creationImportNotice, creationCameraNotice, creationAiNotice;
         private Label creationCutoutNotice, creationSaveNotice;
 
@@ -400,15 +402,20 @@ namespace Tagtag.UI
             scrim.AddToClassList("sheet-scrim");
             scrim.RegisterCallback<PointerDownEvent>(_ => RequestCloseSheet());
             overlayHost.Add(scrim);
-            string title = sheet == Sheet.Picker ? "My Stickers" : sheet == Sheet.Creator ? "Add Sticker" : sheet == Sheet.DeleteDesign ? "Remove sticker" : sheet == Sheet.Note ? "Write note" :
+            string title = sheet == Sheet.Picker ? "My Stickers" : sheet == Sheet.Creator ? "Add Sticker" :
+                sheet == Sheet.HomeDesignPreview ? "Your design" : sheet == Sheet.DeleteDesign ? "Remove design" : sheet == Sheet.Note ? "Write note" :
                 sheet == Sheet.Collected ? "Collected sticker" : sheet == Sheet.Report ? "Report sticker" :
                 sheet == Sheet.Withdraw ? "Withdraw sticker" : "Block author";
             Sheet openedSheet = sheet;
             string collectedId = sheetStickerId;
-            Action returnFocus = openedSheet == Sheet.Note || openedSheet == Sheet.Picker ?
+            string designId = sheetDesignId;
+            Action returnFocus = openedSheet == Sheet.HomeDesignPreview ? () => FocusHomeDesign(designId) :
+                openedSheet == Sheet.Note || openedSheet == Sheet.Picker || openedSheet == Sheet.Creator ?
                 () => FocusSheetTrigger(openedSheet) : openedSheet == Sheet.Collected ?
                 () => FocusCollectedCell(collectedId) : null;
-            sheetView = new PaperSheet(title, CloseSheet, reducedMotion, returnFocus, "Close");
+            Func<bool> dismissalGuard = sheet == Sheet.HomeDesignPreview || sheet == Sheet.DeleteDesign ?
+                CanDismissSheet : null;
+            sheetView = new PaperSheet(title, CloseSheet, reducedMotion, returnFocus, "Close", dismissalGuard);
             if (sheet == Sheet.Picker || sheet == Sheet.Creator)
             {
                 sheetView.style.flexDirection = FlexDirection.Column;
@@ -434,10 +441,13 @@ namespace Tagtag.UI
             inventoryChoices.Clear();
             creationImportButton = creationCameraButton = creationAiButton = null;
             creationRetryButton = creationRefreshButton = null;
+            deleteDesignConfirmButton = deleteDesignCancelButton = null;
+            homePreviewPlaceButton = homePreviewRemoveButton = null;
             creationImportNotice = creationCameraNotice = creationAiNotice = null;
             creationCutoutNotice = creationSaveNotice = null;
             if (sheet == Sheet.Picker) BuildPickerSheet(content, state);
             else if (sheet == Sheet.Creator) BuildCreatorSheet(content, state);
+            else if (sheet == Sheet.HomeDesignPreview) BuildHomeDesignPreview(content, state);
             else if (sheet == Sheet.DeleteDesign) BuildDeleteDesignSheet(content, state);
             else if (sheet == Sheet.Note) BuildNoteSheet(content, state);
             else if (sheet == Sheet.Collected)
@@ -470,15 +480,23 @@ namespace Tagtag.UI
         private void FocusSheetTrigger(Sheet closed)
         {
             string name = closed == Sheet.Note ? "STICK Write note" :
-                closed == Sheet.Picker ? controller.State.page == AppPage.Home ? "Home Make sticker" : "STICK Inventory" : null;
+                closed == Sheet.Picker || closed == Sheet.Creator ?
+                    controller.State.page == AppPage.Home ? "Home Make sticker" : "STICK Inventory" : null;
             if (name == null) return;
             screenHost?.schedule.Execute(() => screenHost.Q<Button>(name)?.Focus());
         }
 
         private void RequestCloseSheet()
         {
+            if (!CanDismissSheet()) return;
             if (sheetView != null) sheetView.Dismiss();
             else CloseSheet();
+        }
+
+        private bool CanDismissSheet()
+        {
+            return !(sheet == Sheet.DeleteDesign && deleteDesignPending) &&
+                !(sheet == Sheet.HomeDesignPreview && homePlacementPending);
         }
 
         private void BuildPickerSheet(VisualElement content, AppState state)
@@ -682,6 +700,7 @@ namespace Tagtag.UI
                 creationSelectButtons.Add(choose);
                 Button remove = Action(details, "Remove from My Stickers", () =>
                 {
+                    deleteDesignFromHome = false;
                     sheetDesignId = designId;
                     sheet = Sheet.DeleteDesign;
                     QueueRender();
@@ -705,22 +724,39 @@ namespace Tagtag.UI
             Text(content, "Remove " + Safe(design?.name, "this design") + "?", 21, true);
             Text(content, "It will leave My Stickers. Stickers already placed or collected keep their artwork.",
                 15, false, Muted).style.marginTop = 8f;
-            Button remove = Action(content, "Remove design", () =>
+            deleteDesignConfirmButton = Action(content, "Remove design", () =>
             {
+                if (deleteDesignPending) return;
+                deleteDesignPending = true;
                 controller.DeleteDesign(sheetDesignId);
-                sheetDesignId = null;
-                sheet = Sheet.Creator;
                 QueueRender();
             });
-            remove.AddToClassList("danger");
-            remove.style.marginTop = 18f;
-            SetDisabled(remove, state.busy || design == null);
-            Action(content, "Keep design", () =>
+            deleteDesignConfirmButton.AddToClassList("danger");
+            deleteDesignConfirmButton.style.marginTop = 18f;
+            SetDisabled(deleteDesignConfirmButton, state.busy || design == null || deleteDesignPending);
+            deleteDesignCancelButton = Action(content, "Cancel", () =>
             {
-                sheetDesignId = null;
-                sheet = Sheet.Creator;
+                if (deleteDesignPending) return;
+                if (deleteDesignFromHome) sheet = Sheet.HomeDesignPreview;
+                else { sheetDesignId = null; sheet = Sheet.Creator; }
                 QueueRender();
-            }, false).style.marginTop = 8f;
+            }, false);
+            deleteDesignCancelButton.style.marginTop = 8f;
+            SetDisabled(deleteDesignCancelButton, deleteDesignPending);
+        }
+
+        private void SyncDeleteDesign(AppState state)
+        {
+            if (!deleteDesignPending) return;
+            if (sheet != Sheet.DeleteDesign) { deleteDesignPending = false; return; }
+            if (!state.designs.Exists(item => item != null && item.id == sheetDesignId))
+            {
+                deleteDesignPending = false;
+                sheetDesignId = null;
+                sheet = deleteDesignFromHome ? Sheet.None : Sheet.Creator;
+                deleteDesignFromHome = false;
+            }
+            else if (!state.busy && !string.IsNullOrEmpty(state.error)) deleteDesignPending = false;
         }
 
         private void BuildNoteSheet(VisualElement content, AppState state)
@@ -770,6 +806,15 @@ namespace Tagtag.UI
             if (sheet == Sheet.Collected) RefreshCollectedDetail(state);
             if (sheet == Sheet.Picker) RefreshPicker(state);
             if (sheet == Sheet.Creator) RefreshCreation(state);
+            if (sheet == Sheet.HomeDesignPreview) RefreshHomeDesignPreview(state);
+            if (sheet == Sheet.DeleteDesign)
+            {
+                if (deleteDesignConfirmButton != null) SetDisabled(deleteDesignConfirmButton,
+                    state.busy || deleteDesignPending);
+                if (deleteDesignCancelButton != null) SetDisabled(deleteDesignCancelButton, deleteDesignPending);
+            }
+            Button close = sheetView.Q<Button>("Action Close");
+            if (close != null) SetDisabled(close, !CanDismissSheet());
             if (sheetSubmitButton != null) SetDisabled(sheetSubmitButton, state.busy);
             foreach (PaperSelection choice in reportChoices)
                 choice.SetSelected(choice.userData is string reason && reason == selectedReportReason);
@@ -958,7 +1003,14 @@ namespace Tagtag.UI
 
         private void CloseSheet()
         {
-            if (sheet == Sheet.DeleteDesign && controller.State.creationOpen)
+            if (!CanDismissSheet()) return;
+            if (sheet == Sheet.DeleteDesign && !deleteDesignPending && deleteDesignFromHome)
+            {
+                sheet = Sheet.HomeDesignPreview;
+                QueueRender();
+                return;
+            }
+            if (sheet == Sheet.DeleteDesign && !deleteDesignPending && controller.State.creationOpen)
             {
                 sheetDesignId = null;
                 sheet = Sheet.Creator;
@@ -970,6 +1022,8 @@ namespace Tagtag.UI
             sheet = Sheet.None;
             sheetStickerId = null;
             sheetDesignId = null;
+            deleteDesignPending = false;
+            deleteDesignFromHome = false;
             sheetAuthorId = null;
             sheetView = null;
             publishButton = null;

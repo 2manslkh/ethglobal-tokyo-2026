@@ -13,6 +13,7 @@ namespace Tagtag.UI
         public ScrollView Scroll { get; }
         public VisualElement Grip { get; }
         private readonly Action closed;
+        private readonly Func<bool> canDismiss;
         private readonly bool reducedMotion;
         private readonly Action returnFocus;
         private VisualElement focusRoot,previousFocus;
@@ -25,9 +26,9 @@ namespace Tagtag.UI
         private VisualElement scrim;
         private bool QuietMotion => reducedMotion || PaperMotion.Reduced(this) || PaperMotion.IsSuspended;
 
-        public PaperSheet(string title,Action closed,bool reducedMotion,Action returnFocus=null,string dismissLabel="Done")
+        public PaperSheet(string title,Action closed,bool reducedMotion,Action returnFocus=null,string dismissLabel="Done",Func<bool> canDismiss=null)
         {
-            this.closed=closed;this.reducedMotion=reducedMotion;this.returnFocus=returnFocus;
+            this.closed=closed;this.reducedMotion=reducedMotion;this.returnFocus=returnFocus;this.canDismiss=canDismiss;
             AddToClassList("drawer");AddToClassList("paper-sheet");name="tagtag-bottom-sheet";
             Grip=new VisualElement{name="sheet-grip"};Grip.AddToClassList("sheet-grip");Add(Grip);
             var handle=new VisualElement{pickingMode=PickingMode.Ignore};handle.AddToClassList("drawer-handle");Grip.Add(handle);
@@ -87,7 +88,7 @@ namespace Tagtag.UI
         }
         private void Down(PointerDownEvent e)
         {
-            if(closing||e.button!=0)return;
+            if(closing||e.button!=0||(canDismiss!=null&&!canDismiss()))return;
             PaperMotion.Cancel(this,"reveal");PaperMotion.Cancel(this,"sheet");
             keyboardUsed=false;
             // A scroll/horizontal gesture can finish outside the sheet. A new
@@ -122,6 +123,7 @@ namespace Tagtag.UI
             if(e.pointerId!=pointer)return;
             bool held=dragging;
             bool dismiss=held&&ShouldDismiss(layout.height,offset,velocity);
+            if(dismiss&&canDismiss!=null&&!canDismiss())dismiss=false;
             Reset(!dismiss);
             if(!held)return;
             e.StopImmediatePropagation();if(dismiss)Dismiss();
@@ -171,7 +173,7 @@ namespace Tagtag.UI
         {if(closing&&!completed&&panel!=null)FinishClose();}
         public void Dismiss()
         {
-            if(closing)return;
+            if(closing||(canDismiss!=null&&!canDismiss()))return;
             PaperMotion.Cancel(this,"reveal");
             float from=style.translate.value.y.value;
             PaperMotion.Cancel(this,"sheet");closing=true;Reset(false);
