@@ -2,7 +2,7 @@
 
 Find your places, Collect your moments
 
-tagtag is an iPhone AR sticker app starring **Taggi**. Its paper-white interface follows [DESIGN.md](DESIGN.md), with four die-cut mascot presets and three tabs:
+tagtag is an iPhone AR sticker app starring **Taggi**. Its paper-white interface follows [DESIGN.md](DESIGN.md), with twelve die-cut mascot presets and three tabs:
 
 - **Home:** a personal sticker book with 20 spaces per page, collection details, and account controls.
 - **STICK:** place a sticker on a tracked surface, write a public teaser and private note, then publish. Recover a nearby sticker's AR map and tap it within three metres to collect a copy and reveal its note.
@@ -29,9 +29,11 @@ Run behavior tests from the repository root:
 
 Backend commands are documented in [backend/README.md](backend/README.md). Live infrastructure and maintenance are recorded in [deployment](docs/DEPLOYMENT.md).
 
-Login uses the supplied Taggi video as a silent looping background, with a matching poster for reduced motion, loading, and playback failure. The transparent header and footer show the tagline, sign-in buttons, and in-app Privacy Policy and Terms & Conditions sheets. Login fits without scrolling; policy content scrolls inside its sheet. Provider cancellation and errors remain on the login screen for retry.
+Login uses the supplied Taggi video as a silent looping background, with a matching poster for loading and playback failure. The transparent header and footer show the tagline, sign-in buttons, and in-app Privacy Policy and Terms & Conditions sheets. Login fits without scrolling; policy content scrolls inside its sheet. Provider cancellation and errors remain on the login screen for retry.
 
 The startup regression lives in `Assets/Tagtag/Application/PlayModeTests/`. Use `-testPlatform PlayMode -testFilter Tagtag.Tests.StartupTests` with the Unity test command to check the real entry scene and rendered login pixels. For a macOS player check, use `-buildTarget StandaloneOSX -testPlatform StandaloneOSX`; its test-only callback also writes `tagtag-startup-result.xml` beside the screenshot in `Application.temporaryCachePath` if the player cannot return results to the editor. Editor rendering alone does not verify that player builds contain the required UI text resources.
+
+Text uses Standard sizing and animations stay enabled; legacy reading and motion preferences are ignored.
 
 The paper UI uses a persistent shell and updates mounted controls when application state changes. Shared components, fonts, and motion are self-contained; [source provenance and font licenses](Assets/Tagtag/UI/SOURCE_PROVENANCE.md) document their adaptation. Camera presentation is independent of tracking: an opaque paper cover remains until AR reports displayable live imagery and returns after interruption. On iOS, the AVFoundation bridge is the authority for camera permission; Unity may strip its webcam authorization implementation from AR-only builds. Nearby lookup has an independent loading state so location acquisition does not lock navigation. **Find in AR** opens the camera before waiting for location or the saved AR map, with progress and retry guidance in the camera view. Close stays available while discovery loads: leaving the camera cancels the search, and late results cannot reopen AR or overwrite a newer search. Discovery still requires a precise location fix.
 
@@ -45,7 +47,7 @@ New publications include a camera-only Original spot photo to help nearby finder
 
 Run graphics-enabled placement and rendering checks with `-buildTarget StandaloneOSX -testPlatform PlayMode -testFilter Tagtag`. Repeat with `-testPlatform StandaloneOSX` to verify shader inclusion in a built player. The test callback writes the complete suite to `Application.temporaryCachePath/tagtag-player-result.xml`, and the real sticker render to `tagtag-sticker-render.png`.
 
-Successful publication and new AR collection open a full-screen sticker celebration with a short artwork reveal, drawn yellow stars, and one iOS success haptic when the artwork becomes available. Tap **Keep exploring** to return to the camera or **Read the note** to open the collected sticker. Reduced motion keeps the artwork and stars still; rewards do not replay on refresh or when reopening a sticker. See [celebration verification](docs/verification/celebration/README.md).
+Successful publication and new AR collection open a full-screen sticker celebration with a short artwork reveal, drawn yellow stars, and one iOS success haptic when the artwork becomes available. Tap **Keep exploring** to return to the camera or **Read the note** to open the collected sticker. Rewards do not replay on refresh or when reopening a sticker. See [celebration verification](docs/verification/celebration/README.md).
 
 ## iPhone build
 
@@ -114,7 +116,7 @@ Run the Home UI checks with Unity `-buildTarget StandaloneOSX -testPlatform Play
 
 Open **My Stickers** from Home or the STICK inventory. Import a photo/file, make a photo or selfie Polaroid, or open Apple Image Playground on a supported iPhone. The native editor offers full-image or square crop, optional foreground cutout with a white border, and a Polaroid caption. Preview the finished design before saving.
 
-Designs sync to the creator's account and can be placed repeatedly. Collecting someone else's placement adds a book copy, without granting design publication rights. Removing a library design preserves published copies. The four bundled Taggi presets still work. Creation drafts survive failed uploads and sign-in; use **Retry saving sticker** to continue. Source photos stay on the device; only the finished PNG is uploaded.
+Designs sync to the creator's account and can be placed repeatedly. Collecting someone else's placement adds a book copy, without granting design publication rights. Removing a library design preserves published copies. The twelve bundled Taggi presets work without creating a custom design. The eight new poses are waving, heart-hugging, laughing, sleepy, surprised, cheering, shy, and thinking; artwork prompts are recorded in [Taggi presets](docs/mascot/TAGGI_PRESETS.md). New poses retain their artwork in the app and use the existing generic Taggi NFT souvenir. Deploy backend support for all twelve preset IDs before distributing the updated app. Creation drafts survive failed uploads and sign-in; use **Retry saving sticker** to continue. Source photos stay on the device; only the finished PNG is uploaded.
 
 Image Playground is checked at runtime and has no cloud fallback. Foreground cutout requires iOS 17 or later; imports and Polaroids retain the iOS 15 minimum. Native creation uses PhotosUI, Vision, UIKit, and a Swift Image Playground bridge. The backend uses `sharp` to validate PNG pixels, remove metadata, and generate thumbnails. Limits are 5 MiB/1024 pixels per image, 20 new designs per account per day, and 100 active designs. See [the creation plan](docs/plans/2026-09-26-sticker-creation.md) and [backend API details](backend/README.md).
 

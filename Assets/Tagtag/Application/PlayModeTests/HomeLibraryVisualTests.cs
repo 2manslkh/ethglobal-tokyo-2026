@@ -54,6 +54,98 @@ namespace Tagtag.Tests
         }
 
         [UnityTest]
+        public IEnumerator HangingHeadersStayFixedAndRefreshWithoutReplaying()
+        {
+            for (int i = 0; i < 12; i++) controller.State.designs.Add(Design("scroll-" + i, i));
+            yield return Mount();
+            var paper = Root.Q<VisualElement>("Hanging header paper");
+            Assert.That(paper, Is.Not.Null, "Home must present a hanging paper title.");
+            Root.AddToClassList("reduced-motion");
+            yield return Settle();
+            float top = paper.worldBound.y;
+            Submit("Home My designs"); yield return Settle();
+            Root.Q<ScrollView>("Home scroll").scrollOffset = new Vector2(0, 500);
+            yield return Settle();
+            Assert.That(paper.worldBound.y, Is.EqualTo(top).Within(.5f));
+            controller.Notify(); yield return Settle();
+            Assert.That(Root.Q<VisualElement>("Hanging header paper"), Is.SameAs(paper));
+            Assert.That(paper.resolvedStyle.translate.y, Is.EqualTo(0).Within(.01f));
+            Assert.That(Root.Q<VisualElement>("Hanging header strings").worldBound.yMin,
+                Is.EqualTo(Root.worldBound.yMin).Within(.5f));
+            yield return Capture("hanging-home");
+            controller.Navigate(AppPage.Explore); yield return Settle();
+            Assert.That(paper.panel, Is.Null);
+            Assert.That(Root.Query<VisualElement>("Hanging header strings").ToList().Count, Is.EqualTo(1));
+            yield return Capture("hanging-explore");
+            controller.Navigate(AppPage.Stick); yield return Settle();
+            Assert.That(Root.Query<VisualElement>("Hanging header strings").ToList().Count, Is.EqualTo(1));
+            Assert.That(Root.Q<Button>("STICK Close").enabledInHierarchy, Is.True);
+            yield return Capture("hanging-camera");
+            controller.SetAccountOpen(true); yield return Settle();
+            Assert.That(Root.Q<VisualElement>("Hanging header strings"), Is.Null);
+        }
+
+        [UnityTest]
+        public IEnumerator HangingHeadersFitCompactLargeTextWithoutCoveringControls()
+        {
+            yield return Mount(1.4f, 320, 568);
+            Root.AddToClassList("reduced-motion");
+            foreach (var page in new[] { AppPage.Home, AppPage.Explore, AppPage.Stick })
+            {
+                controller.Navigate(page); yield return Settle();
+                var paper = Root.Q<VisualElement>("Hanging header paper");
+                Assert.That(paper, Is.Not.Null);
+                var title = paper.Q<Label>();
+                title.style.fontSize = 48f;
+                yield return Settle();
+                Assert.That(title.worldBound.xMin, Is.GreaterThanOrEqualTo(paper.worldBound.xMin));
+                Assert.That(title.worldBound.xMax, Is.LessThanOrEqualTo(paper.worldBound.xMax));
+                Assert.That(title.worldBound.yMax, Is.LessThan(paper.worldBound.yMax));
+                var control = page == AppPage.Home ? Root.Q<Button>("Home Profile") :
+                    page == AppPage.Stick ? Root.Q<Button>("STICK Close") : Root.Q<Button>("Action Recenter");
+                Assert.That(paper.worldBound.Overlaps(control.worldBound), Is.False);
+                Assert.That(paper.resolvedStyle.translate.y, Is.EqualTo(0).Within(.01f));
+                yield return Capture("hanging-compact-" + page);
+            }
+        }
+
+        [UnityTest]
+        public IEnumerator HangingHeaderEntranceSettlesAndCancelsOnRapidNavigation()
+        {
+            PlayerPrefs.SetInt("tagtag.reducedMotion", 0);
+            PaperMotion.SetFocused(true);
+            PaperMotion.SetPaused(false);
+            yield return Mount();
+            var paper = Root.Q<VisualElement>("Hanging header paper");
+            Assert.That(paper, Is.Not.Null);
+            yield return new WaitForSecondsRealtime(.7f);
+            Assert.That(paper.resolvedStyle.translate.y, Is.EqualTo(0).Within(.01f));
+            Assert.That(paper.resolvedStyle.rotate.angle.value, Is.EqualTo(0).Within(.01f));
+            controller.Notify(); yield return null;
+            Assert.That(Root.Q<VisualElement>("Hanging header paper"), Is.SameAs(paper));
+            Assert.That(paper.resolvedStyle.translate.y, Is.EqualTo(0).Within(.01f));
+            controller.Navigate(AppPage.Explore);
+            yield return null;
+            yield return null;
+            var arriving = Root.Q<VisualElement>("Hanging header paper");
+            Assert.That(arriving.resolvedStyle.translate.y, Is.LessThan(0));
+            for (int frame = 0; frame < 14; frame++)
+            {
+                CaptureFrame("hanging-motion-" + frame.ToString("D2"));
+                yield return new WaitForSecondsRealtime(.05f);
+            }
+            controller.Navigate(AppPage.Stick);
+            yield return null;
+            yield return null;
+            controller.Navigate(AppPage.Home);
+            yield return new WaitForSecondsRealtime(.8f);
+            Assert.That(arriving.panel, Is.Null);
+            Assert.That(Root.Query<VisualElement>("Hanging header strings").ToList().Count, Is.EqualTo(1));
+            Assert.That(Root.Q<VisualElement>("Hanging header paper").resolvedStyle.translate.y,
+                Is.EqualTo(0).Within(.01f));
+        }
+
+        [UnityTest]
         public IEnumerator EmptyBookKeepsIllustratedActionInDesignsAndChangesOnCollection()
         {
             yield return Mount();
@@ -404,6 +496,11 @@ namespace Tagtag.Tests
         private IEnumerator Capture(string name)
         {
             yield return Settle();
+            CaptureFrame(name);
+        }
+
+        private void CaptureFrame(string name)
+        {
             var previous = RenderTexture.active;
             RenderTexture.active = target;
             var pixels = new Texture2D(target.width, target.height, TextureFormat.RGBA32, false);

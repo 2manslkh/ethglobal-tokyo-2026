@@ -23,7 +23,7 @@ namespace Tagtag.UI
         private Font SemiboldFont => semiboldFont ?? (semiboldFont = Resources.Load<Font>("Tagtag/Fonts/InstrumentSemibold"));
         private Font HeadingFont => headingFont ?? (headingFont = Resources.Load<Font>("Tagtag/Fonts/ShadowsIntoLight"));
         private Font DisplayFont => HeadingFont;
-        private static readonly string[] Presets = { "taggi-1", "taggi-2", "taggi-3", "taggi-4" };
+        private static readonly string[] Presets = StickerPresets.Ids.ToArray();
         private static readonly string[] ReportReasons = { "Harassment or hate", "Unsafe place", "Private information", "Spam or misleading", "Something else" };
 
         private ITagtagController controller;
@@ -77,8 +77,8 @@ namespace Tagtag.UI
         private string draftPlace = "";
         private string draftTeaser = "";
         private string draftNote = "";
-        private float textScale = 1f;
-        private bool reducedMotion;
+        private readonly float textScale = 1f;
+        private readonly bool reducedMotion = false;
         private bool renderQueued;
         private bool mapDirty;
         private bool bookPressed;
@@ -110,7 +110,6 @@ namespace Tagtag.UI
                 StickerArtwork.Changed += OnArtworkChanged;
                 artworkSubscribed = true;
             }
-            LoadPreferences();
             EnsureDocument();
             SyncDraftFromState();
             QueueRender();
@@ -118,7 +117,6 @@ namespace Tagtag.UI
 
         private void Awake()
         {
-            LoadPreferences();
             EnsureDocument();
         }
 
@@ -258,6 +256,11 @@ namespace Tagtag.UI
                 screenHost.style.minHeight = 0f;
                 navHost = Column(safeRoot);
                 navHost.style.flexShrink = 0f;
+                headerStringsHost = new VisualElement { name = "Header strings layer", pickingMode = PickingMode.Ignore };
+                headerStringsHost.style.position = Position.Absolute;
+                headerStringsHost.style.left = headerStringsHost.style.right = 0f;
+                headerStringsHost.style.top = headerStringsHost.style.bottom = 0f;
+                root.Add(headerStringsHost);
                 overlayHost = new VisualElement { pickingMode = PickingMode.Ignore };
                 overlayHost.style.position = Position.Absolute;
                 overlayHost.style.left = 0f;
@@ -267,12 +270,6 @@ namespace Tagtag.UI
                 root.Add(overlayHost);
                 ApplySafeArea();
             }
-        }
-
-        private void LoadPreferences()
-        {
-            textScale = Mathf.Clamp(PlayerPrefs.GetFloat("tagtag.textScale", 1f), 1f, 1.4f);
-            reducedMotion = PlayerPrefs.GetInt("tagtag.reducedMotion", 0) != 0;
         }
 
         private void OnControllerChanged()
@@ -417,12 +414,10 @@ namespace Tagtag.UI
                 stickSelectedArtworkPointerHeld = false;
                 accountCollectionCount = null;
                 accountAuthoredCount = null;
-                accountMotionSwitch = null;
                 authoredListHost = null;
                 authoredWithdrawButtons.Clear();
                 appleSignInButton = null;
                 googleSignInButton = null;
-                textSizeChoices.Clear();
                 deleteButton = null;
                 deleteField = null;
                 screenStatusLabel = null;
@@ -433,6 +428,8 @@ namespace Tagtag.UI
                 focusedField = null;
                 SyncDraftFromState();
                 screenHost.Clear();
+                headerStringsHost.Clear();
+                pageHeader = null;
                 navHost.Clear();
                 root.style.backgroundColor = Paper;
                 if (loginRequired) BuildLogin(state);
@@ -445,7 +442,7 @@ namespace Tagtag.UI
                     if (PaperFlow.ShowBottomNavigation(state)) BuildTabBar(state);
                 }
                 var reason = navigationMotion.Observe(identity, !state.accountOpen);
-                PaperNavigationMotion.Enter(screenHost, reason);
+                EnterPageHeader(reason);
                 renderedIdentity = identity;
             }
             else
@@ -483,6 +480,8 @@ namespace Tagtag.UI
             {
                 mapDirty = true;
             }
+            headerStringsHost.style.display = CelebrationActive ? DisplayStyle.None : DisplayStyle.Flex;
+            if (CelebrationActive) pageHeader?.Settle();
             RenderCelebration(state);
             ApplyTextScale();
             UpdateCameraInteraction();

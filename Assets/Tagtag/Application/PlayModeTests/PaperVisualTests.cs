@@ -327,9 +327,9 @@ namespace Tagtag.Tests
             Assert.That(controller.Camera.InteractionBlocked, Is.True, "The inventory must block all camera input.");
             var inventoryGrid = document.rootVisualElement.Q<VisualElement>("Sticker inventory grid");
             Assert.That(inventoryGrid, Is.Not.Null);
-            Assert.That(inventoryGrid.childCount, Is.EqualTo(5), "Four Taggi stickers and Add Sticker should form the initial inventory.");
+            Assert.That(inventoryGrid.childCount, Is.EqualTo(13), "Twelve Taggi stickers and Add Sticker should form the initial inventory.");
             Assert.That(inventoryGrid.resolvedStyle.flexDirection, Is.EqualTo(FlexDirection.Row));
-            Assert.That(inventoryGrid.childCount % 3, Is.EqualTo(2), "The final inventory row includes the Add Sticker tile.");
+            Assert.That(inventoryGrid.childCount % 3, Is.EqualTo(1), "The final inventory row includes the Add Sticker tile.");
             Assert.That(inventoryGrid[0].worldBound.yMin, Is.EqualTo(inventoryGrid[1].worldBound.yMin).Within(1f));
             Assert.That(inventoryGrid[1].worldBound.yMin, Is.EqualTo(inventoryGrid[2].worldBound.yMin).Within(1f));
             Assert.That(inventoryGrid[1].worldBound.xMin, Is.GreaterThan(inventoryGrid[0].worldBound.xMin));
@@ -339,11 +339,11 @@ namespace Tagtag.Tests
             Assert.That(document.rootVisualElement.Query<Label>().ToList().Any(label =>
                 label.text.StartsWith("Taggi pose ") || label.text.StartsWith("After choosing")), Is.False,
                 "Inventory artwork has no names or placement instructions.");
-            Assert.That(inventoryGrid[4].name, Is.EqualTo("Add Sticker"), "Add Sticker must follow the last sticker.");
+            Assert.That(inventoryGrid[12].name, Is.EqualTo("Add Sticker"), "Add Sticker must follow the last sticker.");
             foreach (var choice in document.rootVisualElement.Query<Button>().ToList().Where(button =>
-                button.name != null && button.name.StartsWith("Inventory Taggi pose ")))
+                button.name != null && button.name.StartsWith("Inventory ")))
             {
-                Assert.That(choice.Q<Image>(), Is.Not.Null, "Each inventory tile must show sticker artwork.");
+                Assert.That(choice.Q<Image>()?.image, Is.Not.Null, "Each inventory tile must show sticker artwork.");
                 Assert.That(choice.Query<Label>().ToList().Any(label => label.text.StartsWith("Taggi pose ")), Is.False);
             }
             Submit("Add Sticker");
@@ -502,7 +502,7 @@ namespace Tagtag.Tests
             Assert.That(collectedNumber, Is.Not.Null);
             Assert.That(collectedNumber.text, Is.EqualTo("0"));
             Assert.That(collectedNumber.resolvedStyle.fontSize, Is.GreaterThan(collectedCaption.resolvedStyle.fontSize * 1.5f));
-            var brand = document.rootVisualElement.Query<Label>().ToList().First(label => label.text == "Your sticker book");
+            var brand = document.rootVisualElement.Query<Label>().ToList().First(label => label.text == "Your Sticker Book");
             Assert.That(brand.resolvedStyle.unityFont, Is.SameAs(Resources.Load<Font>("Tagtag/Fonts/ShadowsIntoLight")));
             foreach (var label in document.rootVisualElement.Query<Label>(className: "nav-label").ToList())
                 Assert.That(label.resolvedStyle.unityFont, Is.SameAs(Resources.Load<Font>("Tagtag/Fonts/InstrumentSemibold")));
@@ -723,7 +723,7 @@ namespace Tagtag.Tests
             controller.Notify();
             yield return Capture("explore-error");
 
-            // Real preferences are applied by a fresh view, as on app restart.
+            // Legacy preferences must be ignored by a fresh view, as on app restart.
             document.panelSettings.targetTexture = null;
             UnityEngine.Object.Destroy(host);
             yield return null;
@@ -741,15 +741,18 @@ namespace Tagtag.Tests
             document.panelSettings.targetTexture = target;
             document.panelSettings.clearColor = true;
             document.panelSettings.colorClearValue = new Color32(218, 225, 222, 255);
-            yield return Capture("home-compact-largest-reduced-motion");
+            yield return Capture("home-compact-fixed-defaults");
             controller.State.accountOpen = true;
             controller.Notify();
-            yield return Capture("account-compact-largest-reduced-motion");
+            yield return Capture("account-compact-fixed-defaults");
+            Assert.That(document.rootVisualElement.Query<Label>().ToList().Any(label => label.text == "Reading and motion" || label.text == "Text size" || label.text == "Reduced motion"), Is.False);
+            Assert.That(document.rootVisualElement.Q(className: "reduced-motion"), Is.Null);
+            Assert.That(document.rootVisualElement.resolvedStyle.fontSize, Is.EqualTo(16f));
             controller.State.accountOpen = false;
             controller.State.selected = Sticker(0);
             controller.State.selected.teaser = new string('W', 180);
             controller.Navigate(AppPage.Explore);
-            yield return Capture("explore-compact-largest-long-clue");
+            yield return Capture("explore-compact-long-clue");
             var teaserScroll = document.rootVisualElement.Q<ScrollView>("Explore teaser scroll");
             Assert.That(teaserScroll, Is.Not.Null);
             foreach (var element in new VisualElement[] { document.rootVisualElement, teaserScroll.parent.parent.parent,
@@ -767,13 +770,13 @@ namespace Tagtag.Tests
             controller.Navigate(AppPage.Stick);
             for (int frame = 0; frame < 10; frame++) yield return null;
             Submit("Your Note");
-            yield return Capture("note-compact-largest-reduced-motion");
+            yield return Capture("note-compact-fixed-defaults");
             Submit("Close");
             yield return new WaitForSecondsRealtime(.4f);
             controller.Camera.CameraPresentation = CameraPresentationState.Live;
             controller.Camera.IsTracking = true;
             controller.Notify();
-            yield return Capture("camera-compact-largest-reduced-motion");
+            yield return Capture("camera-compact-fixed-defaults");
             AssertCenteredStickControls();
             var compactInventory = document.rootVisualElement.Q<Button>("STICK Inventory");
             Assert.That(compactInventory.worldBound.yMax, Is.LessThanOrEqualTo(document.rootVisualElement.worldBound.yMax));
@@ -781,7 +784,7 @@ namespace Tagtag.Tests
             Assert.That(document.rootVisualElement.Q("STICK camera dock").worldBound.yMin,
                 Is.GreaterThanOrEqualTo(document.rootVisualElement.Q("STICK camera header").worldBound.yMax));
             Submit("STICK Inventory");
-            yield return Capture("inventory-compact-largest-reduced-motion");
+            yield return Capture("inventory-compact-fixed-defaults");
             Submit("Close");
             yield return new WaitForSecondsRealtime(.4f);
             Submit("STICK Write note");
@@ -829,7 +832,7 @@ namespace Tagtag.Tests
         }
 
         [UnityTest]
-        public IEnumerator CompactLargeTextCreatorTilesKeepLabelsAndArtworkInsideTheirBounds()
+        public IEnumerator CompactCreatorTilesIgnoreLegacyTextSizeAndKeepContentInsideBounds()
         {
             oldScale = PlayerPrefs.GetFloat("tagtag.textScale", 1f);
             oldMotion = PlayerPrefs.GetInt("tagtag.reducedMotion", 0);
@@ -855,7 +858,7 @@ namespace Tagtag.Tests
                 var label = tile.Q<Label>();
                 Assert.That(art.image, Is.Not.Null);
                 Assert.That(label.text, Is.EqualTo(source));
-                Assert.That(label.resolvedStyle.fontSize, Is.GreaterThanOrEqualTo(19f));
+                Assert.That(label.resolvedStyle.fontSize, Is.EqualTo(14f));
                 Assert.That(tile.worldBound.xMin, Is.GreaterThanOrEqualTo(sheet.Scroll.worldBound.xMin - 1f));
                 Assert.That(tile.worldBound.xMax, Is.LessThanOrEqualTo(sheet.Scroll.worldBound.xMax + 1f));
                 Assert.That(art.worldBound.xMin, Is.GreaterThanOrEqualTo(tile.worldBound.xMin - 1f));
@@ -894,9 +897,9 @@ namespace Tagtag.Tests
             var inventorySheet = document.rootVisualElement.Q<PaperSheet>();
             var inventoryGrid = inventorySheet.Q<VisualElement>("Sticker inventory grid");
             Assert.That(inventoryGrid, Is.Not.Null);
-            Assert.That(inventoryGrid.childCount, Is.EqualTo(6), "Saved designs, four originals, and Add Sticker appear in the inventory.");
+            Assert.That(inventoryGrid.childCount, Is.EqualTo(14), "Saved designs, twelve originals, and Add Sticker appear in the inventory.");
             Assert.That(inventoryGrid[0].name, Is.EqualTo("Inventory Design creation-review-image"));
-            Assert.That(inventoryGrid[5].name, Is.EqualTo("Add Sticker"));
+            Assert.That(inventoryGrid[13].name, Is.EqualTo("Add Sticker"));
             Assert.That(inventorySheet.Query<Label>().ToList().Any(label => label.text == "An afternoon in Tokyo"), Is.False,
                 "Sticker names are hidden from the placement inventory.");
             Submit("Add Sticker");
@@ -1004,7 +1007,7 @@ namespace Tagtag.Tests
         }
 
         [UnityTest]
-        public IEnumerator LoginSupportsRetryCompactTextAndReducedMotion()
+        public IEnumerator LoginSupportsRetryAndIgnoresLegacyReadingPreferences()
         {
             oldScale = PlayerPrefs.GetFloat("tagtag.textScale", 1f);
             oldMotion = PlayerPrefs.GetInt("tagtag.reducedMotion", 0);
@@ -1018,7 +1021,7 @@ namespace Tagtag.Tests
             target = new RenderTexture(320, 568, 24);
             target.Create();
             document.panelSettings.targetTexture = target;
-            yield return Capture("login-compact-large-text");
+            yield return Capture("login-compact-fixed-defaults");
             var root = document.rootVisualElement;
             var apple = root.Q<Button>("Action Continue with Apple");
             var google = root.Q<Button>("Action Continue with Google");
@@ -1052,13 +1055,14 @@ namespace Tagtag.Tests
                 Assert.That(legalSheet.Scroll.Query<Label>().ToList().Count, Is.GreaterThan(5));
                 yield return Capture(title == "Privacy Policy" ? "login-privacy" : "login-terms");
                 Submit("Close");
-                yield return null; yield return null;
+                yield return new WaitForSecondsRealtime(.3f);
                 Assert.That(root.Q<PaperSheet>(), Is.Null);
                 Assert.That(root.Query<ScrollView>().ToList(), Is.Empty);
             }
-            Assert.That(host.GetComponent<UnityEngine.Video.VideoPlayer>(), Is.Null, "Reduced motion must not decode video.");
+            Assert.That(host.GetComponent<UnityEngine.Video.VideoPlayer>(), Is.Not.Null, "Legacy reduced motion must not disable login video.");
             Assert.That(apple.worldBound.width, Is.EqualTo(google.worldBound.width).Within(1f));
-            Assert.That(apple.resolvedStyle.height, Is.GreaterThanOrEqualTo(52));
+            Assert.That(apple.resolvedStyle.minHeight.value, Is.EqualTo(52f));
+            Assert.That(apple.resolvedStyle.height, Is.GreaterThanOrEqualTo(51f), "Allow subpixel panel rounding of the 52-point minimum.");
             Assert.That(google.worldBound.xMax, Is.LessThanOrEqualTo(root.worldBound.xMax));
             controller.State.busy = true;
             controller.State.status = "Opening Apple…";
@@ -1135,6 +1139,36 @@ namespace Tagtag.Tests
             Assert.That(host.GetComponent<LoginBackdrop>(), Is.Null);
             Assert.That(host.GetComponent<UnityEngine.Video.VideoPlayer>(), Is.Null);
             Assert.That(frame == null, Is.True, "Leaving login must release its render texture.");
+        }
+
+        [UnityTest]
+        public IEnumerator CompactInventoryScrollsToTwelfthStickerAndAddSticker()
+        {
+            oldScale = PlayerPrefs.GetFloat("tagtag.textScale", 1f);
+            oldMotion = PlayerPrefs.GetInt("tagtag.reducedMotion", 0);
+            controller = new ReviewController();
+            controller.State.user = new UserSession { uid = "preset-review" };
+            host = new GameObject("Compact default sticker inventory");
+            host.AddComponent<TagtagAppView>().Initialize(controller);
+            document = host.GetComponent<UIDocument>();
+            target = new RenderTexture(320, 568, 24);
+            target.Create();
+            document.panelSettings.targetTexture = target;
+            controller.OpenCreation();
+            yield return Capture("twelve-presets-compact-top");
+            var grid = document.rootVisualElement.Q<VisualElement>("Sticker inventory grid");
+            Assert.That(grid.childCount, Is.EqualTo(13));
+            var sheet = document.rootVisualElement.Q<PaperSheet>();
+            sheet.Scroll.ScrollTo(grid[12]);
+            yield return Capture("twelve-presets-compact-bottom");
+            Assert.That(sheet.Scroll.scrollOffset.y, Is.GreaterThan(0f));
+            foreach (int index in new[] { 11, 12 })
+            {
+                Assert.That(grid[index].worldBound.yMin, Is.GreaterThanOrEqualTo(sheet.Scroll.contentViewport.worldBound.yMin - 1f));
+                Assert.That(grid[index].worldBound.yMax, Is.LessThanOrEqualTo(sheet.Scroll.contentViewport.worldBound.yMax + 1f));
+            }
+            Submit("Inventory Thinking Taggi");
+            Assert.That(controller.State.selectedPreset, Is.EqualTo("taggi-12"));
         }
 
         private IEnumerator Capture(string name)

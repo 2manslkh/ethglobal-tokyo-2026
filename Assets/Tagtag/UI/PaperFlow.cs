@@ -76,14 +76,7 @@ namespace Tagtag.UI
             (!string.IsNullOrEmpty(state.selectedPreset) || !string.IsNullOrEmpty(state.selectedDesign));
         public static string PresetName(string presetId)
         {
-            switch (presetId)
-            {
-                case "taggi-1": return "Taggi pose 1";
-                case "taggi-2": return "Taggi pose 2";
-                case "taggi-3": return "Taggi pose 3";
-                case "taggi-4": return "Taggi pose 4";
-                default: return "Taggi";
-            }
+            return StickerPresets.DisplayName(presetId);
         }
         public static string DiscoveryGuidance(StickerSummary sticker)
         {

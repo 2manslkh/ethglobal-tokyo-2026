@@ -1058,7 +1058,7 @@ namespace Tagtag.AR
 
         private static bool IsPreset(string id)
         {
-            return id == "taggi-1" || id == "taggi-2" || id == "taggi-3" || id == "taggi-4";
+            return StickerPresets.Contains(id);
         }
 
         private static GameObject Child(string name, Transform parent)

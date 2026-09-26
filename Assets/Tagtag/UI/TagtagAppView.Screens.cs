@@ -26,18 +26,20 @@ namespace Tagtag.UI
             page.style.minHeight = 0f;
             page.style.backgroundColor = Paper;
             VisualElement heading = Row(page);
-            heading.style.paddingLeft = 24f;
+            heading.style.paddingLeft = 16f;
             heading.style.paddingRight = 20f;
-            heading.style.marginTop = 12f;
+            heading.style.flexShrink = 0f;
             heading.style.marginBottom = 8f;
             heading.style.alignItems = Align.Center;
             heading.style.justifyContent = Justify.SpaceBetween;
-            Text(heading, "Explore", 28, true);
+            HangingHeader(heading, "Explore", 28);
             Button recenter = Action(heading, "Recenter", () =>
             {
                 if (controller.State.location != null) controller.Map?.Recenter(controller.State.location);
                 else controller.RefreshNearby();
             }, false);
+            recenter.style.marginLeft = 12f;
+            recenter.style.flexShrink = 0f;
             SetDisabled(recenter, controller.Map == null);
             exploreLocationNotice = Text(page, "", 14, false, Muted);
             exploreLocationNotice.style.marginLeft = 24f;
@@ -245,22 +247,16 @@ namespace Tagtag.UI
             top.style.position = Position.Absolute;
             top.style.left = 12f;
             top.style.right = 12f;
-            top.style.top = 10f;
-            top.style.alignItems = Align.FlexStart;
+            top.style.top = 0f;
+            top.style.alignItems = Align.Center;
             stickCloseButton = new PaperIconButton("Close camera", "close", CloseCamera);
             top.Add(stickCloseButton);
             stickCloseButton.name = "STICK Close";
             stickCloseButton.AddToClassList("camera-close");
             PaperDottedOutline.DecorateCircular(stickCloseButton);
-            VisualElement topContent = Column(top);
-            topContent.style.flexGrow = 1f;
-            topContent.style.minWidth = 0f;
-            VisualElement topCard = Column(topContent);
-            topCard.name = "STICK title sticker";
-            topCard.AddToClassList("camera-title-sticker");
-            topCard.Add(new PaperDottedOutline(false));
-            stickModeTitle = Text(topCard, "STICK", 23, true);
-            stickModeTitle.style.unityTextAlign = TextAnchor.MiddleCenter;
+            var titleSign = HangingHeader(top, "Place Sticker", 28);
+            titleSign.name = "STICK title sticker";
+            stickModeTitle = titleSign.Title;
             VisualElement dock = Column(page);
             dock.name = "STICK camera dock";
             dock.style.position = Position.Absolute;
@@ -418,7 +414,7 @@ namespace Tagtag.UI
             PaperStickState placement = PaperFlow.StickPlacement(state, ar?.IsTracking ?? false,
                 ar?.HasPlacementSurface ?? false, ar?.HasPlacementPreview ?? false,
                 ar?.PlacementBusy ?? false);
-            stickModeTitle.text = selected ? placement.Title : state.selected != null ? "Find sticker" : "STICK";
+            stickModeTitle.text = selected ? placement.Title : state.selected != null ? "Find sticker" : "Place Sticker";
             stickScanProgress.style.display = selected ? DisplayStyle.Flex : DisplayStyle.None;
             stickScanLabel.style.display = selected ? DisplayStyle.Flex : DisplayStyle.None;
             bool trackingPaused = selected && ar != null &&

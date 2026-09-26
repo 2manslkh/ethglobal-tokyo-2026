@@ -74,3 +74,28 @@ after health (200) and unauthenticated collection (401) checks. Both checks
 passed again at the public app URL. The backend suite passed 79 tests with
 one emulator-only test skipped; the quota test accepts ten publications and
 rejects the eleventh. Existing app builds receive this server-side change.
+
+## Twelve Taggi presets rollout
+
+On 2026-09-26, backend commit `4437920` was deployed from an immutable source
+snapshot. Cloud Build `fb5837a9-b73d-4e8e-b228-07fedde15955` succeeded and
+revision `tagtag-api-taggi12-4437920` passed checks at zero traffic before
+promotion to 100%. The previous production revision is `tagtag-api-00013-bed`.
+
+The API accepts the exact preset IDs `taggi-1` through `taggi-12`; the added
+presets map to generic NFT variant 0 if minting is enabled later. NFT minting
+remains disabled. Existing runtime environment, service account, and resource
+settings were preserved. The fresh backend suite passed 82 tests with no failures
+and one emulator-only test skipped.
+
+Candidate and public app URLs both passed seven checks: health (200), anonymous
+collection/design listing/publication prepare (401), precise and 5,000-metre
+nearby browsing (200), and 5,001-metre browsing rejection (400). No test content
+was created. Authenticated publication of the new presets was tested locally;
+these production smoke checks do not verify an authenticated publish journey.
+
+The `tagtag-cleanup` job now uses the exact API image digest
+`sha256:98b0864aebbb113b0d37ab9a1c93cf0ac2263345fa3aedd819d01f51200f7df9`.
+Its command, environment and runtime identity are unchanged; no manual cleanup
+execution was triggered. No error-severity logs were returned for the new API
+revision during the post-promotion check.

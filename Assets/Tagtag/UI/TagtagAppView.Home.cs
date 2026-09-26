@@ -121,19 +121,11 @@ namespace Tagtag.UI
             homeContents.Reset();
             homeDesignContents.Reset();
             homePlacedContents.Reset();
-            homeScroll = PaperScroll(screenHost);
-            homeScroll.name = "Home scroll";
-            homeScroll.verticalScroller.valueChanged += _ => MaybeLoadMorePlacements();
-            VisualElement page = Column(homeScroll.contentContainer);
-            page.style.paddingLeft = 20f;
-            page.style.paddingRight = 20f;
-            page.style.paddingBottom = 22f;
-            VisualElement heading = Row(page);
+            VisualElement heading = Row(screenHost);
+            heading.style.flexShrink = 0f;
+            heading.style.paddingLeft = heading.style.paddingRight = 16f;
             heading.style.alignItems = Align.Center;
-            heading.style.marginTop = 16f;
-            Label title = Text(heading, "Your sticker book", 30, true);
-            title.style.flexGrow = 1f;
-            title.style.minWidth = 0f;
+            HangingHeader(heading, "Your Sticker Book");
             homeProfileButton = new PaperIconButton(SignedIn(state) ? "Account settings" : "Sign in", "profile", () =>
             {
                 accountScreen = SignedIn(controller.State) ? AccountScreen.Overview : AccountScreen.SignIn;
@@ -142,7 +134,13 @@ namespace Tagtag.UI
             homeProfileButton.name = "Home Profile";
             homeProfileButton.style.marginLeft = 8f;
             heading.Add(homeProfileButton);
-            title.style.marginBottom = 3f;
+            homeScroll = PaperScroll(screenHost);
+            homeScroll.name = "Home scroll";
+            homeScroll.verticalScroller.valueChanged += _ => MaybeLoadMorePlacements();
+            VisualElement page = Column(homeScroll.contentContainer);
+            page.style.paddingLeft = 20f;
+            page.style.paddingRight = 20f;
+            page.style.paddingBottom = 22f;
             VisualElement summary = Row(page);
             summary.style.alignItems = Align.Center;
             summary.style.justifyContent = Justify.SpaceBetween;
