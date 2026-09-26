@@ -321,3 +321,14 @@ Use the updated [device test guide](CREATOR_SCAN_TEST_GUIDE.md), including share
 - Separate ARKit preparation, Unity iOS export, and unsigned device Xcode Debug build passed. The final IL2CPP Simulator export and Xcode build also passed.
 - Login was installed and launched in **iPhone 17 Pro / iOS 26.2** and **iPhone SE (3rd generation) / iOS 18.5** simulators. Standard, compact, dark appearance, and enlarged-text captures are linked in the [verification record](verification/login/README.md). Changing pixels across native captures confirm video playback.
 - Physical-device provider authentication, playback, and cancellation are **not verified** for this revision. The verification record includes the manual steps. No physical-device installation or account sign-in was performed.
+
+
+## Combined main installation — 2026-09-26
+
+- Merged login with the current Home/Explore UI in `53dfc4f`, then integrated map accuracy fix `8041ecb` as `e1c26f2`. The signed installed binary was built from `e1c26f2`; subsequent commits are documentation only.
+- Combined validation: **198 Edit Mode passed**, **72 backend passed / 1 emulator-only skipped**. The login/current-UI merge passed **23 Play Mode tests** before the map policy cherry-pick; the map changes then passed the full combined Edit Mode/backend suites.
+- Preserved map mounting before GPS resolves, map target/recenter behavior, camera selected-artwork touch blocking, and required sign-in. Initialized restored placement identity before the first controller update so an existing map selection is not cleared as an account transition.
+- Separate ARKit preparation, fresh Unity iOS export, and signed Xcode Debug build succeeded with development team `5Y6QUA9GA6`.
+- CoreDevice installed over the existing app on **Dawg., iPhone 15 Pro Max**, UDID `00008130-001420500E41001C`, and launched `com.kenk.tagtag`; both commands exited 0. No uninstall, data reset, or sign-in bypass was performed.
+- Logs: `/tmp/tagtag-login-work/main-prepare.log`, `main-export.log`, `main-signed.log`, `main-install.log`, and `main-launch.log`. Integrated test results: `integrated-edit.xml`, `integrated-backend.log`, and `merge-play-final.xml` in that directory.
+- Installation and launch are verified. The user must sign in normally and open Explore for interactive map verification; the map owner has filtered location logging active. Actual provider authentication and physical-device video/Explore acceptance remain pending.
