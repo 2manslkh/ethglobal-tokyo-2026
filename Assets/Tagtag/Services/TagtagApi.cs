@@ -10,7 +10,9 @@ namespace Tagtag.Services
     public sealed class ApiFailure : Exception
     {
         public readonly long Status;
-        public ApiFailure(string message, long status = 0) : base(message) { Status = status; }
+        public readonly bool LocationSettingsRequired;
+        public ApiFailure(string message, long status = 0, bool locationSettingsRequired = false) : base(message)
+        { Status = status; LocationSettingsRequired = locationSettingsRequired; }
     }
 
     public sealed class TagtagApi
