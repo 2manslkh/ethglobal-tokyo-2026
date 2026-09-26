@@ -96,7 +96,7 @@ namespace Tagtag.UI
             }
             Action(content, "Continue exploring", () =>
             {
-                if (returnAfterSignIn == Sheet.Picker) controller.CloseCreation();
+                if (returnAfterSignIn == Sheet.Picker || returnAfterSignIn == Sheet.Creator) controller.CloseCreation();
                 AbandonSignInReturn();
                 controller.SetAccountOpen(false);
             }, false).style.marginTop = 20f;
@@ -384,7 +384,7 @@ namespace Tagtag.UI
         private readonly PresenterCache creationLibraryContents = new PresenterCache();
         private readonly List<Button> creationSelectButtons = new List<Button>();
         private readonly List<Button> creationDeleteButtons = new List<Button>();
-        private readonly List<PaperSelection> creationPresetChoices = new List<PaperSelection>();
+        private readonly List<Button> inventoryChoices = new List<Button>();
         private VisualElement creationLibraryHost;
         private Button creationImportButton, creationCameraButton, creationAiButton;
         private Button creationRetryButton, creationRefreshButton;
@@ -400,7 +400,7 @@ namespace Tagtag.UI
             scrim.AddToClassList("sheet-scrim");
             scrim.RegisterCallback<PointerDownEvent>(_ => RequestCloseSheet());
             overlayHost.Add(scrim);
-            string title = sheet == Sheet.Picker ? "My Stickers" : sheet == Sheet.DeleteDesign ? "Remove sticker" : sheet == Sheet.Note ? "Write note" :
+            string title = sheet == Sheet.Picker ? "My Stickers" : sheet == Sheet.Creator ? "Add Sticker" : sheet == Sheet.DeleteDesign ? "Remove sticker" : sheet == Sheet.Note ? "Write note" :
                 sheet == Sheet.Collected ? "Collected sticker" : sheet == Sheet.Report ? "Report sticker" :
                 sheet == Sheet.Withdraw ? "Withdraw sticker" : "Block author";
             Sheet openedSheet = sheet;
@@ -409,7 +409,7 @@ namespace Tagtag.UI
                 () => FocusSheetTrigger(openedSheet) : openedSheet == Sheet.Collected ?
                 () => FocusCollectedCell(collectedId) : null;
             sheetView = new PaperSheet(title, CloseSheet, reducedMotion, returnFocus, "Close");
-            if (sheet == Sheet.Picker)
+            if (sheet == Sheet.Picker || sheet == Sheet.Creator)
             {
                 sheetView.style.flexDirection = FlexDirection.Column;
                 sheetView.Grip.style.flexShrink = 0f;
@@ -431,12 +431,13 @@ namespace Tagtag.UI
             publishReadinessLabel = null;
             sheetDetailHost = null;
             creationLibraryHost = null;
-            creationPresetChoices.Clear();
+            inventoryChoices.Clear();
             creationImportButton = creationCameraButton = creationAiButton = null;
             creationRetryButton = creationRefreshButton = null;
             creationImportNotice = creationCameraNotice = creationAiNotice = null;
             creationCutoutNotice = creationSaveNotice = null;
             if (sheet == Sheet.Picker) BuildPickerSheet(content, state);
+            else if (sheet == Sheet.Creator) BuildCreatorSheet(content, state);
             else if (sheet == Sheet.DeleteDesign) BuildDeleteDesignSheet(content, state);
             else if (sheet == Sheet.Note) BuildNoteSheet(content, state);
             else if (sheet == Sheet.Collected)
@@ -482,8 +483,86 @@ namespace Tagtag.UI
 
         private void BuildPickerSheet(VisualElement content, AppState state)
         {
-            Text(content, "Make a sticker, or choose one to leave at a place.", 16, false, Muted).style.marginBottom = 12f;
-            Text(content, "Make a sticker", 21, true);
+            VisualElement grid = new VisualElement { name = "Sticker inventory grid" };
+            grid.style.flexDirection = FlexDirection.Row;
+            grid.style.flexWrap = Wrap.Wrap;
+            grid.style.justifyContent = Justify.FlexStart;
+            content.Add(grid);
+            foreach (StickerDesign design in state.designs)
+            {
+                if (design == null || string.IsNullOrEmpty(design.id)) continue;
+                string designId = design.id;
+                bool canUse = SignedIn(state) ? design.ownerId == state.user.uid : string.IsNullOrEmpty(design.ownerId);
+                PaperSelection choice = new PaperSelection("", state.selectedDesign == designId, () => controller.SelectDesign(designId));
+                choice.name = "Inventory Design " + designId;
+                choice.tooltip = "Select " + Safe(design.name, "sticker");
+                StyleInventoryTile(choice);
+                Image art = Art(choice, design, 76f);
+                art.pickingMode = PickingMode.Ignore;
+                choice.userData = canUse;
+                SetDisabled(choice, state.busy || !canUse);
+                grid.Add(choice);
+                inventoryChoices.Add(choice);
+            }
+            for (int index = 0; index < Presets.Length; index++)
+            {
+                string preset = Presets[index];
+                string presetName = PaperFlow.PresetName(preset);
+                PaperSelection choice = new PaperSelection("", state.selectedPreset == preset, () => controller.SelectPreset(preset));
+                choice.name = "Inventory " + presetName;
+                choice.tooltip = "Select " + presetName;
+                StyleInventoryTile(choice);
+                Image art = Art(choice, preset, 76f);
+                art.pickingMode = PickingMode.Ignore;
+                choice.userData = true;
+                SetDisabled(choice, state.busy);
+                grid.Add(choice);
+                inventoryChoices.Add(choice);
+            }
+            Button add = Action(grid, "Add Sticker", () =>
+            {
+                sheet = Sheet.Creator;
+                QueueRender();
+            }, false);
+            add.name = "Add Sticker";
+            add.tooltip = "Create a sticker";
+            StyleInventoryTile(add);
+            add.style.unityTextAlign = TextAnchor.MiddleCenter;
+            add.style.whiteSpace = WhiteSpace.Normal;
+        }
+
+        private void RefreshPicker(AppState state)
+        {
+            foreach (Button choice in inventoryChoices)
+                SetDisabled(choice, state.busy || !(choice.userData is bool canUse && canUse));
+        }
+
+        private void StyleInventoryTile(VisualElement tile)
+        {
+            tile.style.width = Length.Percent(31.5f);
+            tile.style.flexBasis = Length.Percent(31.5f);
+            tile.style.flexGrow = 0f;
+            tile.style.flexShrink = 0f;
+            tile.style.minHeight = textScale > 1.2f ? 112f : 104f;
+            tile.style.marginRight = Length.Percent(1.5f);
+            tile.style.marginBottom = 8f;
+            tile.style.paddingLeft = 4f;
+            tile.style.paddingRight = 4f;
+            tile.style.alignItems = Align.Center;
+            tile.style.justifyContent = Justify.Center;
+        }
+
+        private void BuildCreatorSheet(VisualElement content, AppState state)
+        {
+            Button back = Action(content, "Back to stickers", () =>
+            {
+                sheet = Sheet.Picker;
+                QueueRender();
+            }, false);
+            back.name = "Back to stickers";
+            back.style.alignSelf = Align.FlexStart;
+            back.style.marginBottom = 14f;
+            Text(content, "Create a sticker", 21, true);
             creationImportButton = Action(content, "Choose a photo or file", () => controller.CreateSticker("import"));
             PaperDottedOutline.Decorate(creationImportButton);
             creationImportButton.style.marginTop = 10f;
@@ -516,43 +595,6 @@ namespace Tagtag.UI
             creationLibraryHost = Column(content);
             creationLibraryContents.Reset();
             RefreshCreation(state);
-            Divider(content);
-            Text(content, "Taggi originals", 21, true).style.marginBottom = 8f;
-            VisualElement grid = Column(content);
-            for (int index = 0; index < Presets.Length; index++)
-            {
-                string preset = Presets[index];
-                VisualElement row = index % 2 == 0 ? Row(grid) : grid.ElementAt(grid.childCount - 1);
-                row.style.justifyContent = Justify.SpaceBetween;
-                string presetName = PaperFlow.PresetName(preset);
-                PaperSelection choice = new PaperSelection("",
-                    state.selectedPreset == preset, () =>
-                    {
-                        controller.SelectPreset(preset);
-                    });
-                choice.name = "Inventory " + presetName;
-                PaperDottedOutline.Decorate(choice);
-                choice.tooltip = "Select " + presetName;
-                choice.style.width = Length.Percent(48f);
-                choice.style.minHeight = textScale > 1.2f ? 158f : 142f;
-                choice.style.flexDirection = FlexDirection.Column;
-                choice.style.alignItems = Align.Center;
-                choice.style.justifyContent = Justify.Center;
-                choice.style.unityTextAlign = TextAnchor.MiddleCenter;
-                choice.style.paddingLeft = 8f;
-                choice.style.paddingRight = 8f;
-                choice.style.marginBottom = 8f;
-                Image art = Art(choice, preset, textScale > 1.2f ? 72f : 80f);
-                art.pickingMode = PickingMode.Ignore;
-                Label title = Text(choice, presetName, 14, true);
-                title.style.unityTextAlign = TextAnchor.MiddleCenter;
-                title.style.marginTop = 6f;
-                title.pickingMode = PickingMode.Ignore;
-                row.Add(choice);
-                creationPresetChoices.Add(choice);
-            }
-            Text(content, "After choosing, tap a surface. Drag to move, pinch to resize, or twist to rotate.",
-                14, false, Muted).style.marginTop = 12f;
         }
 
         private void RefreshCreation(AppState state)
@@ -580,8 +622,6 @@ namespace Tagtag.UI
             creationRetryButton.text = SignedIn(state) ? "Retry saving sticker" : "Sign in to save";
             SetDisabled(creationRetryButton, state.busy);
             SetDisabled(creationRefreshButton, state.busy || state.designsLoading || !SignedIn(state));
-            foreach (PaperSelection choice in creationPresetChoices) choice.SetEnabled(!state.busy);
-
             string key = state.user?.uid + ":" + state.selectedDesign + ":" + state.designsLoading;
             foreach (StickerDesign design in state.designs)
                 if (design != null) key += ":" + design.id + ":" + design.revision + ":" + design.name +
@@ -669,7 +709,7 @@ namespace Tagtag.UI
             {
                 controller.DeleteDesign(sheetDesignId);
                 sheetDesignId = null;
-                sheet = Sheet.Picker;
+                sheet = Sheet.Creator;
                 QueueRender();
             });
             remove.AddToClassList("danger");
@@ -678,7 +718,7 @@ namespace Tagtag.UI
             Action(content, "Keep design", () =>
             {
                 sheetDesignId = null;
-                sheet = Sheet.Picker;
+                sheet = Sheet.Creator;
                 QueueRender();
             }, false).style.marginTop = 8f;
         }
@@ -728,7 +768,8 @@ namespace Tagtag.UI
                 RefreshPublish(state);
             }
             if (sheet == Sheet.Collected) RefreshCollectedDetail(state);
-            if (sheet == Sheet.Picker) RefreshCreation(state);
+            if (sheet == Sheet.Picker) RefreshPicker(state);
+            if (sheet == Sheet.Creator) RefreshCreation(state);
             if (sheetSubmitButton != null) SetDisabled(sheetSubmitButton, state.busy);
             foreach (PaperSelection choice in reportChoices)
                 choice.SetSelected(choice.userData is string reason && reason == selectedReportReason);
@@ -798,7 +839,7 @@ namespace Tagtag.UI
             if (float.IsNaN(root.layout.height) || float.IsInfinity(root.layout.height) || root.layout.height <= 0f || Screen.height <= 0)
             {
                 sheetView.style.maxHeight = Length.Percent(82f);
-                if (sheet == Sheet.Picker)
+                if (sheet == Sheet.Picker || sheet == Sheet.Creator)
                 {
                     sheetView.style.top = Length.Percent(18f);
                     sheetView.style.bottom = StyleKeyword.Auto;
@@ -809,7 +850,7 @@ namespace Tagtag.UI
             float scale = root.layout.height / Screen.height;
             float topInset = (Screen.height - Screen.safeArea.yMax) * scale;
             float available = Mathf.Max(180f, root.layout.height - SheetBottom() - topInset - 8f);
-            if (sheet != Sheet.Picker)
+            if (sheet != Sheet.Picker && sheet != Sheet.Creator)
             {
                 sheetView.style.maxHeight = available;
                 return;
@@ -920,11 +961,11 @@ namespace Tagtag.UI
             if (sheet == Sheet.DeleteDesign && controller.State.creationOpen)
             {
                 sheetDesignId = null;
-                sheet = Sheet.Picker;
+                sheet = Sheet.Creator;
                 QueueRender();
                 return;
             }
-            if (sheet == Sheet.Picker) controller.CloseCreation();
+            if (sheet == Sheet.Picker || sheet == Sheet.Creator) controller.CloseCreation();
             if (sheet == Sheet.Collected && controller.State.detail != null) controller.CloseDetail();
             sheet = Sheet.None;
             sheetStickerId = null;

@@ -9,7 +9,7 @@ namespace Tagtag.UI
     public sealed partial class TagtagAppView : MonoBehaviour
     {
         private enum AccountScreen { Overview, SignIn, Authored, DeleteConfirmation }
-        private enum Sheet { None, Picker, DeleteDesign, Note, Collected, Report, Block, Withdraw }
+        private enum Sheet { None, Picker, Creator, DeleteDesign, Note, Collected, Report, Block, Withdraw }
 
         private static readonly Color Paper = new Color32(255, 254, 250, 255);
         private static readonly Color Ink = new Color32(32, 32, 30, 255);
@@ -321,7 +321,7 @@ namespace Tagtag.UI
 
             AppState state = controller.State;
             if (state.creationOpen && !state.accountOpen && sheet == Sheet.None) sheet = Sheet.Picker;
-            if (!state.creationOpen && (sheet == Sheet.Picker || sheet == Sheet.DeleteDesign)) sheet = Sheet.None;
+            if (!state.creationOpen && (sheet == Sheet.Picker || sheet == Sheet.Creator || sheet == Sheet.DeleteDesign)) sheet = Sheet.None;
             if (state.accountOpen && !SignedIn(state) && accountScreen != AccountScreen.SignIn)
             {
                 accountScreen = AccountScreen.SignIn;
@@ -399,7 +399,7 @@ namespace Tagtag.UI
                 overlayHost.Clear();
                 artworkNotices.Clear();
                 bool hideCreationSheet = state.accountOpen &&
-                    (sheet == Sheet.Picker || sheet == Sheet.DeleteDesign);
+                    (sheet == Sheet.Picker || sheet == Sheet.Creator || sheet == Sheet.DeleteDesign);
                 if (sheet != Sheet.None && !hideCreationSheet) BuildSheet(state);
                 else
                 {
@@ -602,7 +602,7 @@ namespace Tagtag.UI
 
         private void OpenSignIn()
         {
-            if (sheet == Sheet.Note || sheet == Sheet.Picker || sheet == Sheet.Report || sheet == Sheet.Block)
+            if (sheet == Sheet.Note || sheet == Sheet.Picker || sheet == Sheet.Creator || sheet == Sheet.Report || sheet == Sheet.Block)
             {
                 returnAfterSignIn = sheet;
                 returnStickerId = sheetStickerId;

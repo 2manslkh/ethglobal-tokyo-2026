@@ -255,16 +255,34 @@ namespace Tagtag.Tests
             Submit("STICK Inventory");
             yield return Capture("camera-inventory");
             Assert.That(controller.Camera.InteractionBlocked, Is.True, "The inventory must block all camera input.");
-            Assert.That(document.rootVisualElement.Query<Button>().ToList().Count(button =>
-                button.name != null && button.name.StartsWith("Inventory Taggi pose ")), Is.EqualTo(4));
+            var inventoryGrid = document.rootVisualElement.Q<VisualElement>("Sticker inventory grid");
+            Assert.That(inventoryGrid, Is.Not.Null);
+            Assert.That(inventoryGrid.childCount, Is.EqualTo(5), "Four Taggi stickers and Add Sticker should form the initial inventory.");
+            Assert.That(inventoryGrid.resolvedStyle.flexDirection, Is.EqualTo(FlexDirection.Row));
+            Assert.That(inventoryGrid.childCount % 3, Is.EqualTo(2), "The final inventory row includes the Add Sticker tile.");
+            Assert.That(inventoryGrid[0].worldBound.yMin, Is.EqualTo(inventoryGrid[1].worldBound.yMin).Within(1f));
+            Assert.That(inventoryGrid[1].worldBound.yMin, Is.EqualTo(inventoryGrid[2].worldBound.yMin).Within(1f));
+            Assert.That(inventoryGrid[1].worldBound.xMin, Is.GreaterThan(inventoryGrid[0].worldBound.xMin));
+            Assert.That(inventoryGrid[2].worldBound.xMin, Is.GreaterThan(inventoryGrid[1].worldBound.xMin));
+            Assert.That(inventoryGrid[3].worldBound.yMin, Is.GreaterThan(inventoryGrid[0].worldBound.yMin),
+                "The fourth sticker wraps to the next row, confirming three columns.");
+            Assert.That(document.rootVisualElement.Query<Label>().ToList().Any(label =>
+                label.text.StartsWith("Taggi pose ") || label.text.StartsWith("After choosing")), Is.False,
+                "Inventory artwork has no names or placement instructions.");
+            Assert.That(inventoryGrid[4].name, Is.EqualTo("Add Sticker"), "Add Sticker must follow the last sticker.");
             foreach (var choice in document.rootVisualElement.Query<Button>().ToList().Where(button =>
                 button.name != null && button.name.StartsWith("Inventory Taggi pose ")))
             {
-                var artwork = choice.Q<Image>();
-                var caption = choice.Query<Label>().ToList().FirstOrDefault(label => label.text.StartsWith("Taggi pose "));
-                Assert.That(caption, Is.Not.Null, "Inventory captions must occupy their own layout below the art.");
-                Assert.That(caption.worldBound.yMin, Is.GreaterThanOrEqualTo(artwork.worldBound.yMax - 1f));
+                Assert.That(choice.Q<Image>(), Is.Not.Null, "Each inventory tile must show sticker artwork.");
+                Assert.That(choice.Query<Label>().ToList().Any(label => label.text.StartsWith("Taggi pose ")), Is.False);
             }
+            Submit("Add Sticker");
+            yield return Capture("camera-create-sticker");
+            Assert.That(document.rootVisualElement.Query<Button>().ToList().Any(button => button.text == "Choose a photo or file"), Is.True);
+            Assert.That(document.rootVisualElement.Query<Button>().ToList().Any(button => button.text == "Make a Polaroid"), Is.True);
+            Assert.That(document.rootVisualElement.Query<Button>().ToList().Any(button => button.text == "Create with Image Playground"), Is.True);
+            Submit("Back to stickers");
+            yield return Capture("camera-inventory-return");
             Submit("Inventory Taggi pose 2");
             yield return Capture("camera-finding-surface");
             Assert.That(controller.State.selectedPreset, Is.EqualTo("taggi-2"));
@@ -726,6 +744,16 @@ namespace Tagtag.Tests
             document.panelSettings.targetTexture = target;
             controller.OpenCreation();
             yield return new WaitForSecondsRealtime(.4f);
+            var inventorySheet = document.rootVisualElement.Q<PaperSheet>();
+            var inventoryGrid = inventorySheet.Q<VisualElement>("Sticker inventory grid");
+            Assert.That(inventoryGrid, Is.Not.Null);
+            Assert.That(inventoryGrid.childCount, Is.EqualTo(6), "Saved designs, four originals, and Add Sticker appear in the inventory.");
+            Assert.That(inventoryGrid[0].name, Is.EqualTo("Inventory Design creation-review-image"));
+            Assert.That(inventoryGrid[5].name, Is.EqualTo("Add Sticker"));
+            Assert.That(inventorySheet.Query<Label>().ToList().Any(label => label.text == "An afternoon in Tokyo"), Is.False,
+                "Sticker names are hidden from the placement inventory.");
+            Submit("Add Sticker");
+            yield return new WaitForSecondsRealtime(.4f);
             var creationSheet = document.rootVisualElement.Q<PaperSheet>();
             Assert.That(creationSheet.Q<Label>(className: "sheet-title").worldBound.yMin, Is.GreaterThanOrEqualTo(0f),
                 "root=" + document.rootVisualElement.worldBound + " sheet=" + creationSheet.worldBound +
@@ -737,8 +765,12 @@ namespace Tagtag.Tests
                 "The complete sheet must stay within the viewport so every design is reachable by scrolling.");
             creationSheet.Scroll.scrollOffset = Vector2.zero;
             yield return Capture("my-stickers-sources");
+            Assert.That(creationSheet.Q<Button>("Back to stickers"), Is.Not.Null);
             Assert.That(document.rootVisualElement.Query<Button>().ToList().Any(button => button.text == "Make a Polaroid"), Is.True);
             Assert.That(document.rootVisualElement.Query<Button>().ToList().Any(button => button.text == "Create with Image Playground"), Is.True);
+            Assert.That(document.rootVisualElement.Query<Label>().ToList().Any(label => label.text == "An afternoon in Tokyo"), Is.True,
+                "Creator management retains names to identify saved designs.");
+            Assert.That(document.rootVisualElement.Query<Button>().ToList().Any(button => button.text == "Remove from My Stickers"), Is.True);
             var art = document.rootVisualElement.Q<Image>("Sticker artwork creation-review-image");
             Assert.That(art, Is.Not.Null);
             Assert.That(art.image, Is.Not.Null);
@@ -749,6 +781,10 @@ namespace Tagtag.Tests
             creationSheet.Scroll.scrollOffset = Vector2.zero;
             yield return Capture("my-stickers-pending-save");
             Assert.That(document.rootVisualElement.Query<Button>().ToList().Any(button => button.text == "Retry saving sticker"), Is.True);
+            Submit("Back to stickers");
+            yield return new WaitForSecondsRealtime(.4f);
+            Assert.That(document.rootVisualElement.Q<VisualElement>("Sticker inventory grid"), Is.Not.Null,
+                "Back returns to the inventory without closing the creation session.");
             StickerArtwork.Forget("creation-review-image");
         }
 
