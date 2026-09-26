@@ -168,8 +168,8 @@ namespace Tagtag.UI
         private Button stickSelectedArtworkButton;
         private string stickSelectedArtworkKey;
         private bool stickSelectedArtworkPointerHeld;
-        private VisualElement stickScanProgress;
-        private readonly List<VisualElement> stickScanStages = new List<VisualElement>();
+        private PaperScanProgress stickScanProgress;
+        private Label stickScanLabel;
         private Label stickScanRecovery;
         private VisualElement discoveryStatusHost;
         private Label noteScanGuidance;
@@ -267,16 +267,7 @@ namespace Tagtag.UI
             dock.style.left = 12f;
             dock.style.right = 12f;
             dock.style.bottom = 12f;
-            dock.style.paddingLeft = 12f;
-            dock.style.paddingRight = 12f;
-            dock.style.paddingTop = 8f;
-            dock.style.paddingBottom = 8f;
-            dock.style.backgroundColor = Paper;
-            dock.style.borderTopLeftRadius = 20f;
-            dock.style.borderTopRightRadius = 20f;
-            dock.style.borderBottomLeftRadius = 20f;
-            dock.style.borderBottomRightRadius = 20f;
-            PaperDottedOutline.Decorate(dock, container: true);
+            dock.pickingMode = PickingMode.Ignore;
             // Keep recovery content scrollable between the independently sized overlays.
             void LayoutRecovery()
             {
@@ -286,42 +277,53 @@ namespace Tagtag.UI
             top.RegisterCallback<GeometryChangedEvent>(_ => LayoutRecovery());
             dock.RegisterCallback<GeometryChangedEvent>(_ => LayoutRecovery());
             page.RegisterCallback<GeometryChangedEvent>(_ => LayoutRecovery());
-            stickScanProgress = Row(dock);
-            stickScanProgress.name = "STICK scan progress";
-            stickScanProgress.style.marginBottom = 8f;
-            stickScanStages.Clear();
-            for (int index = 0; index < PaperScan.StageCount; index++)
-            {
-                VisualElement stage = Column(stickScanProgress);
-                stage.name = "STICK scan stage " + index;
-                stage.style.flexGrow = 1f;
-                stage.style.flexBasis = 0f;
-                stage.style.minWidth = 0f;
-                stage.style.marginRight = index == PaperScan.StageCount - 1 ? 0f : 4f;
-                VisualElement mark = new VisualElement { name = "Scan mark" };
-                mark.style.height = 5f;
-                mark.style.borderTopLeftRadius = 3f;
-                mark.style.borderTopRightRadius = 3f;
-                mark.style.borderBottomLeftRadius = 3f;
-                mark.style.borderBottomRightRadius = 3f;
-                stage.Add(mark);
-                Label label = Text(stage, PaperScan.Label(index), 10, true);
-                label.style.unityTextAlign = TextAnchor.UpperCenter;
-                label.style.marginTop = 4f;
-                label.style.minHeight = textScale > 1.2f ? 34f : 26f;
-                stickScanStages.Add(stage);
-            }
             stickScanRecovery = Text(dock, "", 12, false, Muted);
             stickScanRecovery.name = "STICK scan recovery";
+            stickScanRecovery.AddToClassList("camera-notice");
             stickScanRecovery.style.unityTextAlign = TextAnchor.MiddleCenter;
             stickScanRecovery.style.marginBottom = 6f;
             discoveryStatusHost = Column(dock);
             discoveryStatusHost.name = "Discovery status";
+            discoveryStatusHost.AddToClassList("camera-notice");
             AddStatus(discoveryStatusHost, state);
             stickActions = Row(dock);
+            stickActions.pickingMode = PickingMode.Ignore;
             stickActions.style.alignItems = Align.Center;
-            stickActions.style.justifyContent = Justify.SpaceBetween;
-            stickInventoryButton = Action(stickActions, "STICK", controller.OpenCreation);
+            stickActions.style.justifyContent = Justify.Center;
+            stickActions.style.flexWrap = Wrap.Wrap;
+            stickWriteButton = Action(stickActions, "Your Note", () => { sheet = Sheet.Note; QueueRender(); });
+            stickWriteButton.name = "STICK Write note";
+            PaperDottedOutline.Decorate(stickWriteButton, capsule: true);
+            stickRetryButton = Action(stickActions, "Retry AR search", controller.StartDiscovery, false);
+            stickRetryButton.name = "STICK Retry AR search";
+            stickCancelButton = Action(stickActions, "Cancel placement", controller.CancelPlacement, false);
+            foreach (Button action in new[] { stickWriteButton, stickRetryButton, stickCancelButton })
+            {
+                action.style.flexGrow = 1f;
+                action.style.flexBasis = Length.Percent(40f);
+                action.style.minWidth = 0f;
+                action.style.marginLeft = 3f;
+                action.style.marginRight = 3f;
+                action.style.marginBottom = 8f;
+            }
+            stickScanLabel = Text(dock, "", 12, true);
+            stickScanLabel.name = "STICK scan label";
+            stickScanLabel.AddToClassList("camera-notice");
+            stickScanLabel.style.alignSelf = Align.Center;
+            stickScanLabel.style.unityTextAlign = TextAnchor.MiddleCenter;
+            stickScanLabel.style.marginBottom = 8f;
+            VisualElement inventoryTarget = Column(dock);
+            inventoryTarget.name = "STICK circular control";
+            inventoryTarget.pickingMode = PickingMode.Ignore;
+            inventoryTarget.style.alignSelf = Align.Center;
+            inventoryTarget.style.alignItems = Align.Center;
+            inventoryTarget.style.justifyContent = Justify.Center;
+            inventoryTarget.style.width = 108f;
+            inventoryTarget.style.height = 108f;
+            inventoryTarget.style.flexShrink = 0f;
+            stickScanProgress = new PaperScanProgress(Paper, Line, Yellow);
+            inventoryTarget.Add(stickScanProgress);
+            stickInventoryButton = Action(inventoryTarget, "STICK", controller.OpenCreation);
             stickInventoryButton.name = "STICK Inventory";
             stickInventoryButton.text = "";
             stickInventoryButton.AddToClassList("camera-book-button");
@@ -351,15 +353,6 @@ namespace Tagtag.UI
             stickInventoryButton.style.borderTopRightRadius = 44f;
             stickInventoryButton.style.borderBottomLeftRadius = 44f;
             stickInventoryButton.style.borderBottomRightRadius = 44f;
-            VisualElement actions = Column(stickActions);
-            actions.style.flexGrow = 1f;
-            actions.style.marginLeft = 10f;
-            stickWriteButton = Action(actions, "Your Note", () => { sheet = Sheet.Note; QueueRender(); });
-            stickWriteButton.name = "STICK Write note";
-            PaperDottedOutline.Decorate(stickWriteButton, capsule: true);
-            stickRetryButton = Action(actions, "Retry AR search", controller.StartDiscovery, false);
-            stickRetryButton.name = "STICK Retry AR search";
-            stickCancelButton = Action(actions, "Cancel placement", controller.CancelPlacement, false);
             BuildRecoveryPreview(page, dock);
             stickSelectedArtworkButton = Action(page, "", () =>
             {
@@ -427,6 +420,7 @@ namespace Tagtag.UI
                 ar?.PlacementBusy ?? false);
             stickModeTitle.text = selected ? placement.Title : state.selected != null ? "Find sticker" : "STICK";
             stickScanProgress.style.display = selected ? DisplayStyle.Flex : DisplayStyle.None;
+            stickScanLabel.style.display = selected ? DisplayStyle.Flex : DisplayStyle.None;
             bool trackingPaused = selected && ar != null &&
                 (ar.CameraPresentation == CameraPresentationState.Interrupted ||
                  ar.CameraPresentation == CameraPresentationState.Live && !ar.IsTracking);
@@ -436,16 +430,9 @@ namespace Tagtag.UI
             stickScanRecovery.style.display = string.IsNullOrEmpty(stickScanRecovery.text) ? DisplayStyle.None : DisplayStyle.Flex;
             if (selected)
             {
-                int current = PaperScan.StageIndex(ar?.ScanState ?? PlacementScanState.FindingSurface);
-                for (int index = 0; index < stickScanStages.Count; index++)
-                {
-                    VisualElement stage = stickScanStages[index];
-                    bool active = index == current;
-                    stage.EnableInClassList("scan-stage-current", active);
-                    stage.EnableInClassList("scan-stage-complete", index < current);
-                    stage.Q("Scan mark").style.backgroundColor = index <= current ? Yellow : Line;
-                    stage.Q<Label>().style.color = active ? Ink : Muted;
-                }
+                PlacementScanState scanState = ar?.ScanState ?? PlacementScanState.FindingSurface;
+                stickScanProgress.SetStage(scanState);
+                stickScanLabel.text = PaperScan.Label(scanState);
             }
             stickWriteButton.style.display = selected ? DisplayStyle.Flex : DisplayStyle.None;
             SetDisabled(stickWriteButton, !placement.CanWriteNote);

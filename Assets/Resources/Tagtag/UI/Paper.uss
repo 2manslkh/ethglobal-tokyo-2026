@@ -109,3 +109,5 @@
 .login-legal-link { background-color:transparent; border-width:0; border-radius:4px; color:#20201e; min-height:44px; margin:0; padding:8px; white-space:normal; -unity-text-align:middle-center; }
 .login-legal-link:hover,.login-legal-link:focus { background-color:rgba(32,32,30,0.08); }
 .login-legal-link:active { background-color:rgba(32,32,30,0.16); }
+
+.paper-app .camera-notice { padding:6px 12px; background-color:#fffefa; border-radius:12px; flex-shrink:0; }

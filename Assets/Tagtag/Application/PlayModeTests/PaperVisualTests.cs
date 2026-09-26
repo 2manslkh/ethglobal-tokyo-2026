@@ -320,6 +320,8 @@ namespace Tagtag.Tests
             Assert.That(inventory, Is.Not.Null);
             Assert.That(inventory.layout.width, Is.GreaterThanOrEqualTo(88f));
             Assert.That(inventory.layout.height, Is.GreaterThanOrEqualTo(88f));
+            AssertCenteredStickControls();
+            Assert.That(document.rootVisualElement.Q("STICK scan progress").resolvedStyle.display, Is.EqualTo(DisplayStyle.None));
             Submit("STICK Inventory");
             yield return Capture("camera-inventory");
             Assert.That(controller.Camera.InteractionBlocked, Is.True, "The inventory must block all camera input.");
@@ -360,6 +362,10 @@ namespace Tagtag.Tests
             Submit("Inventory Taggi pose 2");
             yield return Capture("camera-finding-surface");
             Assert.That(controller.State.selectedPreset, Is.EqualTo("taggi-2"));
+            AssertCenteredStickControls();
+            Assert.That(document.rootVisualElement.Q<Label>("STICK scan label").text, Is.EqualTo("Find surface"));
+            Assert.That(document.rootVisualElement.Q<PaperScanProgress>("STICK scan progress").Progress, Is.EqualTo(0f).Within(.001f));
+            Assert.That(document.rootVisualElement.Q("STICK scan progress").resolvedStyle.display, Is.EqualTo(DisplayStyle.Flex));
             var scanRecovery = document.rootVisualElement.Q<Label>("STICK scan recovery");
             Assert.That(scanRecovery.resolvedStyle.display, Is.EqualTo(DisplayStyle.None));
             controller.Camera.IsTracking = false;
@@ -378,7 +384,9 @@ namespace Tagtag.Tests
             controller.Camera.ScanState = PlacementScanState.SurfaceReady;
             controller.Notify();
             yield return Capture("camera-surface-ready");
-            Assert.That(document.rootVisualElement.Q<VisualElement>("STICK scan stage 1").ClassListContains("scan-stage-current"), Is.True);
+            Assert.That(document.rootVisualElement.Q<Label>("STICK scan label").text, Is.EqualTo("Place sticker"));
+            Assert.That(document.rootVisualElement.Q<PaperScanProgress>("STICK scan progress").Progress, Is.EqualTo(1f / 3f).Within(.001f));
+            AssertCenteredStickControls();
             Submit("STICK Inventory");
             yield return new WaitForSecondsRealtime(.4f);
             yield return TapCameraSurface();
@@ -389,7 +397,9 @@ namespace Tagtag.Tests
             controller.Camera.ScanState = PlacementScanState.Placed;
             controller.Notify();
             yield return Capture("camera-adjusting-preview");
-            Assert.That(document.rootVisualElement.Q<VisualElement>("STICK scan stage 2").ClassListContains("scan-stage-current"), Is.True);
+            Assert.That(document.rootVisualElement.Q<Label>("STICK scan label").text, Is.EqualTo("Scan surroundings"));
+            Assert.That(document.rootVisualElement.Q<PaperScanProgress>("STICK scan progress").Progress, Is.EqualTo(2f / 3f).Within(.001f));
+            AssertCenteredStickControls();
             Assert.That(controller.Camera.PlaceCalls, Is.EqualTo(1));
             Assert.That(controller.Camera.CanPublish, Is.False, "Fixture keeps mapping incomplete to test independent note access.");
             Assert.That(document.rootVisualElement.Q("STICK Adjustments"), Is.Null);
@@ -400,18 +410,51 @@ namespace Tagtag.Tests
             Assert.That(document.rootVisualElement.Q("STICK Placement Guidance"), Is.Null);
             controller.Camera.ScanState = PlacementScanState.Ready;
             controller.Notify();
-            yield return new WaitForSecondsRealtime(.4f);
-            Assert.That(document.rootVisualElement.Q<VisualElement>("STICK scan stage 3").ClassListContains("scan-stage-current"), Is.True);
+            yield return Capture("camera-scan-ready");
+            Assert.That(document.rootVisualElement.Q<Label>("STICK scan label").text, Is.EqualTo("Scan ready"));
+            Assert.That(document.rootVisualElement.Q<PaperScanProgress>("STICK scan progress").Progress, Is.EqualTo(1f).Within(.001f));
+            AssertCenteredStickControls();
             Submit("STICK Write note");
             yield return Capture("camera-note-after-placement");
             Assert.That(document.rootVisualElement.Q<TextField>("Your note"), Is.Not.Null);
             Assert.That(controller.Camera.InteractionBlocked, Is.True);
             Submit("Close");
             yield return new WaitForSecondsRealtime(.4f);
+            Submit("Cancel placement");
+            yield return Capture("camera-placement-cancelled");
+            AssertCenteredStickControls();
+            Assert.That(document.rootVisualElement.Q("STICK scan progress").resolvedStyle.display, Is.EqualTo(DisplayStyle.None));
             Submit("STICK Close");
             yield return new WaitForSecondsRealtime(.4f);
             Assert.That(controller.State.page, Is.EqualTo(AppPage.Explore), "Close returns to the camera entry destination.");
             Assert.That(document.rootVisualElement.Q<Button>("Tab Explore"), Is.Not.Null);
+        }
+
+        private void AssertCenteredStickControls()
+        {
+            var root = document.rootVisualElement;
+            var button = root.Q<Button>("STICK Inventory");
+            var dock = root.Q("STICK camera dock");
+            Assert.That(button.worldBound.center.x, Is.EqualTo(root.Q("STICK Camera Surface").worldBound.center.x).Within(1f),
+                "STICK stays centered as placement actions appear and disappear.");
+            Assert.That(dock.resolvedStyle.backgroundColor.a, Is.Zero, "The camera dock has no rectangular backing.");
+            Assert.That(dock.Children().OfType<PaperDottedOutline>(), Is.Empty);
+            var ring = root.Q("STICK scan progress");
+            Assert.That(ring.pickingMode, Is.EqualTo(PickingMode.Ignore));
+            if (ring.resolvedStyle.display != DisplayStyle.None)
+            {
+                Assert.That(ring.worldBound.width, Is.EqualTo(ring.worldBound.height).Within(1f));
+                Assert.That(ring.worldBound.center.x, Is.EqualTo(button.worldBound.center.x).Within(1f));
+                Assert.That(ring.worldBound.center.y, Is.EqualTo(button.worldBound.center.y).Within(1f));
+                Assert.That(ring.worldBound.width, Is.GreaterThan(button.worldBound.width));
+                Assert.That(root.Q<Label>("STICK scan label").worldBound.yMax, Is.LessThanOrEqualTo(ring.worldBound.yMin));
+            }
+            foreach (var action in new[] { "STICK Write note", "STICK Retry AR search", "Cancel placement" })
+            {
+                var control = root.Q<Button>(action);
+                if (control != null && control.resolvedStyle.display != DisplayStyle.None)
+                    Assert.That(control.worldBound.yMax, Is.LessThanOrEqualTo(button.worldBound.yMin));
+            }
         }
 
         private IEnumerator TapCameraSurface()
@@ -731,6 +774,7 @@ namespace Tagtag.Tests
             controller.Camera.IsTracking = true;
             controller.Notify();
             yield return Capture("camera-compact-largest-reduced-motion");
+            AssertCenteredStickControls();
             var compactInventory = document.rootVisualElement.Q<Button>("STICK Inventory");
             Assert.That(compactInventory.worldBound.yMax, Is.LessThanOrEqualTo(document.rootVisualElement.worldBound.yMax));
             Assert.That(document.rootVisualElement.Q("STICK Adjustments"), Is.Null);

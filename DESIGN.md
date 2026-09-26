@@ -258,6 +258,13 @@ controls. A 48-point circular paper-white Close sticker uses an inset charcoal
 dashed circle, centered X, subtle shadow, and “Close camera” accessible label. It
 returns to the destination that opened the camera. A
 circular 88-point STICK action opens **Your stickers**, the four-pose inventory.
+Center this action horizontally near the bottom safe area with no rectangular
+container backing. Place note, cancel, and retry actions above it. During placement,
+a non-interactive yellow ring surrounds STICK: finding a surface starts empty,
+surface ready fills one third, placed fills two thirds, and scan ready completes
+the ring. Show the current stage label above the ring and hide both outside
+placement. Progress follows AR state, never a timer. Keep recovery guidance on
+its own compact paper backing.
 Keep the camera controls on readable paper backings rather than importing native
 glass. This flow adapts `sticker-app`'s `DeviceApp.CameraScreen`, `SurfaceTap`,
 `SurfaceGesture`, and `DeviceARSession.Placement` implementations.
