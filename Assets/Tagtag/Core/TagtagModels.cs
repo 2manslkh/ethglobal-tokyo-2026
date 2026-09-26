@@ -7,6 +7,7 @@ namespace Tagtag
     public enum AppPage { Home, Stick, Explore }
     public enum CameraPresentationState { Inactive, Preparing, Live, PermissionDenied, Unavailable, Interrupted, Failed }
     public enum PlacementScanState { FindingSurface, SurfaceReady, Placed, Ready }
+    public enum ReferencePhotoState { None, Loading, Ready, Unavailable }
     [Serializable] public sealed class LocationFix
     {
         public double latitude, longitude;
@@ -84,6 +85,11 @@ namespace Tagtag
     {
         void SelectArtwork(StickerDesign design, Texture2D texture);
         void SuspendForCreation(bool suspended);
+    }
+    public interface IReferencePhotoAr
+    {
+        Texture2D ReferencePhoto { get; }
+        ReferencePhotoState PhotoState { get; }
     }
     public sealed class AppState
     {

@@ -17,7 +17,7 @@ using UnityEngine.XR.ARKit;
 
 namespace Tagtag.AR
 {
-    public sealed class ArExperience : MonoBehaviour, IArExperience, ICustomArtworkAr
+    public sealed class ArExperience : MonoBehaviour, IArExperience, ICustomArtworkAr, IReferencePhotoAr
     {
 #if UNITY_IOS && !UNITY_EDITOR
         [DllImport("__Internal")] private static extern int TagtagCameraAuthorizationStatus();
@@ -28,6 +28,8 @@ namespace Tagtag.AR
         public event Action<string> StickerTapped;
         public string Status { get; private set; } = "Open STICK to scan a surface.";
         public CameraPresentationState CameraPresentation => presentation.State;
+        public Texture2D ReferencePhoto => referencePhoto;
+        public ReferencePhotoState PhotoState => photoState;
         public PlacementScanState ScanState => PlacementFlow.ScanState(IsTracking, HasPlacementSurface,
             anchor != null && visual != null, HasTrackedPlacement, MapReady);
         public bool HasPlacementSurface { get; private set; }
@@ -69,6 +71,9 @@ namespace Tagtag.AR
         private InputAction rotationInput;
         private string presetId;
         private Texture2D customArtwork;
+        private Texture2D referencePhoto;
+        private ReferencePhotoState photoState;
+        private string referencePhotoStickerId;
         private bool creationSuspended;
         private bool resumeCreationPlacement;
         private string recoveredStickerId;
@@ -125,6 +130,7 @@ namespace Tagtag.AR
             active = false;
             StopCameraPermissionRequest();
             CancelOperations();
+            ClearReferencePhoto();
             ResetCameraContent();
             if (rig != null) rig.SetActive(false);
             cameraFrameAt = 0d;
@@ -136,6 +142,7 @@ namespace Tagtag.AR
         public void SelectPreset(string id)
         {
             CancelOperations();
+            ClearReferencePhoto();
             ClearPlacement();
             recoveredStickerId = null;
             recovered = false;
@@ -168,6 +175,7 @@ namespace Tagtag.AR
         public void CancelPlacement()
         {
             CancelOperations();
+            ClearReferencePhoto();
             ClearPlacement();
             presetId = null; customArtwork = null;
             recoveredStickerId = null;
@@ -225,7 +233,13 @@ namespace Tagtag.AR
                 failure("Keep scanning until the sticker is tracked and the surroundings are mapped.");
                 return;
             }
+            if (!ReferencePhotoSceneReady())
+            {
+                failure("Keep the sticker in view with the camera image visible, then retry.");
+                return;
+            }
 #if UNITY_IOS && !UNITY_EDITOR
+            SetPhotoState(ReferencePhotoState.Loading);
             captureRoutine = StartCoroutine(CaptureWorldMap(success, failure));
 #else
             failure("Spatial map capture requires an ARKit iPhone.");
@@ -239,15 +253,43 @@ namespace Tagtag.AR
             recovered = false;
             recoveredStickerId = null;
             presetId = null;
+            string stickerId = recovery?.sticker?.id;
+            if (referencePhotoStickerId != stickerId) ClearReferencePhoto();
             UpdatePlacementGuidance();
             if (recovery == null || recovery.sticker == null || recovery.snapshot == null ||
                 string.IsNullOrEmpty(recovery.sticker.id) || recovery.expiresAt <= DateTimeOffset.UtcNow.ToUnixTimeSeconds())
             {
+                ClearReferencePhoto();
                 SetStatus("This discovery expired. Choose the sticker again.");
                 return;
             }
+            if (photoState != ReferencePhotoState.Ready) SetPhotoState(ReferencePhotoState.Loading);
+            byte[] encoded;
+            try { encoded = Convert.FromBase64String(recovery.snapshot.worldMapBase64); }
+            catch (Exception)
+            {
+                SetPhotoUnavailable(recovery.sticker.id);
+                SetStatus("This spatial map cannot be opened.");
+                return;
+            }
+            if (!WorldMapEnvelope.TryDecode(encoded, out var anchorId, out var mapBytes, out var photoBytes) ||
+                (!IsPreset(recovery.sticker.presetId) && string.IsNullOrEmpty(recovery.sticker.designId)) ||
+                recovery.snapshot.widthMeters < 0.1f || recovery.snapshot.widthMeters > 0.5f)
+            {
+                SetPhotoUnavailable(recovery.sticker.id);
+                SetStatus("This spatial map or its original spot photo is invalid.");
+                return;
+            }
+            if (photoBytes == null) SetPhotoUnavailable(recovery.sticker.id); // Published by a pre-v2 app.
+            else if ((referencePhotoStickerId != recovery.sticker.id || photoState != ReferencePhotoState.Ready) &&
+                !LoadReferencePhoto(photoBytes, recovery.sticker.id))
+            {
+                SetPhotoUnavailable(recovery.sticker.id);
+                SetStatus("The original spot photo could not be opened.");
+                return;
+            }
 #if UNITY_IOS && !UNITY_EDITOR
-            recoveryRoutine = StartCoroutine(RecoverWorldMap(recovery));
+            recoveryRoutine = StartCoroutine(RecoverWorldMap(recovery, anchorId, mapBytes));
 #else
             SetStatus("Spatial recovery requires an ARKit iPhone.");
 #endif
@@ -518,6 +560,23 @@ namespace Tagtag.AR
             return false;
         }
 
+        private bool ReferencePhotoSceneReady()
+        {
+            if (camera == null || cameraBackground == null ||
+                presentation.State != CameraPresentationState.Live ||
+                !cameraBackground.backgroundRenderingEnabled ||
+                cameraBackground.currentRenderingMode == XRCameraBackgroundRenderingMode.None ||
+                cameraFrameAt <= 0d || Time.realtimeSinceStartupAsDouble - cameraFrameAt > 0.5d ||
+                visual == null || !visual.activeInHierarchy) return false;
+            var renderer = visual.GetComponent<Renderer>();
+            if (renderer == null || !renderer.enabled) return false;
+            GeometryUtility.CalculateFrustumPlanes(camera, frustumPlanes);
+            if (!GeometryUtility.TestPlanesAABB(frustumPlanes, renderer.bounds)) return false;
+            Vector3 center = camera.WorldToViewportPoint(renderer.bounds.center);
+            return center.z > camera.nearClipPlane && center.x >= 0f && center.x <= 1f &&
+                center.y >= 0f && center.y <= 1f;
+        }
+
         private Vector3 ArtworkScale(float width) => customArtwork == null ? Vector3.one * width :
             StickerArtwork.Scale(width, customArtwork.width, customArtwork.height);
 
@@ -574,16 +633,36 @@ namespace Tagtag.AR
                     failure("The spatial map is not ready. Keep the preview and scan from more angles.");
                     yield break;
                 }
-                byte[] bytes;
+                byte[] worldMapBytes;
                 try
                 {
                     using (var map = mapRequest.Value.GetWorldMap())
                     using (var serialized = map.Serialize(Allocator.Temp))
-                        bytes = WorldMapEnvelope.Encode(anchor.trackableId.subId1, anchor.trackableId.subId2, serialized.ToArray());
+                        worldMapBytes = serialized.ToArray();
                 }
                 catch (Exception)
                 {
                     failure("The spatial map could not be captured. Keep the preview and try again.");
+                    yield break;
+                }
+                byte[] bytes;
+                if (!ReferencePhotoSceneReady())
+                {
+                    failure("Keep the sticker in view with the camera image visible, then retry.");
+                    yield break;
+                }
+                try
+                {
+                    byte[] photo = ReferencePhotoCapture.Capture(camera);
+                    bytes = WorldMapEnvelope.Encode(anchor.trackableId.subId1, anchor.trackableId.subId2,
+                        worldMapBytes, photo);
+                    if (!LoadReferencePhoto(photo, null))
+                        throw new InvalidOperationException("The captured JPEG could not be opened.");
+                }
+                catch (Exception)
+                {
+                    SetPhotoUnavailable(null);
+                    failure("The original spot photo could not be captured. Your note is safe; please retry.");
                     yield break;
                 }
                 success(new SpatialSnapshot
@@ -598,12 +677,14 @@ namespace Tagtag.AR
             finally
             {
                 DisposeMapRequest();
+                if (attempt == generation && photoState == ReferencePhotoState.Loading)
+                    SetPhotoUnavailable(null);
                 if (attempt == generation) { busy = false; Changed?.Invoke(); }
                 captureRoutine = null;
             }
         }
 
-        private IEnumerator RecoverWorldMap(RecoveryData data)
+        private IEnumerator RecoverWorldMap(RecoveryData data, TrackableId anchorId, byte[] mapBytes)
         {
             busy = true;
             var attempt = ++generation;
@@ -615,12 +696,6 @@ namespace Tagtag.AR
                 customArtwork = StickerArtwork.Get(null, data.sticker.designId, data.sticker.artworkUrl, data.sticker.thumbnailUrl, false);
                 if (customArtwork == null) { SetStatus("Sticker artwork could not load. Try discovery again."); busy = false; yield break; }
             }
-            byte[] encoded;
-            try { encoded = Convert.FromBase64String(snapshot.worldMapBase64); }
-            catch (Exception) { SetStatus("This spatial map cannot be opened."); busy = false; yield break; }
-            if (!WorldMapEnvelope.TryDecode(encoded, out var anchorId, out var mapBytes) ||
-                (!IsPreset(data.sticker.presetId) && string.IsNullOrEmpty(data.sticker.designId)) || snapshot.widthMeters < 0.1f || snapshot.widthMeters > 0.5f)
-            { SetStatus("This spatial map is incomplete."); busy = false; yield break; }
             var started = Time.realtimeSinceStartup;
             while (ArKit == null && Time.realtimeSinceStartup - started < 10f) yield return null;
             if (attempt != generation) yield break;
@@ -941,6 +1016,40 @@ namespace Tagtag.AR
             nextSurfaceUpdate = 0f;
         }
 
+        private void SetPhotoState(ReferencePhotoState value)
+        {
+            if (photoState == value) return;
+            photoState = value;
+            Changed?.Invoke();
+        }
+
+        private void ClearReferencePhoto()
+        {
+            ReferencePhotoCapture.DestroyTexture(referencePhoto);
+            referencePhoto = null;
+            referencePhotoStickerId = null;
+            SetPhotoState(ReferencePhotoState.None);
+        }
+
+        private void SetPhotoUnavailable(string stickerId)
+        {
+            ReferencePhotoCapture.DestroyTexture(referencePhoto);
+            referencePhoto = null;
+            referencePhotoStickerId = stickerId;
+            SetPhotoState(ReferencePhotoState.Unavailable);
+        }
+
+        private bool LoadReferencePhoto(byte[] jpeg, string stickerId)
+        {
+            if (!ReferencePhotoCapture.TryLoad(jpeg, out var loaded)) return false;
+            ReferencePhotoCapture.DestroyTexture(referencePhoto);
+            referencePhoto = loaded;
+            referencePhotoStickerId = stickerId;
+            photoState = ReferencePhotoState.Ready;
+            Changed?.Invoke();
+            return true;
+        }
+
         private void SetStatus(string value)
         {
             Status = value;
@@ -963,6 +1072,7 @@ namespace Tagtag.AR
         {
             StopCameraPermissionRequest();
             CancelOperations();
+            ClearReferencePhoto();
             if (cameraManager != null) cameraManager.frameReceived -= OnCameraFrame;
             presentation.Changed -= OnCameraPresentationChanged;
             ClearPlacement();
