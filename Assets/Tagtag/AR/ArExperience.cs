@@ -17,7 +17,7 @@ using UnityEngine.XR.ARKit;
 
 namespace Tagtag.AR
 {
-    public sealed class ArExperience : MonoBehaviour, IArExperience
+    public sealed class ArExperience : MonoBehaviour, IArExperience, ICustomArtworkAr
     {
 #if UNITY_IOS && !UNITY_EDITOR
         [DllImport("__Internal")] private static extern int TagtagCameraAuthorizationStatus();
@@ -63,6 +63,9 @@ namespace Tagtag.AR
         private InputAction positionInput;
         private InputAction rotationInput;
         private string presetId;
+        private Texture2D customArtwork;
+        private bool creationSuspended;
+        private bool resumeCreationPlacement;
         private string recoveredStickerId;
         private bool active;
         private bool paused;
@@ -131,6 +134,7 @@ namespace Tagtag.AR
             ClearPlacement();
             recoveredStickerId = null;
             recovered = false;
+            customArtwork = null;
             presetId = IsPreset(id) ? id : null;
             widthMeters = 0.2f;
             twistDegrees = 0f;
@@ -140,11 +144,27 @@ namespace Tagtag.AR
             UpdatePlacementGuidance();
         }
 
+        public void SelectArtwork(StickerDesign design, Texture2D texture)
+        {
+            SelectPreset(null);
+            if (design == null || string.IsNullOrEmpty(design.id) || texture == null) return;
+            customArtwork = texture;
+            presetId = "design:" + design.id;
+            SetStatus("Move slowly until a surface appears, then tap to place.");
+            UpdatePlacementGuidance();
+        }
+        public void SuspendForCreation(bool value)
+        {
+            creationSuspended = value;
+            if (value) resumeCreationPlacement = active;
+            UpdateCameraSuspension();
+        }
+
         public void CancelPlacement()
         {
             CancelOperations();
             ClearPlacement();
-            presetId = null;
+            presetId = null; customArtwork = null;
             recoveredStickerId = null;
             recovered = false;
             UpdatePlacementGuidance();
@@ -187,7 +207,7 @@ namespace Tagtag.AR
                     pose, out var position)) visual.transform.position = position;
             this.widthMeters = Mathf.Clamp(widthMeters, 0.1f, 0.5f);
             twistDegrees = Mathf.Repeat(rotationDegrees + 180f, 360f) - 180f;
-            visual.transform.localScale = Vector3.one * this.widthMeters;
+            visual.transform.localScale = ArtworkScale(this.widthMeters);
             visual.transform.localRotation = Quaternion.Euler(0f, twistDegrees, 0f) * Quaternion.Euler(90f, 0f, 0f);
             Changed?.Invoke();
         }
@@ -406,7 +426,7 @@ namespace Tagtag.AR
                 visual.transform.localPosition = new Vector3(0f, 0.002f, 0f);
                 visual.transform.localRotation = Quaternion.Euler(0f, twistDegrees, 0f) *
                     Quaternion.Euler(90f, 0f, 0f);
-                visual.transform.localScale = Vector3.one * widthMeters;
+                visual.transform.localScale = ArtworkScale(widthMeters);
                 UpdatePlacementGuidance();
                 SetStatus("Pinch and twist to adjust. Scan around the sticker before publishing.");
             }
@@ -464,10 +484,13 @@ namespace Tagtag.AR
             return false;
         }
 
+        private Vector3 ArtworkScale(float width) => customArtwork == null ? Vector3.one * width :
+            StickerArtwork.Scale(width, customArtwork.width, customArtwork.height);
+
         private bool CreateVisual(string id)
         {
             var template = Resources.Load<Material>("Tagtag/AR/DeviceSticker");
-            var artwork = Resources.Load<Texture2D>("Tagtag/Presets/" + id);
+            var artwork = customArtwork != null ? customArtwork : Resources.Load<Texture2D>("Tagtag/Presets/" + id);
             if (template == null || template.shader == null || !template.shader.isSupported || artwork == null)
             {
                 Debug.LogError("[TagtagSticker] Sticker material or artwork is unavailable: preset=" + id +
@@ -552,11 +575,17 @@ namespace Tagtag.AR
             var attempt = ++generation;
             SetStatus("Opening the saved surroundings…");
             var snapshot = data.snapshot;
+            customArtwork = null;
+            if (!string.IsNullOrEmpty(data.sticker.designId))
+            {
+                customArtwork = StickerArtwork.Get(null, data.sticker.designId, data.sticker.artworkUrl, data.sticker.thumbnailUrl, false);
+                if (customArtwork == null) { SetStatus("Sticker artwork could not load. Try discovery again."); busy = false; yield break; }
+            }
             byte[] encoded;
             try { encoded = Convert.FromBase64String(snapshot.worldMapBase64); }
             catch (Exception) { SetStatus("This spatial map cannot be opened."); busy = false; yield break; }
             if (!WorldMapEnvelope.TryDecode(encoded, out var anchorId, out var mapBytes) ||
-                !IsPreset(data.sticker.presetId) || snapshot.widthMeters < 0.1f || snapshot.widthMeters > 0.5f)
+                (!IsPreset(data.sticker.presetId) && string.IsNullOrEmpty(data.sticker.designId)) || snapshot.widthMeters < 0.1f || snapshot.widthMeters > 0.5f)
             { SetStatus("This spatial map is incomplete."); busy = false; yield break; }
             var started = Time.realtimeSinceStartup;
             while (ArKit == null && Time.realtimeSinceStartup - started < 10f) yield return null;
@@ -613,7 +642,7 @@ namespace Tagtag.AR
                         visual.transform.SetParent(anchor.transform, false);
                         visual.transform.localPosition = snapshot.position;
                         visual.transform.localRotation = snapshot.rotation;
-                        visual.transform.localScale = Vector3.one * snapshot.widthMeters;
+                        visual.transform.localScale = ArtworkScale(snapshot.widthMeters);
                         widthMeters = snapshot.widthMeters;
                         recoveredStickerId = data.sticker.id;
                         recovered = true;
@@ -666,7 +695,7 @@ namespace Tagtag.AR
 
         private void UpdateCameraSuspension()
         {
-            var suspended = suspension.IsSuspended;
+            var suspended = suspension.IsSuspended || creationSuspended;
             if (suspended == paused) return;
             paused = suspended;
             if (suspended)
@@ -674,12 +703,23 @@ namespace Tagtag.AR
                 cameraFrameAt = 0d;
                 StopCameraPermissionRequest();
                 CancelOperations();
-                ResetCameraContent();
+                if (!resumeCreationPlacement) ResetCameraContent();
                 if (rig != null) rig.SetActive(false);
                 presentation.Interrupt();
                 if (active) SetStatus("Camera interrupted. Scan the area again.");
             }
-            else if (active) StartCamera();
+            else if (active)
+            {
+                if (resumeCreationPlacement && rig != null)
+                {
+                    resumeCreationPlacement = false;
+                    cameraFrameAt = 0;
+                    presentation.Begin(Time.realtimeSinceStartupAsDouble);
+                    rig.SetActive(true);
+                    SetStatus("Scan the surroundings to continue placing your sticker.");
+                }
+                else StartCamera();
+            }
         }
 
         private void StartCamera()

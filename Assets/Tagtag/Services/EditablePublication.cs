@@ -9,7 +9,7 @@ namespace Tagtag.Services
     [Serializable]
     public sealed class EditablePublicationDraft
     {
-        public string presetId, place, teaser, note;
+        public string presetId, designId, place, teaser, note;
     }
 
     public sealed class EditablePublication

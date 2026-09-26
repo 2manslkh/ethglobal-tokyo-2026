@@ -639,6 +639,55 @@ namespace Tagtag.Tests
             }
         }
 
+        [UnityTest]
+        public IEnumerator MyStickersShowsSourcesAndSavedArtwork()
+        {
+            oldScale = PlayerPrefs.GetFloat("tagtag.textScale", 1f);
+            oldMotion = PlayerPrefs.GetInt("tagtag.reducedMotion", 0);
+            PlayerPrefs.SetFloat("tagtag.textScale", 1f);
+            PlayerPrefs.SetInt("tagtag.reducedMotion", 1);
+            controller = new ReviewController();
+            controller.State.user = new UserSession { uid = "creation-review", displayName = "Aki" };
+            controller.State.creationCapabilities = 15;
+            StickerArtwork.SetAccount("creation-review");
+            var texture = new Texture2D(2, 3, TextureFormat.RGBA32, false);
+            texture.SetPixels(new[] { Color.white, Color.white, Color.yellow, Color.yellow, Color.cyan, Color.cyan });
+            texture.Apply();
+            StickerArtwork.Store("creation-review-image", texture.EncodeToPNG());
+            UnityEngine.Object.Destroy(texture);
+            controller.State.designs.Add(new StickerDesign { id = "creation-review-image", ownerId = "creation-review",
+                name = "An afternoon in Tokyo", kind = "polaroid", width = 2, height = 3 });
+            host = new GameObject("Sticker creation review");
+            host.AddComponent<TagtagAppView>().Initialize(controller);
+            document = host.GetComponent<UIDocument>();
+            target = new RenderTexture(390, 844, 24); target.Create();
+            document.panelSettings.targetTexture = target;
+            controller.OpenCreation();
+            yield return new WaitForSecondsRealtime(.4f);
+            var creationSheet = document.rootVisualElement.Q<PaperSheet>();
+            Assert.That(creationSheet.Q<Label>(className: "sheet-title").worldBound.yMin, Is.GreaterThanOrEqualTo(0f),
+                "root=" + document.rootVisualElement.worldBound + " sheet=" + creationSheet.worldBound +
+                " styleHeight=" + creationSheet.style.height + " resolvedHeight=" + creationSheet.resolvedStyle.height +
+                " scroll=" + creationSheet.Scroll.worldBound + " screen=" + Screen.width + "x" + Screen.height +
+                " enum=" + typeof(TagtagAppView).GetField("sheet", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic).GetValue(host.GetComponent<TagtagAppView>()) +
+                " same=" + ReferenceEquals(creationSheet, typeof(TagtagAppView).GetField("sheetView", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic).GetValue(host.GetComponent<TagtagAppView>())));
+            creationSheet.Scroll.scrollOffset = Vector2.zero;
+            yield return Capture("my-stickers-sources");
+            Assert.That(document.rootVisualElement.Query<Button>().ToList().Any(button => button.text == "Make a Polaroid"), Is.True);
+            Assert.That(document.rootVisualElement.Query<Button>().ToList().Any(button => button.text == "Create with Image Playground"), Is.True);
+            var art = document.rootVisualElement.Q<Image>("Sticker artwork creation-review-image");
+            Assert.That(art, Is.Not.Null);
+            Assert.That(art.image, Is.Not.Null);
+            Assert.That(art.resolvedStyle.height, Is.GreaterThan(art.resolvedStyle.width));
+            creationSheet.Scroll.ScrollTo(art);
+            yield return Capture("my-stickers-library");
+            controller.State.hasPendingDesign = true; controller.Notify();
+            creationSheet.Scroll.scrollOffset = Vector2.zero;
+            yield return Capture("my-stickers-pending-save");
+            Assert.That(document.rootVisualElement.Query<Button>().ToList().Any(button => button.text == "Retry saving sticker"), Is.True);
+            StickerArtwork.Forget("creation-review-image");
+        }
+
         private void Submit(string title)
         {
             VisualElement scope = document.rootVisualElement.Q<PaperSheet>() ?? document.rootVisualElement;
@@ -730,7 +779,15 @@ namespace Tagtag.Tests
             public void RefreshNearby() { }
             public void SelectSticker(string id) { State.selected = State.nearby.Find(s => s.id == id); Notify(); }
             public void StartDiscovery() { Navigate(AppPage.Stick); }
-            public void SelectPreset(string id) { State.selectedPreset = id; Camera.SelectPreset(id); Notify(); }
+            public void OpenCreation() { State.creationOpen = true; Notify(); }
+            public void CloseCreation() { State.creationOpen = false; Notify(); }
+            public void CreateSticker(string source) { }
+            public void RefreshDesigns() { }
+            public void SelectDesign(string id) { State.selectedDesign = id; State.selectedPreset = ""; State.creationOpen = false; State.page = AppPage.Stick; Notify(); }
+            public void DeleteDesign(string id) { }
+            public void RetryDesignSave() { }
+            public void RefreshArtwork() { StickerArtwork.Retry(); }
+            public void SelectPreset(string id) { State.selectedPreset = id; State.selectedDesign = ""; State.creationOpen = false; State.page = AppPage.Stick; Camera.SelectPreset(id); Notify(); }
             public void SetDraft(string place, string teaser, string note) { State.draftPlace = place; State.draftTeaser = teaser; State.draftNote = note; Notify(); }
             public int PublishCount { get; private set; }
             public void Publish() { PublishCount++; }
