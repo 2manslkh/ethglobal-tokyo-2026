@@ -12,7 +12,7 @@ Apple or Google sign-in is required to enter the app. Returning authenticated se
 
 ## Stack
 
-Unity `6000.5.5f1`, UI Toolkit, AR Foundation/ARKit, native MapKit and AuthenticationServices, Firebase Authentication, Firestore, private Cloud Storage, and a Node.js API on Cloud Run. Collections can automatically mint transferable ERC-721 souvenirs on Ethereum Sepolia through Thirdweb embedded wallets and a backend mint worker. NFT rollout is disabled until configured and verified; existing book entries are not backfilled. See [NFT setup](docs/NFT_SETUP.md), the [contract](contracts/README.md), [PRODUCT.md](PRODUCT.md), and [API contract](docs/plans/tagtag-api-contract.md).
+Unity `6000.5.5f1`, UI Toolkit, AR Foundation/ARKit, native MapKit and AuthenticationServices, Firebase Authentication, Firestore, private Cloud Storage, and a Node.js API on Cloud Run. Collections can automatically mint transferable ERC-721 souvenirs on Ethereum Sepolia through Thirdweb embedded wallets and a backend mint worker. NFT rollout is disabled until configured and verified; existing book entries are not backfilled. The next rollout uses [isolated NFT staging](docs/NFT_STAGING.md) and Firebase-hosted public artwork. See [NFT setup](docs/NFT_SETUP.md), the [contract](contracts/README.md), [PRODUCT.md](PRODUCT.md), and [API contract](docs/plans/tagtag-api-contract.md).
 
 ## Development
 

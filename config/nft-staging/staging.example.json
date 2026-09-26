@@ -1,0 +1,13 @@
+{
+  "project_id": "tagtag-nft-staging-2026",
+  "project_number": "542095619867",
+  "region": "asia-northeast1",
+  "map_bucket": "tagtag-nft-staging-2026-maps",
+  "firebase_api_key": "<STAGING_FIREBASE_WEB_API_KEY>",
+  "nft_enabled": false,
+  "nft_chain_id": "11155111",
+  "nft_contract_address": "",
+  "nft_wallet_domain": "",
+  "rpc_secret_version": "",
+  "signer_secret_version": ""
+}

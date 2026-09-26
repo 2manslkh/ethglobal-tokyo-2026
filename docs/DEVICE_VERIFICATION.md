@@ -553,3 +553,15 @@ Installed `com.kenk.tagtag` on Dawg. (iPhone 15 Pro Max, iOS 26.6.1) through
 and launch only. Physical checks of the centered STICK control, stage ring, and
 real AR placement remain pending. Automated UI evidence and screenshots are in
 [Stick Camera verification](verification/stick-camera/README.md).
+## NFT staging local verification — 2026-09-26
+
+The isolated NFT branch passed 226 Edit Mode tests, one NFT Play Mode test,
+79 backend tests plus one separate Firebase emulator test, nine contract tests,
+and 16 staging-tooling tests. All eight public metadata/image files served
+correctly in the Hosting emulator. Separate staging preparation/export and
+unsigned Xcode compilation succeeded using deliberately nonfunctional auth
+fixtures; the built bundle is `com.kenk.tagtag.staging`, minimum iOS 15. Production
+source settings were unchanged. No device installation or live NFT/provider
+result is claimed. Deployment remains pending at the user's request after the
+billing-enabled project quota blocked staging. See [full evidence](verification/nft-staging/README.md)
+and [remaining setup](NFT_STAGING.md).

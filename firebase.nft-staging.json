@@ -1,0 +1,18 @@
+{
+  "emulators": { "hosting": { "host": "127.0.0.1", "port": 5017 } },
+  "hosting": {
+    "site": "tagtag-nft-staging-2026",
+    "public": "hosting/nft-public",
+    "ignore": [".*", "**/node_modules/**"],
+    "headers": [
+      {
+        "source": "/nft/v1/**",
+        "headers": [
+          { "key": "Cache-Control", "value": "public,max-age=31536000,immutable" },
+          { "key": "Access-Control-Allow-Origin", "value": "*" },
+          { "key": "X-Content-Type-Options", "value": "nosniff" }
+        ]
+      }
+    ]
+  }
+}

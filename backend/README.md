@@ -44,6 +44,44 @@ Unauthenticated `GET /v1/designs` returned `401`, confirming the authentication 
 
 ## Sepolia souvenir minting
 
+### Isolated NFT staging
+
+The local staging deployment planner is [infra.py](../scripts/nft-staging/infra.py), with a [configuration example](../config/nft-staging/staging.example.json). It is pinned to Google Cloud/Firebase project `tagtag-nft-staging-2026` (number `542095619867`) in `asia-northeast1`. It uses a separate private map bucket, Firestore database, Firebase Auth users, API service, cleanup job, and mint job. The API service is named `tagtag-api` in that project; its wallet domain is `tagtag-api-542095619867.asia-northeast1.run.app`. The script never targets the production project. The staging HTTP service has no signer or RPC secret mapping.
+
+**Current blocker (2026-09-26):** the staging project exists, but Cloud Billing attachment failed with `CLOUD BILLING QUOTA EXCEEDED`; Firebase CLI login is unavailable. No staging API, map bucket, Auth setup, Firestore deployment, cleanup job, mint worker, scheduler, or signer secret should be inferred from the local plan. The coordinator will deploy only after billing and login are resolved. The public Thirdweb client ID `639af3b16477c0bb4b73b8e163eb0397` still needs provider setup by the user; it is not a signer credential.
+
+Copy the example JSON to a private local file and replace `firebase_api_key` with the **staging** Firebase web API key. Keep `nft_enabled` false for initial setup. Run from the repository root:
+
+```sh
+python3 -m unittest discover -s scripts/nft-staging -p 'test_infra.py' -v
+python3 scripts/nft-staging/infra.py validate --config /path/to/staging.json
+python3 scripts/nft-staging/infra.py plan --config /path/to/staging.json
+python3 scripts/nft-staging/infra.py preflight --config /path/to/staging.json
+```
+
+`validate` and `plan` are local only. They reject the committed production Firebase API key without printing it. The rendered plan refers to `${TAGTAG_STAGING_FIREBASE_API_KEY}` instead of showing the configured key; `apply` supplies that variable to the plan process. `preflight` makes read-only project, billing, Firebase, API key ownership, and relevant worker checks. It stops if billing is disabled. The API Keys and Cloud Run APIs must already be enabled for these read-only checks; after billing is attached, the coordinator can enable them explicitly with `gcloud services enable apikeys.googleapis.com run.googleapis.com --project=tagtag-nft-staging-2026`. The tool does not enable APIs during preflight. The deploy path requires an explicit confirmation and is reserved for the coordinator after the blocker is resolved:
+
+```sh
+python3 scripts/nft-staging/infra.py apply --config /path/to/staging.json \
+  --confirm-project tagtag-nft-staging-2026
+```
+
+The plan creates resources if missing, reuses staging resources on repeat runs, deploys the repository's Firestore rules and indexes, builds the backend image once, and deploys that image to the API and both jobs. Cleanup runs hourly. Mint scheduling is configured for every minute with one task and parallelism one, but remains paused while `nft_enabled` is false. The API and job both receive `NFT_ENABLED=false` initially. Set up Firebase Auth providers, the staging app/API key restrictions, and the Firebase project association before deploy. Preflight looks up the configured Firebase key and requires its parent to be `projects/542095619867/locations/global`; lookup failure or another parent stops deployment without printing the key. The private map bucket uses uniform bucket access and public access prevention; signed URLs remain under the API identity.
+
+The API and cleanup identities get Firestore access, a narrow Firebase Auth user lookup role, and map object access. API signed URLs use its self-scoped service account token creator grant. The current mint worker reads Firestore and does **not** call `adapter.userExists`; it gets Firestore access plus secret access on the two worker secrets only when enabled. The signer secret policy must have no other direct accessor and no project-wide accessor binding. The deployment script never creates a signer key, reads secret payloads, or includes a signer key on the API. Review inherited IAM grants separately before live minting.
+
+To enable minting after the contract, RPC, signer, and provider are ready, set `nft_enabled=true`, add the Sepolia contract address, the exact staging API wallet domain above, and pinned numeric versions of the pre-existing `tagtag-staging-sepolia-rpc-url` and `tagtag-staging-sepolia-signer` Secret Manager secrets. `plan` rejects incomplete or other-project settings. The enabled `preflight` checks those versions and the signer policy, then verifies the configured domain against the deployed API URL. The coordinator must check pending jobs, signer funding, contract identity, wallet issuer/audience, and physical-device acceptance before enabling the app flag. The staging Thirdweb JWT issuer and audience are based on `tagtag-nft-staging-2026`.
+
+If new NFT enqueueing must stop after minting was enabled, **leave the mint worker and its minute scheduler running** so signed jobs continue reconciling. Use the API-only command below; it changes `NFT_ENABLED` on the API service and preserves the worker configuration:
+
+```sh
+python3 scripts/nft-staging/infra.py plan-pause-enqueue --config /path/to/staging.json
+python3 scripts/nft-staging/infra.py pause-enqueue --config /path/to/staging.json \
+  --confirm-project tagtag-nft-staging-2026
+```
+
+A full disabled deploy clears worker secret mappings and pauses its scheduler. It is for initial setup or an already-disabled worker only; `preflight` refuses it when the existing mint job is enabled. Do not use it as a rollback for pending, signed, or submitted jobs. The tool does not inspect Firestore queue contents, so an operator must verify queue state before making any manual worker change.
+
 Minting is off by default. Configure the API with `NFT_ENABLED=true`, `NFT_CHAIN_ID=11155111`, `NFT_CONTRACT_ADDRESS=<deployed TagtagSouvenir>`, and `NFT_WALLET_DOMAIN=<API domain>`. The API needs no signer key or RPC URL. `GET /v1/wallet` returns the bound address or an empty address; challenge and bind require Firebase authentication. The five-minute EIP-191 challenge is single use. A UID can bind once, and an address cannot be reused by another UID. Account cleanup removes the wallet record and challenges while retaining an address tombstone that prevents reuse.
 
 Each first collection writes one `nftMints` outbox document in the same Firestore transaction. The job holds a random 256-bit token ID represented as a decimal string, generic Taggi preset index, and immutable recipient once a wallet is bound. Collections made before binding wait and are assigned on bind; the worker also resumes waiting jobs if the API stops after saving a binding. The collection API exposes `nft` with `pending`, `confirmed`, `delayed`, or `cancelled` status. Old collections have no `nft`. Notes, map data, locations, Firebase IDs, and other private content never enter mint calldata or token metadata; the contract receives only recipient, token ID, and preset. The `nftMints` collection and signed raw transactions are server-only under the existing deny-all client rules.

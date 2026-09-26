@@ -29,3 +29,8 @@
 # Operating system files
 .DS_Store
 Thumbs.db
+
+# Local staging verification
+/firebase-debug.log
+/firestore-debug.log
+/scripts/nft-staging/__pycache__/
