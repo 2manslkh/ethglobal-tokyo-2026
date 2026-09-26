@@ -326,15 +326,17 @@ test('blocks, withdrawal, moderation and deletion revoke appropriate access', as
     } finally { await f.close(); }
 });
 
-test('blocked author is hidden from nearby and recovery; quota caps daily publications', async () => {
+test('blocked author is hidden from nearby and recovery; daily publication quota allows 100', async () => {
     const f = await fixture();
     try {
         const id = await f.publish();
         await f.call('POST', '/v1/blocks', { authorId: 'alice' }, 'bob');
         assert.equal((await f.call('POST', '/v1/nearby', { location: fix() }, 'bob')).data.items.length, 0);
         assert.equal((await f.call('POST', `/v1/stickers/${id}/recover`, { location: fix() }, 'bob')).status, 403);
-        for (let n = 2; n <= 10; n++) await f.publish('alice', `op-${n}`);
-        assert.equal((await f.call('POST', '/v1/publications/prepare', draft('op-eleven'))).status, 429);
+        const [quota] = await f.adapter.query('quotas');
+        await f.adapter.set('quotas', quota.id, { ...quota, count: 99 });
+        assert.equal((await f.call('POST', '/v1/publications/prepare', draft('op-one-hundred'))).status, 200);
+        assert.equal((await f.call('POST', '/v1/publications/prepare', draft('op-one-hundred-one'))).status, 429);
     } finally { await f.close(); }
 });
 

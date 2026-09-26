@@ -112,7 +112,7 @@ Firestore collections:
 | `discoveries` | User-bound, sticker-bound, five-minute sessions |
 | `blocks` | User/author pairs |
 | `reports` | One report per reporter/sticker with moderation state |
-| `quotas` | Per-user UTC-day publication counts |
+| `quotas` | Per-user UTC-day publication counts (100 new publications per day) |
 | `accounts` | Deletion tombstones and cleanup state |
 | `wallets`, `walletAddresses`, `walletChallenges` | Immutable wallet binding, address reservation, expiring ownership proofs |
 | `nftMints`, `mintSigner` | Private mint outbox, signed transactions, and durable signer lease/nonce |
