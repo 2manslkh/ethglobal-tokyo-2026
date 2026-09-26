@@ -30,7 +30,7 @@ gcloud run deploy tagtag-api --source backend --project <PROJECT_ID> --region as
   --set-env-vars GOOGLE_CLOUD_PROJECT=<PROJECT_ID>,TAGTAG_MAP_BUCKET=<PRIVATE_MAP_BUCKET>,FIREBASE_API_KEY=<PUBLIC_FIREBASE_API_KEY>
 ```
 
-Explore accepts fresh location fixes up to 5,000 metres accuracy for `/v1/nearby`, with its 2 km search radius unchanged. This browsing allowance does not change AR recovery/collection (50 metres accuracy), automatic publication (100 metres accuracy), or the 30-second freshness limit.
+Explore accepts fresh location fixes up to 5,000 metres accuracy for `/v1/nearby`, with its 2 km search radius unchanged. AR recovery also accepts accuracy up to 5,000 metres and permits distance to the sticker up to measured accuracy plus 100 metres. Collection retains 50-metre accuracy and 100-metre proximity; automatic publication retains 100-metre accuracy. All fixes retain the 30-second freshness limit. Deploy the backend before distributing the updated client.
 
 The Cloud Run service accepts anonymous `/v1/nearby` and `/health`; every other `/v1` route verifies a Firebase ID token, including revocation. Grant the runtime service account `roles/datastore.user` on the project, `roles/storage.objectAdmin` on the private map bucket, `firebaseauth.users.get` through a custom project role, and `iam.serviceAccounts.signBlob` on itself for V4 signed URLs. A broader self-scoped `roles/iam.serviceAccountTokenCreator` also provides signing. It does not need Firebase Auth admin or user deletion permission. Enable the Identity Toolkit and IAM Service Account Credentials APIs.
 

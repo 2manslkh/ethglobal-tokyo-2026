@@ -18,7 +18,7 @@ Success JSON object; errors `{error:{code,message}}`. Authorization uses Bearer 
 - `POST /v1/nearby` body `{location:LocationFix}` → `{items:StickerSummary[]}`. Summaries never include note or map.
 - `POST /v1/publications/prepare` body `{operationId,presetId,place,teaser,note,location,position:{x,y,z},rotation:{x,y,z,w},widthMeters,mapBytes}` → `{id,uploadUrl,uploadHeaders}`. uploadHeaders is a JSON object; signed upload is binary world-map octets (not base64). Max map 16 MiB. Coordinator strips base64 from this request and sends map bytes separately.
 - `POST /v1/publications/{id}/finalize` body `{operationId,location}` → `{sticker:StickerSummary}`. Upload metadata verified before publication becomes visible. Operations idempotent per authenticated owner+operationId.
-- `POST /v1/stickers/{id}/recover` body `{location}` → `{sticker:StickerSummary,discoveryId,expiresAt,mapUrl,position,rotation,widthMeters}`. Download world map separately; client constructs RecoveryData.snapshot.
+- `POST /v1/stickers/{id}/recover` body `{location}` → `{sticker:StickerSummary,discoveryId,expiresAt,mapUrl,position,rotation,widthMeters}`. Requires a fresh fix with accuracy ≤5000 m and distance to the sticker ≤accuracy + 100 m. Download world map separately; client constructs RecoveryData.snapshot. This permits approximate-location access to the saved map/reference photo, but does not unlock the private note.
 - `POST /v1/stickers/{id}/collect` body `{discoveryId,location}` → `{sticker:CollectedSticker}`. Requires matching short-lived discovery session and proximity. AR tap/distance gate stays client-side; never describe it as unforgeable proof. Idempotent per user+sticker.
 - `GET /v1/collection` → `{items:CollectedSticker[]}`. Moderated/deleted content has `unavailable:true`, empty note. Ordinary withdrawn content remains in existing collections.
 - `GET /v1/authored` → `{items:StickerSummary[]}` for the signed-in author. With no query parameters this retains the legacy unpaginated response shape and 1,000-record read cap. Authored summaries include `status` (`published` or `withdrawn`).
@@ -42,7 +42,7 @@ Unity configuration adds `nftEnabled` (default false) and `thirdwebClientId` (pu
 
 Admin custom claim `admin:true`: report list and moderation actions; agent may define private admin wire details and document under backend.
 
-Defaults: location ≤30s old; publication prepare/finalize accept accuracy ≤100m automatically; map-confirmed publications accept measured accuracy ≤5000m as described below; nearby accepts ≤5000m, while recovery/collection require ≤50m; recovery/collection within 100m of placement; note ≤2000 chars, teaser ≤180, place ≤80; 5 publications/user/day; bounded nearby results (100). Never return coordinates/notes/tokens in request logs. Maps private in bucket. Presets have no uploads from end users. Published original persists after collection. Backend agent adds tests with injected adapters and emulator integration where available.
+Defaults: location ≤30s old; publication prepare/finalize accept accuracy ≤100m automatically; map-confirmed publications accept measured accuracy ≤5000m as described below; nearby and recovery accept ≤5000m; recovery within measured accuracy + 100m of placement; collection requires ≤50m accuracy and proximity within 100m; note ≤2000 chars, teaser ≤180, place ≤80; 5 publications/user/day; bounded nearby results (100). Never return coordinates/notes/tokens in request logs. Maps private in bucket. Presets have no uploads from end users. Published original persists after collection. Backend agent adds tests with injected adapters and emulator integration where available.
 
 ## Ownership and coordination
 
@@ -72,8 +72,8 @@ The confirmed pin becomes the publication's coordinates. `locationSource`,
 `locationAccuracyMeters`, and `measuredLocation` retain private provenance;
 public summaries do not expose the measured fix. Confirmation is immutable
 across prepare retries and must match within 1 m on finalize. The measured fix
-may refresh, but must still support that same pin. AR recovery/collection keep
-their existing measured accuracy and proximity requirements.
+may refresh, but must still support that same pin. AR recovery accepts fresh measured accuracy ≤5000 m and proximity within
+measured accuracy + 100 m; collection retains ≤50 m accuracy and 100 m proximity.
 
 New clients also send `hasPublicationLocation: true` to retain the chosen target
 before the first network attempt. With `locationConfirmed: false`, the measured
