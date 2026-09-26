@@ -1,5 +1,17 @@
 # Device verification
 
+## Sign-in status text — 2026-09-26
+
+Removed provider-opening progress text from login while preserving error and
+service-configuration messages and disabling repeated sign-in actions.
+`LoginSupportsRetryCompactTextAndReducedMotion` failed before the change and
+passed afterward (`/tmp/tagtag-login-status-red.xml`,
+`/tmp/tagtag-login-status-green.xml`). Separate ARKit preparation, iOS export and
+signed Debug build succeeded. Source `48e177d` was installed over the existing app
+on Dawg. (iPhone 15 Pro Max); CoreDevice installation and launch both exited 0.
+Logs: `/tmp/tagtag-login-status-{prepare,export,signed,install,launch}.log`.
+No physical provider-authentication interaction was verified in this pass.
+
 ## Login refresh installation — 2026-09-26
 
 - Built source `d8c5ccc` with separate ARKit preparation, Unity iOS export and
