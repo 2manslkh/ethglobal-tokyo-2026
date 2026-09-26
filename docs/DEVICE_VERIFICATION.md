@@ -1,5 +1,27 @@
 # Device verification
 
+## Find in AR camera startup — 2026-09-26
+
+The controller now opens the camera before acquiring discovery-grade GPS and
+fetching the recovery map. Previously all of that work had to succeed before the
+camera could start; a location failure left the user on Explore.
+
+- Regression reproduced before the fix: `DiscoveryOpensCameraBeforeLocationCompletesAndKeepsRetryOnFailure`
+  expected STICK while GPS was pending, but remained on Explore (`/tmp/tagtag-ar-red.xml`).
+- Unity 6000.5.5f1 Edit Mode: **208/208 passed**, `/tmp/tagtag-ar-green.xml`.
+  The regression covers immediate camera entry, duplicate taps, clearing the old
+  placement selection, and retaining the target and error for retry after GPS failure.
+- Separate ARKit preparation and iOS export succeeded (`/tmp/tagtag-ar-prepare.log`,
+  `/tmp/tagtag-ar-export.log`). Unsigned Xcode Debug/iphoneos build: **BUILD SUCCEEDED**,
+  `/tmp/tagtag-ar-xcode.log`. This build has not been installed on the phone.
+
+Physical-device verification is pending. On an iPhone, select an Explore sticker
+and tap **Find in AR** with slow/low-accuracy GPS: confirm the camera opens while
+location is checked, then shows retry guidance on failure. Retry with a precise
+fix and confirm map recovery and collection still work. Also verify first-use
+camera permission and denied camera access. Automated controller tests do not
+verify live imagery, ARKit relocalization, or collection on a physical device.
+
 ## UI improvements — 2026-09-26
 
 Implemented on `feat/ui-improvements` in `/private/tmp/tagtag-ui-improvements`.

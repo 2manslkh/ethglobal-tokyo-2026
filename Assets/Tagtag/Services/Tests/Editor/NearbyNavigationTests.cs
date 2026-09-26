@@ -326,6 +326,42 @@ namespace Tagtag.Services.Tests
         }
 
         [Test]
+        public async Task DiscoveryOpensCameraBeforeLocationCompletesAndKeepsRetryOnFailure()
+        {
+            controller.Dispose();
+            var delay = new TaskCompletionSource<bool>();
+            var runtime = new BrowsingLocationRuntime { Accuracy = 500, PendingDelay = delay.Task };
+            var camera = new Camera();
+            controller = new TagtagController(new ServiceConfiguration(), camera, new Map(),
+                new Identity { StoredSession = ValidSession },
+                deviceLocation: new DeviceLocation(runtime));
+            controller.State.page = AppPage.Explore;
+            controller.State.selected = new StickerSummary { id = "find-me" };
+            controller.State.selectedPreset = "taggi-1";
+            controller.State.selectedDesign = "old-design";
+
+            controller.StartDiscovery();
+            try
+            {
+                Assert.That(controller.State.page, Is.EqualTo(AppPage.Stick),
+                    "Find in AR must open the camera while GPS is still pending.");
+                Assert.That(camera.EnterCount, Is.EqualTo(1));
+                Assert.That(controller.State.selectedPreset, Is.Empty);
+                Assert.That(controller.State.selectedDesign, Is.Empty);
+                Assert.That(controller.State.busy, Is.True);
+                Assert.That(controller.State.status, Does.Contain("location"));
+                controller.StartDiscovery();
+                Assert.That(camera.EnterCount, Is.EqualTo(1), "Repeated taps must not restart the camera.");
+            }
+            finally { delay.TrySetException(new ApiFailure("Location unavailable. Try again.")); }
+            await Task.Yield();
+            Assert.That(controller.State.page, Is.EqualTo(AppPage.Stick));
+            Assert.That(controller.State.busy, Is.False);
+            Assert.That(controller.State.error, Does.Contain("Location unavailable"));
+            Assert.That(controller.State.selected.id, Is.EqualTo("find-me"), "Keep the target available for retry.");
+        }
+
+        [Test]
         public void BrowsingStillRejectsStaleLocation()
         {
             controller.Dispose();
@@ -347,6 +383,7 @@ namespace Tagtag.Services.Tests
             public float Accuracy;
             public long MeasuredAt = 100;
             public int DelayCount, StopCount;
+            public Task PendingDelay;
             public LocationAuthorization Authorization => LocationAuthorization.FullAccuracy;
             public bool ServicesEnabled => true;
             public LocationServiceStatus Status { get; private set; } = LocationServiceStatus.Stopped;
@@ -356,7 +393,7 @@ namespace Tagtag.Services.Tests
             public void Start(float desiredAccuracyMeters, float updateDistanceMeters) { Status = LocationServiceStatus.Running; }
             public void Stop() { StopCount++; Status = LocationServiceStatus.Stopped; }
             public Task Delay(CancellationToken cancellation)
-            { cancellation.ThrowIfCancellationRequested(); DelayCount++; UtcNow = UtcNow.AddSeconds(1); return Task.CompletedTask; }
+            { cancellation.ThrowIfCancellationRequested(); DelayCount++; UtcNow = UtcNow.AddSeconds(1); return PendingDelay ?? Task.CompletedTask; }
         }
 
         private static string ValidSession => JsonUtility.ToJson(new UserSession
@@ -378,7 +415,8 @@ namespace Tagtag.Services.Tests
             public float PlacementWidthMeters => .2f;
             public float PlacementRotationDegrees => 0f;
             public string Status => "";
-            public void Enter() { }
+            public int EnterCount;
+            public void Enter() { EnterCount++; }
             public void Exit() { }
             public void SelectPreset(string id) { }
             public void CancelPlacement() { }

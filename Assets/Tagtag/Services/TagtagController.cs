@@ -386,7 +386,16 @@ namespace Tagtag.Services
             string id = State.selected.id;
             Run(async () =>
             {
+                // Camera permission and live imagery must not wait for GPS or map downloads.
+                recovery = null;
+                Map.Hide(); State.page = AppPage.Stick; State.selectedDesign = ""; State.selectedPreset = ""; State.accountOpen = false;
+                Ar.CancelPlacement();
+                State.status = "Checking your location to find this sticker…";
+                Ar.Enter();
+                Notify();
                 State.location = await location.Current();
+                State.status = "Loading this sticker’s saved spot…";
+                Notify();
                 var result = await api.Call<RecoverResult>("POST", Path(id) + "/recover", new LocationRequest { location = State.location }, await session.Token());
                 byte[] worldMap = await TagtagApi.Download(result.mapUrl);
                 recovery = new RecoveryData { sticker = result.sticker, discoveryId = result.discoveryId, expiresAt = result.expiresAt,
@@ -397,8 +406,7 @@ namespace Tagtag.Services
                     var artwork = await StickerArtwork.Load(result.sticker.designId, result.sticker.artworkUrl);
                     if (artwork == null) throw new ApiFailure("Sticker artwork could not load. Try discovery again.");
                 }
-                Map.Hide(); State.page = AppPage.Stick; State.selectedDesign = ""; State.selectedPreset = ""; State.accountOpen = false;
-                Ar.Enter(); Ar.Recover(recovery);
+                Ar.Recover(recovery);
                 State.status = "Look around slowly, then tap the sticker when it appears.";
             });
         }
