@@ -598,18 +598,26 @@ static UIImage *TagtagCutout(UIImage *image, NSError **error) {
 }
 @end
 
-extern "C" void TagtagStickerCreationAIFinished(const char *path) {
+extern "C" void TagtagStickerCreationAIFinished(const void *bytes, size_t length) {
+    // Swift's Data buffer is valid only for the call. Own it before queueing work.
+    NSData *imageData = bytes && length ? [[NSData alloc] initWithBytes:bytes length:length] : nil;
+    TagtagStickerEditor *editor = activeEditor;
     dispatch_async(dispatch_get_main_queue(), ^{
-        if (!activeEditor || activeEditor.finished) return;
-        UIImage *image = path ? [UIImage imageWithContentsOfFile:@(path)] : nil;
-        if (image) [activeEditor useImage:image];
-        else [activeEditor finish:@"error" path:nil image:nil error:@"Image Playground did not return a readable image."];
+        if (!editor || editor.finished || activeEditor != editor) return;
+        UIImage *image = imageData ? [UIImage imageWithData:imageData] : nil;
+        if (image) [editor useImage:image];
+        else {
+            if (imageData) NSLog(@"[TagtagImagePlayground] Generated image decode failed (%lu bytes)",
+                                 (unsigned long)imageData.length);
+            [editor finish:@"error" path:nil image:nil error:@"Image Playground did not return a readable image."];
+        }
     });
 }
 
 extern "C" void TagtagStickerCreationAICancelled(void) {
+    TagtagStickerEditor *editor = activeEditor;
     dispatch_async(dispatch_get_main_queue(), ^{
-        [activeEditor finish:@"cancelled" path:nil image:nil error:nil];
+        if (editor && activeEditor == editor) [editor finish:@"cancelled" path:nil image:nil error:nil];
     });
 }
 

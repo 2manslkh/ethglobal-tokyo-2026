@@ -3,7 +3,7 @@ import UIKit
 import ImagePlayground
 
 @_silgen_name("TagtagStickerCreationAIFinished")
-private func nativeFinished(_ path: UnsafePointer<CChar>?)
+private func nativeFinished(_ bytes: UnsafeRawPointer?, _ length: Int)
 
 @_silgen_name("TagtagStickerCreationAICancelled")
 private func nativeCancelled()
@@ -31,15 +31,33 @@ private final class PlaygroundSession: NSObject, ImagePlaygroundViewController.D
 
     func imagePlaygroundViewController(_ imagePlaygroundViewController: ImagePlaygroundViewController,
                                        didCreateImageAt imageURL: URL) {
-        let path = imageURL.path
+        let imageData: Data?
+        do {
+            imageData = try Data(contentsOf: imageURL)
+        } catch {
+            let failure = error as NSError
+            NSLog("[TagtagImagePlayground] Generated image read failed: %@ (%ld)", failure.domain, failure.code)
+            imageData = nil
+        }
+        // Image Playground supplies a temporary file. Consume and clean it up
+        // before dismissal, when its lifetime is still guaranteed.
+        try? FileManager.default.removeItem(at: imageURL)
         imagePlaygroundViewController.dismiss(animated: true) {
-            path.withCString { nativeFinished($0) }
+            guard activeSession === self else { return }
+            if let imageData = imageData {
+                imageData.withUnsafeBytes { buffer in
+                    nativeFinished(buffer.baseAddress, buffer.count)
+                }
+            } else {
+                nativeFinished(nil, 0)
+            }
             activeSession = nil
         }
     }
 
     func imagePlaygroundViewControllerDidCancel(_ imagePlaygroundViewController: ImagePlaygroundViewController) {
         imagePlaygroundViewController.dismiss(animated: true) {
+            guard activeSession === self else { return }
             nativeCancelled()
             activeSession = nil
         }
