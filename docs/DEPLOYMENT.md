@@ -99,3 +99,20 @@ The `tagtag-cleanup` job now uses the exact API image digest
 Its command, environment and runtime identity are unchanged; no manual cleanup
 execution was triggered. No error-severity logs were returned for the new API
 revision during the post-promotion check.
+
+## 100 publications per day — 2026-09-26
+
+Commit `df1f37f` increases the per-user UTC-day publication preparation limit
+from 10 to 100. Revision `tagtag-api-quota100-df1f37f` was built from that
+commit, promoted to 100% traffic, and verified Ready. After promotion,
+`GET /health` returned 200 and unauthenticated `POST /v1/publications/prepare`
+returned 401. No live test publications were created.
+
+The backend suite passed 85 tests with one emulator test skipped. The quota
+regression first failed on publication 11, then passed for 100 new prepares,
+an idempotent retry at the limit, rejection of the 101st, and an independent
+user allowance. Read-only GPT-6-Sol high review found no actionable issues.
+Existing daily counts carry over; UTC reset and separate design quotas are
+unchanged. No app rebuild is required. Prior revision `tagtag-api-00012-l95`
+is available for rollback. Local logs: `/tmp/tagtag-quota100-deploy.log`,
+`/tmp/tagtag-quota100-traffic.log`, and `/tmp/tagtag-quota100-green.log`.
