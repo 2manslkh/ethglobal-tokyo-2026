@@ -1,5 +1,17 @@
 # Device verification
 
+## Merged main rebuild — 2026-09-26
+
+Rebuilt merged main `571f11f` at the owner’s request. Separate ARKit preparation,
+Unity iOS export and automatically signed Xcode Debug/iphoneos build all succeeded.
+CoreDevice installed over the existing app on Dawg. (iPhone 15 Pro Max,
+`00008130-001420500E41001C`) and launched `com.kenk.tagtag`; both exited 0.
+No uninstall or data reset was performed. The pre-existing `TODO.md` and
+`SceneTemplateSettings.json` hashes remained unchanged.
+
+Logs: `/tmp/tagtag-merged-{prepare,export,signed,install,launch}.log`.
+This verifies build, signing, installation and launch, not physical AR interaction.
+
 ## Reference photo recovery and map integration — 2026-09-26
 
 Combined source `2329063` includes the reference photo visibility/loading fixes,
