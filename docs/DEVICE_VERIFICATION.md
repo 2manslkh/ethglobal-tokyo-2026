@@ -1,5 +1,18 @@
 # Device verification
 
+## Login refresh installation — 2026-09-26
+
+- Built source `d8c5ccc` with separate ARKit preparation, Unity iOS export and
+  automatically signed Xcode Debug/iphoneos build; all exited 0.
+- Installed over the existing app on **Dawg., iPhone 15 Pro Max**, UDID
+  `00008130-001420500E41001C`, with CoreDevice. Installation exited 0; no
+  uninstall or data reset was performed.
+- Automatic launch was rejected because the phone was locked. Unlock and open
+  tagtag manually. Physical login and AR interaction remain unverified here.
+- Logs: `/tmp/tagtag-install-refresh-prepare.log`,
+  `/tmp/tagtag-install-refresh-export.log`, `/tmp/tagtag-install-refresh-signed.log`,
+  `/tmp/tagtag-install-refresh-device.log`, `/tmp/tagtag-install-refresh-launch.log`.
+
 ## Login refresh — 2026-09-26
 
 Replaced the login background with the supplied `loading-screen-sticker.mp4`,
