@@ -11,7 +11,7 @@ namespace Tagtag.Blockchain
 
         internal static string ValidateContract(string address)
         {
-            if (!IsAddress(address) || IsZeroAddress(address))
+            if (!EthereumAddress.IsValid(address))
             {
                 throw new WalletTransferException("invalid_contract", "The NFT contract address is invalid.");
             }
@@ -21,7 +21,7 @@ namespace Tagtag.Blockchain
 
         internal static string ValidateRecipient(string recipient, string owner)
         {
-            if (!IsAddress(recipient) || IsZeroAddress(recipient) ||
+            if (!EthereumAddress.IsValid(recipient) ||
                 (owner != null && string.Equals(recipient, owner, StringComparison.OrdinalIgnoreCase)))
             {
                 throw new WalletTransferException("invalid_recipient", "Choose a different valid Ethereum address.");
@@ -117,11 +117,6 @@ namespace Tagtag.Blockchain
             }
 
             return receiptStatus == 1 ? "confirmed" : "failed";
-        }
-
-        private static bool IsAddress(string address)
-        {
-            return IsHex(address, 40);
         }
 
         private static bool IsZeroAddress(string address)

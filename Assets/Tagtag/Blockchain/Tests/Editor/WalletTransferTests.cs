@@ -11,6 +11,21 @@ namespace Tagtag.Blockchain.Tests
         private const string Recipient = "0x2222222222222222222222222222222222222222";
         private const string Zero = "0x0000000000000000000000000000000000000000";
         private const string BlockHash = "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+        private const string ChecksummedRecipient = "0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed";
+        private const string MistypedRecipient = "0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAee";
+
+        [Test]
+        public void MixedCaseRecipientRequiresValidErc55Checksum()
+        {
+            Assert.IsTrue(EthereumAddress.IsValid(ChecksummedRecipient));
+            Assert.IsFalse(EthereumAddress.IsValid(MistypedRecipient));
+            Assert.IsTrue(EthereumAddress.IsValid(ChecksummedRecipient.ToLowerInvariant()));
+            Assert.IsTrue(EthereumAddress.IsValid("0x" + ChecksummedRecipient.Substring(2).ToUpperInvariant()));
+            Assert.IsFalse(EthereumAddress.IsValid(Zero));
+
+            Assert.AreEqual("invalid_recipient", Assert.Throws<WalletTransferException>(() =>
+                WalletTransferChecks.ValidateRecipient(MistypedRecipient, Owner)).Code);
+        }
 
         [Test]
         public void RecipientMustBeDistinctNonzeroEthereumAddress()
