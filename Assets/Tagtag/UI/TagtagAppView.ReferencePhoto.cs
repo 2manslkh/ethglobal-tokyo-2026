@@ -56,15 +56,15 @@ namespace Tagtag.UI
         {
             if (recoveryPhotoButton == null) return;
             bool discovering = state.page == AppPage.Stick && state.selected != null &&
-                !PaperFlow.HasPlacementSelection(state) && !state.accountOpen && sheet == Sheet.None &&
-                controller.Ar.CameraPresentation == CameraPresentationState.Live;
+                !PaperFlow.HasPlacementSelection(state) && !state.accountOpen && sheet == Sheet.None;
             recoveryPhotoButton.style.display = discovering ? DisplayStyle.Flex : DisplayStyle.None;
             var photos = controller.Ar as IReferencePhotoAr;
             var photo = photos?.ReferencePhoto;
             bool ready = photos?.PhotoState == ReferencePhotoState.Ready && photo != null;
             recoveryPhotoImage.image = ready ? photo : null;
             recoveryPhotoImage.style.display = ready ? DisplayStyle.Flex : DisplayStyle.None;
-            recoveryPhotoPlaceholder.text = photos?.PhotoState == ReferencePhotoState.Loading ? "Loading photo…" : "No reference photo";
+            recoveryPhotoPlaceholder.text = state.discoveryLoading || photos?.PhotoState == ReferencePhotoState.Loading
+                ? "Loading photo…" : "No reference photo";
             recoveryPhotoPlaceholder.style.display = ready ? DisplayStyle.None : DisplayStyle.Flex;
             SetDisabled(recoveryPhotoButton, !ready);
             if (referencePhotoFull != null && referencePhotoFull.panel != null)

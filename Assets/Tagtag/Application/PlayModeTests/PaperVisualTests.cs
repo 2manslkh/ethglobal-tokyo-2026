@@ -23,6 +23,61 @@ namespace Tagtag.Tests
         private int oldMotion;
 
         [UnityTest]
+        public IEnumerator OriginalSpotPhotoStaysVisibleWhileArRelocalizes()
+        {
+            oldScale = PlayerPrefs.GetFloat("tagtag.textScale", 1f);
+            oldMotion = PlayerPrefs.GetInt("tagtag.reducedMotion", 0);
+            PlayerPrefs.SetFloat("tagtag.textScale", 1f);
+            PlayerPrefs.SetInt("tagtag.reducedMotion", 1);
+            controller = new ReviewController();
+            controller.State.selected = Sticker(0);
+            controller.Navigate(AppPage.Stick);
+            var photo = new Texture2D(16, 24);
+            photo.SetPixels(Enumerable.Repeat(Color.magenta, 16 * 24).ToArray());
+            photo.Apply();
+            controller.State.discoveryLoading = true;
+            controller.Camera.CameraPresentation = CameraPresentationState.Preparing;
+            host = new GameObject("Original spot photo review");
+            host.AddComponent<TagtagAppView>().Initialize(controller);
+            document = host.GetComponent<UIDocument>();
+            target = new RenderTexture(390, 844, 24);
+            target.Create();
+            document.panelSettings.targetTexture = target;
+            try
+            {
+                yield return Capture("reference-photo-loading");
+                var preview = document.rootVisualElement.Q<Button>("Original spot preview");
+                Assert.That(preview.resolvedStyle.display, Is.EqualTo(DisplayStyle.Flex));
+                Assert.That(preview.Query<Label>().ToList().Any(label => label.text == "Loading photo…"), Is.True);
+                Assert.That(preview.enabledSelf, Is.False);
+                controller.State.discoveryLoading = false;
+                controller.Camera.ReferencePhoto = photo;
+                controller.Camera.PhotoState = ReferencePhotoState.Ready;
+                controller.Camera.CameraPresentation = CameraPresentationState.Live;
+                controller.Notify();
+                yield return Capture("reference-photo-live");
+                Assert.That(preview.resolvedStyle.display, Is.EqualTo(DisplayStyle.Flex));
+                var image = preview.Q<Image>();
+                Assert.That(image.image, Is.SameAs(photo));
+                Assert.That(image.worldBound.height, Is.GreaterThan(50f));
+                Assert.That(image.worldBound.yMin, Is.GreaterThanOrEqualTo(0f));
+                Assert.That(image.worldBound.yMax, Is.LessThan(document.rootVisualElement.worldBound.yMax));
+                foreach (var state in new[] { CameraPresentationState.Preparing, CameraPresentationState.Interrupted })
+                {
+                    controller.Camera.CameraPresentation = state;
+                    controller.Notify();
+                    yield return Capture("reference-photo-" + state);
+                    Assert.That(preview.resolvedStyle.display, Is.EqualTo(DisplayStyle.Flex),
+                        "The saved photo must remain available while the camera restarts or relocalizes.");
+                }
+                Submit("Original spot preview");
+                yield return Capture("reference-photo-enlarged");
+                Assert.That(document.rootVisualElement.Q<Image>("Original spot full photo").image, Is.SameAs(photo));
+            }
+            finally { UnityEngine.Object.Destroy(photo); }
+        }
+
+        [UnityTest]
         public IEnumerator NftStatusUpdatesWithoutReplacingPrivateNotes()
         {
             oldScale = PlayerPrefs.GetFloat("tagtag.textScale", 1f);
@@ -1060,8 +1115,10 @@ namespace Tagtag.Tests
             createdAt = 1780000000, collectedAt = 1780000000 + i, latitude = 35.68, longitude = 139.76
         };
 
-        private sealed class ReviewCamera : IArExperience
+        private sealed class ReviewCamera : IArExperience, IReferencePhotoAr
         {
+            public Texture2D ReferencePhoto { get; set; }
+            public ReferencePhotoState PhotoState { get; set; }
             public event Action Changed { add { } remove { } }
             public event Action<string> StickerTapped { add { } remove { } }
             public CameraPresentationState CameraPresentation { get; set; } = CameraPresentationState.Preparing;
