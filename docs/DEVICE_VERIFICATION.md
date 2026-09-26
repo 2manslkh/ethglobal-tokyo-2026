@@ -835,3 +835,28 @@ Automatic launch was denied because the iPad was locked. The user was asked to
 unlock it and open tagtag. Launch, layout, authentication, and AR behavior on this
 iPad remain unverified. Local evidence: `/tmp/tagtag-ipad-xcode.log`,
 `/tmp/tagtag-ipad-install.json`, `/tmp/tagtag-ipad-launch.json`.
+
+## Native map artwork package — 2026-09-27
+
+Investigated the photo placeholder for “I was here at ethglobal” on Dawg.,
+iPhone 15 Pro Max. The live nearby API identifies this sticker as `taggi-7`.
+The Unity detail card displayed its artwork, but the native map did not.
+LLDB inspection of the running app found only `taggi-1.png` through
+`taggi-4.png` in its main bundle; both the resource path lookup and
+`[UIImage imageNamed:@"taggi-7.png"]` returned `nil`. The running app's bundle
+container differed from the preceding recorded installation. The cause of that
+package replacement was not established.
+
+Reinstalled the signed `Build/DerivedData/Build/Products/Debug-iphoneos/tagtag.app`
+and launched it. LLDB then confirmed that the running bundle matched the new
+installation, its `taggi-7.png` path existed, and UIKit returned a 1254 × 1254
+image. Installation evidence: `/tmp/tagtag-map-artwork-reinstall.json`.
+Do not use the older `Build/SignedDerivedData` package or TestFlight archive
+0.1.0 (1) to verify the all-presets fix; both contain only four native images.
+
+The native simulator harness passed with all twelve packaged images, including
+an additional temporary check of the actual chooser cells. A separate clean
+harness using the old archive's four images failed the Taggi #7 assertion.
+These checks verify resource loading; final on-map appearance on the phone
+still requires visual confirmation. No source-code fix was needed beyond
+the existing `0ad5424` change.
