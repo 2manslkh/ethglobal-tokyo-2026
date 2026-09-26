@@ -2,7 +2,7 @@
 
 Find your places, Collect your moments
 
-tagtag is an iPhone AR sticker app starring **Taggi**. Its paper-white interface follows [DESIGN.md](DESIGN.md), with four die-cut mascot presets and three tabs:
+tagtag is an iPhone AR sticker app starring **Taggi**. Its paper-white interface follows [DESIGN.md](DESIGN.md), with twelve die-cut mascot presets and three tabs:
 
 - **Home:** a personal sticker book with 20 spaces per page, collection details, and account controls.
 - **STICK:** place a sticker on a tracked surface, write a public teaser and private note, then publish. Recover a nearby sticker's AR map and tap it within three metres to collect a copy and reveal its note.
@@ -116,7 +116,7 @@ Run the Home UI checks with Unity `-buildTarget StandaloneOSX -testPlatform Play
 
 Open **My Stickers** from Home or the STICK inventory. Import a photo/file, make a photo or selfie Polaroid, or open Apple Image Playground on a supported iPhone. The native editor offers full-image or square crop, optional foreground cutout with a white border, and a Polaroid caption. Preview the finished design before saving.
 
-Designs sync to the creator's account and can be placed repeatedly. Collecting someone else's placement adds a book copy, without granting design publication rights. Removing a library design preserves published copies. The four bundled Taggi presets still work. Creation drafts survive failed uploads and sign-in; use **Retry saving sticker** to continue. Source photos stay on the device; only the finished PNG is uploaded.
+Designs sync to the creator's account and can be placed repeatedly. Collecting someone else's placement adds a book copy, without granting design publication rights. Removing a library design preserves published copies. The twelve bundled Taggi presets work without creating a custom design. The eight new poses are waving, heart-hugging, laughing, sleepy, surprised, cheering, shy, and thinking; artwork prompts are recorded in [Taggi presets](docs/mascot/TAGGI_PRESETS.md). New poses retain their artwork in the app and use the existing generic Taggi NFT souvenir. Deploy backend support for all twelve preset IDs before distributing the updated app. Creation drafts survive failed uploads and sign-in; use **Retry saving sticker** to continue. Source photos stay on the device; only the finished PNG is uploaded.
 
 Image Playground is checked at runtime and has no cloud fallback. Foreground cutout requires iOS 17 or later; imports and Polaroids retain the iOS 15 minimum. Native creation uses PhotosUI, Vision, UIKit, and a Swift Image Playground bridge. The backend uses `sharp` to validate PNG pixels, remove metadata, and generate thumbnails. Limits are 5 MiB/1024 pixels per image, 20 new designs per account per day, and 100 active designs. See [the creation plan](docs/plans/2026-09-26-sticker-creation.md) and [backend API details](backend/README.md).
 

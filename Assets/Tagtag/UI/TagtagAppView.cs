@@ -23,7 +23,7 @@ namespace Tagtag.UI
         private Font SemiboldFont => semiboldFont ?? (semiboldFont = Resources.Load<Font>("Tagtag/Fonts/InstrumentSemibold"));
         private Font HeadingFont => headingFont ?? (headingFont = Resources.Load<Font>("Tagtag/Fonts/ShadowsIntoLight"));
         private Font DisplayFont => HeadingFont;
-        private static readonly string[] Presets = { "taggi-1", "taggi-2", "taggi-3", "taggi-4" };
+        private static readonly string[] Presets = StickerPresets.Ids.ToArray();
         private static readonly string[] ReportReasons = { "Harassment or hate", "Unsafe place", "Private information", "Spam or misleading", "Something else" };
 
         private ITagtagController controller;

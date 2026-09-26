@@ -327,9 +327,9 @@ namespace Tagtag.Tests
             Assert.That(controller.Camera.InteractionBlocked, Is.True, "The inventory must block all camera input.");
             var inventoryGrid = document.rootVisualElement.Q<VisualElement>("Sticker inventory grid");
             Assert.That(inventoryGrid, Is.Not.Null);
-            Assert.That(inventoryGrid.childCount, Is.EqualTo(5), "Four Taggi stickers and Add Sticker should form the initial inventory.");
+            Assert.That(inventoryGrid.childCount, Is.EqualTo(13), "Twelve Taggi stickers and Add Sticker should form the initial inventory.");
             Assert.That(inventoryGrid.resolvedStyle.flexDirection, Is.EqualTo(FlexDirection.Row));
-            Assert.That(inventoryGrid.childCount % 3, Is.EqualTo(2), "The final inventory row includes the Add Sticker tile.");
+            Assert.That(inventoryGrid.childCount % 3, Is.EqualTo(1), "The final inventory row includes the Add Sticker tile.");
             Assert.That(inventoryGrid[0].worldBound.yMin, Is.EqualTo(inventoryGrid[1].worldBound.yMin).Within(1f));
             Assert.That(inventoryGrid[1].worldBound.yMin, Is.EqualTo(inventoryGrid[2].worldBound.yMin).Within(1f));
             Assert.That(inventoryGrid[1].worldBound.xMin, Is.GreaterThan(inventoryGrid[0].worldBound.xMin));
@@ -339,11 +339,11 @@ namespace Tagtag.Tests
             Assert.That(document.rootVisualElement.Query<Label>().ToList().Any(label =>
                 label.text.StartsWith("Taggi pose ") || label.text.StartsWith("After choosing")), Is.False,
                 "Inventory artwork has no names or placement instructions.");
-            Assert.That(inventoryGrid[4].name, Is.EqualTo("Add Sticker"), "Add Sticker must follow the last sticker.");
+            Assert.That(inventoryGrid[12].name, Is.EqualTo("Add Sticker"), "Add Sticker must follow the last sticker.");
             foreach (var choice in document.rootVisualElement.Query<Button>().ToList().Where(button =>
-                button.name != null && button.name.StartsWith("Inventory Taggi pose ")))
+                button.name != null && button.name.StartsWith("Inventory ")))
             {
-                Assert.That(choice.Q<Image>(), Is.Not.Null, "Each inventory tile must show sticker artwork.");
+                Assert.That(choice.Q<Image>()?.image, Is.Not.Null, "Each inventory tile must show sticker artwork.");
                 Assert.That(choice.Query<Label>().ToList().Any(label => label.text.StartsWith("Taggi pose ")), Is.False);
             }
             Submit("Add Sticker");
@@ -897,9 +897,9 @@ namespace Tagtag.Tests
             var inventorySheet = document.rootVisualElement.Q<PaperSheet>();
             var inventoryGrid = inventorySheet.Q<VisualElement>("Sticker inventory grid");
             Assert.That(inventoryGrid, Is.Not.Null);
-            Assert.That(inventoryGrid.childCount, Is.EqualTo(6), "Saved designs, four originals, and Add Sticker appear in the inventory.");
+            Assert.That(inventoryGrid.childCount, Is.EqualTo(14), "Saved designs, twelve originals, and Add Sticker appear in the inventory.");
             Assert.That(inventoryGrid[0].name, Is.EqualTo("Inventory Design creation-review-image"));
-            Assert.That(inventoryGrid[5].name, Is.EqualTo("Add Sticker"));
+            Assert.That(inventoryGrid[13].name, Is.EqualTo("Add Sticker"));
             Assert.That(inventorySheet.Query<Label>().ToList().Any(label => label.text == "An afternoon in Tokyo"), Is.False,
                 "Sticker names are hidden from the placement inventory.");
             Submit("Add Sticker");
@@ -1139,6 +1139,36 @@ namespace Tagtag.Tests
             Assert.That(host.GetComponent<LoginBackdrop>(), Is.Null);
             Assert.That(host.GetComponent<UnityEngine.Video.VideoPlayer>(), Is.Null);
             Assert.That(frame == null, Is.True, "Leaving login must release its render texture.");
+        }
+
+        [UnityTest]
+        public IEnumerator CompactInventoryScrollsToTwelfthStickerAndAddSticker()
+        {
+            oldScale = PlayerPrefs.GetFloat("tagtag.textScale", 1f);
+            oldMotion = PlayerPrefs.GetInt("tagtag.reducedMotion", 0);
+            controller = new ReviewController();
+            controller.State.user = new UserSession { uid = "preset-review" };
+            host = new GameObject("Compact default sticker inventory");
+            host.AddComponent<TagtagAppView>().Initialize(controller);
+            document = host.GetComponent<UIDocument>();
+            target = new RenderTexture(320, 568, 24);
+            target.Create();
+            document.panelSettings.targetTexture = target;
+            controller.OpenCreation();
+            yield return Capture("twelve-presets-compact-top");
+            var grid = document.rootVisualElement.Q<VisualElement>("Sticker inventory grid");
+            Assert.That(grid.childCount, Is.EqualTo(13));
+            var sheet = document.rootVisualElement.Q<PaperSheet>();
+            sheet.Scroll.ScrollTo(grid[12]);
+            yield return Capture("twelve-presets-compact-bottom");
+            Assert.That(sheet.Scroll.scrollOffset.y, Is.GreaterThan(0f));
+            foreach (int index in new[] { 11, 12 })
+            {
+                Assert.That(grid[index].worldBound.yMin, Is.GreaterThanOrEqualTo(sheet.Scroll.contentViewport.worldBound.yMin - 1f));
+                Assert.That(grid[index].worldBound.yMax, Is.LessThanOrEqualTo(sheet.Scroll.contentViewport.worldBound.yMax + 1f));
+            }
+            Submit("Inventory Thinking Taggi");
+            Assert.That(controller.State.selectedPreset, Is.EqualTo("taggi-12"));
         }
 
         private IEnumerator Capture(string name)

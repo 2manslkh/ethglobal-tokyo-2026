@@ -484,7 +484,7 @@ namespace Tagtag.Services
         public void SelectPreset(string presetId)
         {
             if (!RequireAccount()) return;
-            if (State.busy || !new[] { "taggi-1", "taggi-2", "taggi-3", "taggi-4" }.Contains(presetId)) return;
+            if (State.busy || !StickerPresets.Contains(presetId)) return;
             if (State.selectedPreset == presetId && pendingDraft != null) return;
             string previousDesign = State.selectedDesign; State.selectedDesign = "";
             if (!SaveEditableDraft(presetId, State.draftPlace, State.draftTeaser, State.draftNote)) { State.selectedDesign = previousDesign; Notify(); return; }

@@ -23,6 +23,32 @@ namespace Tagtag.Services.Tests
         }
 
         [Test]
+        public void AllTwelveDefaultStickersCanBeSelectedAndUnknownIdsAreIgnored()
+        {
+            var camera = new Camera();
+            var identity = new Identity();
+            var controller = new TagtagController(new ServiceConfiguration(), camera, new Map(), identity,
+                deviceLocation: new DeviceLocation(new TrackingLocationRuntime()));
+            try
+            {
+                for (int index = 1; index <= 12; index++)
+                {
+                    string id = "taggi-" + index;
+                    controller.SelectPreset(id);
+                    Assert.That(controller.State.selectedPreset, Is.EqualTo(id));
+                    Assert.That(camera.SelectedPresetId, Is.EqualTo(id));
+                }
+                foreach (string invalid in new[] { null, "", "taggi-0", "taggi-13", "taggi-01", "TAGGI-1", "taggi-12-extra" })
+                {
+                    controller.SelectPreset(invalid);
+                    Assert.That(controller.State.selectedPreset, Is.EqualTo("taggi-12"));
+                    Assert.That(camera.SelectedPresetId, Is.EqualTo("taggi-12"));
+                }
+            }
+            finally { controller.Dispose(); RemoveEditable(identity.UserId); }
+        }
+
+        [Test]
         public void PrecisePublicationDoesNotSerializeAnUnconfirmedMapPin()
         {
             string encoded = JsonUtility.ToJson(new PrepareRequest { location = new LocationFix

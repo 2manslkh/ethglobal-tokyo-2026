@@ -57,6 +57,38 @@ namespace Tagtag.AR.PlayMode.Tests
             finally { Object.DestroyImmediate(host); }
         }
 
+        [UnityTest]
+        public IEnumerator AllDefaultStickersAreAcceptedAndUseTheirOwnArtwork()
+        {
+            var host = new GameObject("Default sticker catalog render");
+            try
+            {
+                var experience = host.AddComponent<ArExperience>();
+                var selected = typeof(ArExperience).GetField("presetId", BindingFlags.Instance | BindingFlags.NonPublic);
+                var create = typeof(ArExperience).GetMethod("CreateVisual", BindingFlags.Instance | BindingFlags.NonPublic);
+                var visualField = typeof(ArExperience).GetField("visual", BindingFlags.Instance | BindingFlags.NonPublic);
+                foreach (string id in StickerPresets.Ids)
+                {
+                    experience.SelectPreset(id);
+                    Assert.That(selected.GetValue(experience), Is.EqualTo(id));
+                    Assert.That(create.Invoke(experience, new object[] { id }), Is.EqualTo(true));
+                    var visual = (GameObject)visualField.GetValue(experience);
+                    Assert.That(visual.GetComponent<Renderer>().sharedMaterial.mainTexture,
+                        Is.SameAs(Resources.Load<Texture2D>("Tagtag/Presets/" + id)));
+                    yield return null;
+                }
+                experience.SelectPreset("taggi-13");
+                Assert.That(selected.GetValue(experience), Is.Null);
+                yield return null;
+            }
+            finally
+            {
+                var visual = GameObject.Find("Tracked tagtag sticker");
+                if (visual != null) Object.DestroyImmediate(visual);
+                Object.DestroyImmediate(host);
+            }
+        }
+
         [Test]
         public void CustomArtworkUsesItsPixelsAndPortraitScale()
         {
