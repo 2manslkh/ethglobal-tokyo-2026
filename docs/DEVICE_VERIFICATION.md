@@ -10,12 +10,14 @@ conflicting test-local variables in `PaperVisualTests.cs` to allow Unity script
 compilation; it did not change app behavior or the main checkout.
 
 CoreDevice installed the app over the existing installation on **Dawg., iPhone
-15 Pro Max, iOS 26.6.1**, without uninstalling. Install exited **0**. Launch
-remains pending because CoreDevice reported the phone was locked on two attempts.
-No physical AR tap or sparkle result is claimed yet.
+15 Pro Max, iOS 26.6.1**, without uninstalling. Install exited **0**. The first
+two launch attempts were blocked while the phone was locked; after the owner
+unlocked it, CoreDevice launched `com.kenk.tagtag` successfully, and the `tagtag`
+process appeared in the device process list. No physical AR tap or sparkle
+result is claimed yet.
 
 Logs: `/tmp/tagtag-ar-deploy-{prepare,export,xcode,install}.log` and
-`/tmp/tagtag-ar-deploy-launch{,-retry}.log`. The signed app is at
+`/tmp/tagtag-ar-deploy-launch{,-retry,-success}.log`. The signed app is at
 `/private/tmp/tagtag-ar-device/Build/DerivedData/Build/Products/Debug-iphoneos/tagtag.app`.
 
 ## AR sticker tap and sparkles — 2026-09-26
