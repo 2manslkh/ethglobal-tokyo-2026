@@ -1,5 +1,31 @@
 # Device verification
 
+## Sticker particles and camera tap — 2026-09-26
+
+After the prior build, the owner reported that yellow sparkles appeared, but
+looked like fixed stars, and tapping left the screen unchanged. The follow-up
+routes recovered-sticker taps through the camera's UI pointer event, displays AR
+tap guidance in the camera, and reports expired searches instead of silently
+ignoring collection. A Unity particle system now emits moving, fading stars
+around the sticker.
+
+The five focused AR Play Mode tests passed
+(`/tmp/tagtag-particle-ar-targeted-final.xml`). The complete headless AR run
+before updating the older static-star expectations passed 8/12; two failures
+were those obsolete tests and two were graphics readback checks returning flat
+grey pixels (`/tmp/tagtag-particle-ar-play.xml`). The particle tests were then
+updated and passed in the focused run. Separate ARKit preparation, Unity iOS
+export, and automatically signed Xcode Debug/iphoneos build succeeded. The app
+was installed over the existing app and launched on Dawg. (iPhone 15 Pro Max);
+CoreDevice install and launch both exited 0. Source: `fd5b042`. Logs:
+`/tmp/tagtag-particle-final-{prepare,export,xcode,install,launch}.log`.
+
+Physical particle motion and collection in this build are awaiting the owner's
+fresh-search check. A search expires after five minutes; restart it before
+testing. Tap the recovered sticker within three metres. A miss should show tap
+guidance, an out-of-range tap should show a distance hint, and an expired search
+should show a retry message.
+
 ## Recovered sticker follow-up — 2026-09-26
 
 On Dawg. (iPhone 15 Pro Max), the owner saw the recovered sticker without yellow
