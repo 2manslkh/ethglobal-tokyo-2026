@@ -27,10 +27,10 @@ Behavior tests for ownership, immutable retries, image validation/quotas/cleanup
 - Backend: e34945a, c159d5d. Coordinator rerun: 38 tests pass, 1 emulator-only skipped. Agent Firebase emulator run: 1/1 pass. Storage emulator cannot prove GCS conditional-write enforcement; production adapter uses generation preconditions.
 - Client integration: custom artwork, account-scoped library/upload drafts (including queued guest claims), URL renewal/cache invalidation, native suspension, AR aspect ratio and map thumbnails implemented.
 - Review fixes: expired uploads restart only on design_expired; restored authorized artwork clears local revocation; replacement drafts save before prior publication retry is cleared; inactive camera creation does not retain resume state; thumbnail fallback does not overwrite full image cache.
-- EditMode: final 133/133 passed at 2026-09-26 01:48:20 UTC, including queued guest draft ownership and expired-upload restart.
+- EditMode: final 134/134 passed at 2026-09-26 01:54:39 UTC, including queued guest draft ownership and expired-upload restart.
 - Graphics PlayMode: 10/10 passed, including custom texture/aspect ratio and My Stickers screenshots. Fixtures use synthetic artwork, not device camera or AI output.
 - Final unsigned iOS Xcode Debug build passed after separate ARKit preparation/export, including the native editor, Swift shim, custom AR artwork, and native map thumbnails.
-- Physical iPhone, Apple Intelligence, and two-device acceptance remain pending in DEVICE_VERIFICATION.md. No live backend deployment or main-checkout merge: concurrent AR/NFT work remains separate.
+- Physical iPhone, Apple Intelligence, and two-device acceptance remain pending in DEVICE_VERIFICATION.md. Includes main's AR publishing fix 267db78. No live backend deployment or feature merge into the main checkout; concurrent NFT work remains separate.
 
 ## Reproduce verification
 
