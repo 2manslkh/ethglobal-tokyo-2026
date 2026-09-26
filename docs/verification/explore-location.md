@@ -13,6 +13,10 @@ The Explore caller and only the nearby API now accept accuracy up to 5,000 metre
 - Backend: 69 tests passed; one emulator-only test skipped. New tests cover the 5,000-metre limit, rejection at 5,001 metres, stale timestamps, public summary privacy, and unchanged recovery/collection/publication limits.
 - Independent review: GPT-6-Sol with high thinking, read-only Herdr `map-review` pane. Integration and deployment remain coordinator-owned.
 
+## Deployment
+
+Cloud Run revision `tagtag-api-00005-sos` passed staged smoke checks and was promoted to 100% traffic. The public app API accepted fresh synthetic 2,000.149/5,000-metre fixes and rejected 5,001-metre and stale fixes after promotion. See [deployment](../DEPLOYMENT.md). Client commit `8041ecb` was pushed for integration into the combined iPhone build.
+
 ## Device check
 
 After installing the updated app, open Explore with Precise Location enabled. A fresh approximate fix should reveal the map and load nearby clues with an approximate-location notice, rather than remaining on the location error. Tap Refresh nearby to update the position. AR recovery and collection still need a sufficiently precise fix. Device interaction verification is pending; software regression results are not evidence of actual GPS performance.
