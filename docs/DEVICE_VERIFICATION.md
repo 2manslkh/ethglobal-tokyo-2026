@@ -1,5 +1,20 @@
 # Device verification
 
+## AR sticker tap and sparkles — 2026-09-26
+
+Physical AR verification is pending. `xcrun devicectl list devices` showed both
+available iPhones as unavailable, so no collection tap or sparkle behavior was
+observed on hardware. Unity Play Mode test attempts stopped before the test
+runner because the Unity Licensing Client repeatedly disconnected; no test pass
+is claimed for this change.
+
+On a physical iPhone, recover a sticker, move within three metres, and confirm
+the gentle yellow sparkles appear around it without covering the artwork. Tap
+the sticker from the camera side and confirm collection opens its note. Confirm
+the sparkles stop after collection, when moving out of range, when tracking is
+lost, and when closing STICK. Also confirm camera controls and sheets still block
+collection taps.
+
 ## STICK capture and note — 2026-09-26
 
 Built integrated source `e850185`, including the STICK simplification and fresh

@@ -90,6 +90,39 @@ namespace Tagtag.AR.PlayMode.Tests
         }
 
         [Test]
+        public void StickerCanBeTappedFromEitherVisibleSide()
+        {
+            var host = new GameObject("Sticker tap collider test");
+            GameObject visual = null;
+            bool previousBackfaceQueries = Physics.queriesHitBackfaces;
+            try
+            {
+                Physics.queriesHitBackfaces = false;
+                var experience = host.AddComponent<ArExperience>();
+                var create = typeof(ArExperience).GetMethod("CreateVisual", BindingFlags.Instance | BindingFlags.NonPublic);
+                Assert.That(create.Invoke(experience, new object[] { "taggi-1" }), Is.True);
+                visual = GameObject.Find("Tracked tagtag sticker");
+                visual.transform.SetPositionAndRotation(Vector3.zero, Quaternion.Euler(90f, 0f, 0f));
+                visual.transform.localScale = Vector3.one * 0.2f;
+                Physics.SyncTransforms();
+
+                foreach (float side in new[] { -1f, 1f })
+                {
+                    var ray = new Ray(Vector3.up * side, Vector3.down * side);
+                    Assert.That(Physics.Raycast(ray, out var hit, 3f), Is.True,
+                        "The visible sticker must be tappable from either side.");
+                    Assert.That(hit.collider.gameObject, Is.SameAs(visual));
+                }
+            }
+            finally
+            {
+                Physics.queriesHitBackfaces = previousBackfaceQueries;
+                if (visual != null) Object.DestroyImmediate(visual);
+                Object.DestroyImmediate(host);
+            }
+        }
+
+        [Test]
         public void CustomArtworkUsesItsPixelsAndPortraitScale()
         {
             var host = new GameObject("Custom artwork render");

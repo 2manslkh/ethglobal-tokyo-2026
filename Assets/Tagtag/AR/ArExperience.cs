@@ -365,6 +365,9 @@ namespace Tagtag.AR
             {
                 var visible = tracking && anchor.trackingState == TrackingState.Tracking && (recovered || presetId != null);
                 visual.SetActive(visible);
+                var sparkles = visual.GetComponent<StickerSparkles>();
+                if (sparkles != null)
+                    sparkles.SetVisible(visible && CanCollect && !placementFlow.IsBlocked && !busy);
             }
             if (recovered)
             {
@@ -607,6 +610,14 @@ namespace Tagtag.AR
                 nextMaterial.mainTexture = artwork;
                 nextVisual = GameObject.CreatePrimitive(PrimitiveType.Quad);
                 nextVisual.name = "Tracked tagtag sticker";
+                // The artwork shader draws both sides, but the primitive's mesh collider
+                // only receives raycasts from its front. Horizontal stickers face away
+                // from the camera after placement, so give both sides a thin hit volume.
+                var meshCollider = nextVisual.GetComponent<MeshCollider>();
+                meshCollider.enabled = false;
+                Destroy(meshCollider);
+                var tapCollider = nextVisual.AddComponent<BoxCollider>();
+                tapCollider.size = new Vector3(1f, 1f, 0.04f);
                 nextVisual.GetComponent<Renderer>().sharedMaterial = nextMaterial;
                 visual = nextVisual;
                 material = nextMaterial;
@@ -760,6 +771,7 @@ namespace Tagtag.AR
                         visual.transform.localPosition = snapshot.position;
                         visual.transform.localRotation = snapshot.rotation;
                         visual.transform.localScale = ArtworkScale(snapshot.widthMeters);
+                        StickerSparkles.Attach(visual).SetVisible(false);
                         widthMeters = snapshot.widthMeters;
                         recoveredStickerId = data.sticker.id;
                         recovered = true;

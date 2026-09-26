@@ -5,7 +5,7 @@ Find your places, Collect your moments
 tagtag is an iPhone AR sticker app starring **Taggi**. Its paper-white interface follows [DESIGN.md](DESIGN.md), with twelve die-cut mascot presets and three tabs:
 
 - **Home:** a personal sticker book with 20 spaces per page, collection details, and account controls.
-- **STICK:** place a sticker on a tracked surface, capture the spot, write a private note, then publish. Recover a nearby sticker's AR map and tap it within three metres to collect a copy and reveal its note.
+- **STICK:** place a sticker on a tracked surface, capture the spot, write a private note, then publish. Recover a nearby sticker's AR map; gentle yellow sparkles mark the sticker when it is within three metres and ready to tap. Tap it to collect a copy and reveal its note.
 - **Explore:** a native Apple street map with sticker pins, clusters, and teaser sheets.
 
 Apple or Google sign-in is required to enter the app. Returning authenticated sessions open Home; signing out or losing a session returns to login. Collection leaves the original sticker available. Account-specific collections are cached offline; removed content is updated at the next successful sync.
