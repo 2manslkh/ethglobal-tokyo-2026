@@ -87,7 +87,7 @@ namespace Tagtag.AR
         private ARWorldMapRequest? mapRequest;
         private ARKitSessionSubsystem ArKit => session != null ? session.subsystem as ARKitSessionSubsystem : null;
         private bool MapReady => ArKit != null && ARKitSessionSubsystem.worldMapSupported &&
-            ArKit.worldMappingStatus == ARWorldMappingStatus.Mapped;
+            ArGates.CanSerializeWorldMap(ArKit.worldMappingStatus);
 #else
         private bool MapReady => false;
 #endif
