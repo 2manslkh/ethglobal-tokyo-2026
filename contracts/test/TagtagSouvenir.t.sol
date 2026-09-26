@@ -28,14 +28,14 @@ contract TagtagSouvenirTest {
         souvenir.mint(HOLDER, 918, 2);
 
         require(souvenir.ownerOf(918) == HOLDER, "wrong recipient");
-        require(keccak256(bytes(souvenir.tokenURI(918))) == keccak256("ipfs://pose-2"), "wrong URI");
+        require(keccak256(bytes(souvenir.tokenURI(918))) == keccak256("https://tagtag-nft-staging-2026.web.app/nft/v1/pose-2"), "wrong URI");
         require(souvenir.presetOf(918) == 2, "wrong preset");
 
         VM.prank(HOLDER);
         souvenir.transferFrom(HOLDER, OTHER, 918);
         require(souvenir.ownerOf(918) == OTHER, "transfer failed");
         require(
-            keccak256(bytes(souvenir.tokenURI(918))) == keccak256("ipfs://pose-2"), "URI changed"
+            keccak256(bytes(souvenir.tokenURI(918))) == keccak256("https://tagtag-nft-staging-2026.web.app/nft/v1/pose-2"), "URI changed"
         );
     }
 
@@ -137,9 +137,9 @@ contract TagtagSouvenirTest {
     }
 
     function _uris() private pure returns (string[4] memory uris) {
-        uris[0] = "ipfs://pose-0";
-        uris[1] = "ipfs://pose-1";
-        uris[2] = "ipfs://pose-2";
-        uris[3] = "ipfs://pose-3";
+        uris[0] = "https://tagtag-nft-staging-2026.web.app/nft/v1/pose-0";
+        uris[1] = "https://tagtag-nft-staging-2026.web.app/nft/v1/pose-1";
+        uris[2] = "https://tagtag-nft-staging-2026.web.app/nft/v1/pose-2";
+        uris[3] = "https://tagtag-nft-staging-2026.web.app/nft/v1/pose-3";
     }
 }

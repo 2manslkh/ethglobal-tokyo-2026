@@ -25,18 +25,25 @@ during local tests.
 ## Metadata
 
 `metadata/taggi-1.json` through `metadata/taggi-4.json` contain only generic
-pose names, descriptions, and the corresponding project PNG embedded as an
-image data URI. They contain no account, location, note, or discovery data.
-Preset 0 maps to `taggi-1.json`, preset 1 to `taggi-2.json`, and so on. Pin each
-JSON file on IPFS and use its four immutable `ipfs://` URIs for deployment.
-Pinning requires an external IPFS service and has not been done here.
+pose names, descriptions, and public HTTPS image URLs. They contain no account,
+location, note, or discovery data. Preset 0 maps to `taggi-1.json`, preset 1 to
+`taggi-2.json`, and so on. Firebase Hosting serves metadata and PNGs under
+`https://tagtag-nft-staging-2026.web.app/nft/v1/`. Hosting deployment is pending;
+these URLs must return the expected JSON and images before contract deployment.
+
+Run `python3 scripts/nft-staging/build-hosting.py` from the repository root to
+verify/build `hosting/nft-public/`. The generator refuses to overwrite changed
+versioned files. Future asset changes require a new version directory while
+retaining prior versions in each Hosting deployment. HTTPS content availability
+is operated by tagtag; fixed contract URIs do not make hosted bytes immutable.
+See [staging setup](../docs/NFT_STAGING.md).
 
 ## Sepolia deployment
 
 The deployment script rejects any chain other than Sepolia (11155111). Set
 `TAGTAG_DEPLOYER_PRIVATE_KEY`, separate `TAGTAG_ADMIN` and `TAGTAG_MINTER`
-addresses, and `TAGTAG_PRESET_URI_0` through `TAGTAG_PRESET_URI_3` to the pinned
-metadata URIs. Keep the key and signer credentials outside the repository.
+addresses, and `TAGTAG_PRESET_URI_0` through `TAGTAG_PRESET_URI_3` to the verified
+Firebase Hosting metadata URLs ending in `taggi-1.json` through `taggi-4.json`. Keep the key and signer credentials outside the repository.
 After funding the deployer and reviewing these values, run:
 
 ```sh
