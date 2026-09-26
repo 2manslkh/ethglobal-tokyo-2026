@@ -218,6 +218,77 @@ test('failed self-service account deletion keeps authored and collected content'
     } finally { await f.close(); }
 });
 
+test('authored pagination filters before the page limit and orders equal timestamps by id', async () => {
+    const f = await fixture();
+    try {
+        for (let n = 0; n < 1005; n++) {
+            const id = `sticker-${String(n).padStart(4, '0')}`;
+            await f.adapter.set('stickers', id, { id, authorId: 'alice', status: n % 2 ? 'withdrawn' : 'published',
+                createdAt: n < 4 ? 2000 : 1000 + n, presetId: 'taggi-1', revision: 1 });
+        }
+        await f.adapter.set('stickers', 'other-owner', { id: 'other-owner', authorId: 'bob', status: 'published',
+            createdAt: 999999, presetId: 'taggi-1', revision: 1 });
+        const seen = [];
+        let cursor;
+        do {
+            const path = `/v1/authored?status=published&limit=50${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ''}`;
+            const page = await f.call('GET', path);
+            assert.equal(page.status, 200);
+            assert.ok(page.data.items.length <= 50);
+            assert.ok(page.data.items.every(item => item.status === 'published'));
+            seen.push(...page.data.items.map(item => item.id));
+            cursor = page.data.nextCursor;
+        } while (cursor);
+        assert.equal(seen.length, 503);
+        assert.equal(new Set(seen).size, 503);
+        assert.deepEqual(seen.slice(-2), ['sticker-0006', 'sticker-0004']);
+        assert.ok(seen.indexOf('sticker-0002') < seen.indexOf('sticker-0000'));
+        assert.equal(seen.includes('other-owner'), false);
+    } finally { await f.close(); }
+});
+
+test('authored cursor stays bound to its owner and status while the legacy list retains its shape', async () => {
+    const f = await fixture();
+    try {
+        const first = await f.publish('alice', 'first');
+        const second = await f.publish('alice', 'second');
+        await f.call('POST', `/v1/stickers/${first}/withdraw`, {});
+        const legacy = await f.call('GET', '/v1/authored');
+        assert.equal(legacy.status, 200);
+        assert.deepEqual(Object.keys(legacy.data), ['items']);
+        assert.deepEqual(new Set(legacy.data.items.map(item => item.status)), new Set(['published', 'withdrawn']));
+        const page = await f.call('GET', '/v1/authored?status=published&limit=1');
+        assert.equal(page.status, 200);
+        assert.deepEqual(page.data.items.map(item => item.id), [second]);
+        assert.equal(page.data.nextCursor, null);
+        const withdrawn = await f.call('GET', '/v1/authored?status=withdrawn&limit=1');
+        assert.deepEqual(withdrawn.data.items.map(item => item.id), [first]);
+        assert.equal((await f.call('GET', '/v1/authored?status=published&limit=0')).status, 400);
+        assert.equal((await f.call('GET', '/v1/authored?status=removed')).status, 400);
+        assert.equal((await f.call('GET', '/v1/authored?status=published&cursor=bad!')).status, 400);
+        const extra = await f.publish('alice', 'third');
+        assert.ok(extra);
+        const cursor = (await f.call('GET', '/v1/authored?status=published&limit=1')).data.nextCursor;
+        assert.ok(cursor);
+        assert.equal((await f.call('GET', `/v1/authored?status=published&limit=1&cursor=${cursor}`, undefined, 'bob')).status, 400);
+        assert.equal((await f.call('GET', `/v1/authored?status=withdrawn&limit=1&cursor=${cursor}`)).status, 400);
+    } finally { await f.close(); }
+});
+
+test('authored cursor advances through stickers with the same creation time', async () => {
+    const f = await fixture();
+    try {
+        for (const id of ['a', 'b', 'c']) await f.adapter.set('stickers', id, {
+            id, authorId: 'alice', status: 'published', createdAt: 1000, presetId: 'taggi-1', revision: 1
+        });
+        const first = await f.call('GET', '/v1/authored?status=published&limit=1');
+        const second = await f.call('GET', `/v1/authored?status=published&limit=1&cursor=${encodeURIComponent(first.data.nextCursor)}`);
+        const third = await f.call('GET', `/v1/authored?status=published&limit=1&cursor=${encodeURIComponent(second.data.nextCursor)}`);
+        assert.deepEqual([first, second, third].map(page => page.data.items[0].id), ['c', 'b', 'a']);
+        assert.equal(third.data.nextCursor, null);
+    } finally { await f.close(); }
+});
+
 test('author tombstone hides notes while cleanup is pending after Auth deletion', async () => {
     const f = await fixture({ deleteAccountData: async () => { throw new Error('cleanup unavailable'); } });
     try {

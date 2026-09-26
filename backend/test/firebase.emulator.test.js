@@ -51,6 +51,11 @@ test('Firebase emulators exercise Auth verification, Firestore transactions and 
             position: { x: 0, y: 0, z: 0 }, rotation: { x: 0, y: 0, z: 0, w: 1 }, widthMeters: 0.2, mapBytes: 12 }, alice.idToken);
         assert.equal(prepared.status, 200);
         assert.equal((await call('POST', `/v1/publications/${prepared.data.id}/finalize`, { operationId, location }, alice.idToken)).status, 200);
+        const authored = await call('GET', '/v1/authored?status=published&limit=1', undefined, alice.idToken);
+        assert.equal(authored.status, 200);
+        assert.deepEqual(authored.data.items.map(item => [item.id, item.status]), [[prepared.data.id, 'published']]);
+        assert.equal(authored.data.nextCursor, null);
+        assert.deepEqual((await call('GET', '/v1/authored?status=published&limit=1', undefined, bob.idToken)).data.items, []);
         const publicView = await call('POST', '/v1/nearby', { location });
         assert.equal(publicView.status, 200);
         assert.equal(publicView.data.items.some(item => item.id === prepared.data.id), true);

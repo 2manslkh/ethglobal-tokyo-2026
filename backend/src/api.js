@@ -120,8 +120,9 @@ export function createApi({ adapter, now = () => Math.floor(Date.now() / 1000), 
     const designResponse = async design => ({ id: design.id, ownerId: design.ownerId, name: design.name, kind: design.kind,
         width: design.width, height: design.height, revision: design.revision, createdAt: design.createdAt,
         artworkUrl: await adapter.signDesignRead(design.id, 'artwork'), thumbnailUrl: await adapter.signDesignRead(design.id, 'thumbnail') });
-    const visibleSummary = async sticker => {
+    const visibleSummary = async (sticker, includeStatus = false) => {
         const result = summary(sticker);
+        if (includeStatus) result.status = sticker.status;
         if (sticker.designId) {
             result.artworkUrl = await adapter.signDesignRead(sticker.designId, 'artwork');
             result.thumbnailUrl = await adapter.signDesignRead(sticker.designId, 'thumbnail');
@@ -469,9 +470,35 @@ export function createApi({ adapter, now = () => Math.floor(Date.now() / 1000), 
             }
             if (method === 'GET' && path === '/v1/authored') {
                 rateLimit('authored', user.uid, 60, 60);
-                const entries = await adapter.query('stickers', [['authorId', '==', user.uid]], 1000);
-                const visible = entries.filter(item => item.status === 'published' || item.status === 'withdrawn').sort((a, b) => b.createdAt - a.createdAt);
-                return send(response, 200, { items: await Promise.all(visible.map(visibleSummary)) });
+                const params = new URL(request.url, 'http://localhost').searchParams;
+                if (!params.size) {
+                    const entries = await adapter.query('stickers', [['authorId', '==', user.uid]], 1000);
+                    const visible = entries.filter(item => item.status === 'published' || item.status === 'withdrawn').sort((a, b) => b.createdAt - a.createdAt);
+                    return send(response, 200, { items: await Promise.all(visible.map(item => visibleSummary(item, true))) });
+                }
+                if ([...params.keys()].some(key => !['status', 'limit', 'cursor'].includes(key)) ||
+                    [...params.keys()].some(key => params.getAll(key).length !== 1)) bad('Authored query is invalid');
+                const status = params.get('status');
+                if (!['published', 'withdrawn'].includes(status)) bad('status is invalid');
+                const rawLimit = params.get('limit') ?? '50';
+                if (!/^[1-9][0-9]*$/.test(rawLimit) || Number(rawLimit) > 100) bad('limit is invalid');
+                const limit = Number(rawLimit);
+                let cursor = null;
+                if (params.has('cursor')) {
+                    const raw = params.get('cursor');
+                    if (!raw || raw.length > 1024 || !/^[A-Za-z0-9_-]+$/.test(raw)) bad('cursor is invalid');
+                    try { cursor = JSON.parse(Buffer.from(raw, 'base64url').toString('utf8')); }
+                    catch { bad('cursor is invalid'); }
+                    if (!cursor || cursor.v !== 1 || cursor.ownerId !== user.uid || cursor.status !== status ||
+                        !Number.isSafeInteger(cursor.createdAt) || typeof cursor.id !== 'string' ||
+                        !cursor.id || cursor.id.length > 256) bad('cursor is invalid');
+                }
+                const entries = await adapter.queryAuthoredPage({ ownerId: user.uid, status, limit: limit + 1, cursor });
+                const page = entries.slice(0, limit);
+                const last = page.at(-1);
+                const nextCursor = entries.length > limit ? Buffer.from(JSON.stringify({ v: 1, ownerId: user.uid, status,
+                    createdAt: last.createdAt, id: last.id })).toString('base64url') : null;
+                return send(response, 200, { items: await Promise.all(page.map(item => visibleSummary(item, true))), nextCursor });
             }
             if (method === 'POST' && segments[1] === 'stickers' && segments[3] === 'withdraw' && segments.length === 4) {
                 await bodyJson(request);
