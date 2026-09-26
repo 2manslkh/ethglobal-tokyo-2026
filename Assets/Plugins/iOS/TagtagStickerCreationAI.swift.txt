@@ -21,10 +21,12 @@ private final class PlaygroundSession: NSObject, ImagePlaygroundViewController.D
         presenter.present(controller, animated: true)
     }
 
-    func cancel() {
-        controller?.dismiss(animated: true) {
-            activeSession = nil
-        }
+    func abandon() {
+        // The Objective-C editor dismisses its navigation controller, including
+        // this presented playground. Avoid starting two UIKit dismissals at once.
+        controller?.delegate = nil
+        controller = nil
+        activeSession = nil
     }
 
     func imagePlaygroundViewController(_ imagePlaygroundViewController: ImagePlaygroundViewController,
@@ -77,7 +79,7 @@ public func tagtagStickerCreationAIOpen(_ presenter: UnsafeMutableRawPointer?) {
 public func tagtagStickerCreationAICancel() {
     DispatchQueue.main.async {
         if #available(iOS 18.1, *), let session = activeSession as? PlaygroundSession {
-            session.cancel()
+            session.abandon()
         }
     }
 }
