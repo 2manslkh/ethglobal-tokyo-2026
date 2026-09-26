@@ -74,3 +74,12 @@ public summaries do not expose the measured fix. Confirmation is immutable
 across prepare retries and must match within 1 m on finalize. The measured fix
 may refresh, but must still support that same pin. AR recovery/collection keep
 their existing measured accuracy and proximity requirements.
+
+New clients also send `hasPublicationLocation: true` to retain the chosen target
+before the first network attempt. With `locationConfirmed: false`, the measured
+fix must still meet 100 m accuracy and be within 100 m of that target. Prepare
+returns `publicationLocation` containing the authoritative stored coordinates;
+clients persist it before uploading. `GET /v1/publications/operations/{operationId}`
+returns `{found, locationConfirmed, publicationLocation}` for the authenticated
+owner only (or `{found:false}`). This lets upgraded legacy drafts recover an
+original pin before showing confirmation, even if old retries saved GPS drift.

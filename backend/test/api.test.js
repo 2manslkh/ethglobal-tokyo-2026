@@ -157,6 +157,63 @@ test('confirmed pin is immutable across publication retries and finalization', a
     } finally { await f.close(); }
 });
 
+test('publication operation lookup recovers only the authenticated owners original pin', async () => {
+    const f = await fixture();
+    try {
+        const input = draft('legacy-lookup');
+        await f.call('POST', '/v1/publications/prepare', input);
+        await f.call('POST', '/v1/publications/prepare', { ...input, location: fix(1_000_000, 35.6803) });
+        const path = '/v1/publications/operations/legacy-lookup';
+        const recovered = await f.call('GET', path);
+        assert.equal(recovered.status, 200);
+        assert.deepEqual(recovered.data, { found: true, locationConfirmed: false,
+            publicationLocation: { latitude: 35.68, longitude: 139.76 } });
+        assert.deepEqual((await f.call('GET', path, undefined, 'bob')).data, { found: false });
+        assert.equal((await f.call('GET', path, undefined, null)).status, 401);
+    } finally { await f.close(); }
+});
+
+test('a client-locked precise publication retains its pin across drift before the first prepare succeeds', async () => {
+    const f = await fixture();
+    try {
+        const confirmedLocation = { latitude: 35.68, longitude: 139.76 };
+        const initial = { ...draft('precise-lock'), location: fix(1_000_000, 35.6803),
+            hasPublicationLocation: true, locationConfirmed: false, confirmedLocation };
+        const first = await f.call('POST', '/v1/publications/prepare', initial);
+        assert.equal(first.status, 200);
+        assert.equal((await f.adapter.get('stickers', first.data.id)).latitude, confirmedLocation.latitude);
+        assert.deepEqual(first.data.publicationLocation, confirmedLocation);
+        assert.equal((await f.call('POST', '/v1/publications/prepare', { ...initial,
+            location: { ...fix(), accuracyMeters: 2000 }, locationConfirmed: true
+        })).status, 200);
+    } finally { await f.close(); }
+});
+
+test('a precise prepared post can finish with explicit confirmation of its original pin', async () => {
+    const f = await fixture();
+    try {
+        const initial = draft('precision-change');
+        const first = await f.call('POST', '/v1/publications/prepare', initial);
+        assert.equal(first.status, 200);
+        const confirmation = { locationConfirmed: true,
+            confirmedLocation: { latitude: initial.location.latitude, longitude: initial.location.longitude },
+            location: { ...fix(), accuracyMeters: 2000 } };
+        const retry = await f.call('POST', '/v1/publications/prepare', { ...initial, ...confirmation });
+        assert.equal(retry.status, 200);
+        assert.equal(retry.data.id, first.data.id);
+        f.adapter.upload(first.data.id, 12);
+        const finished = await f.call('POST', `/v1/publications/${first.data.id}/finalize`, {
+            operationId: initial.operationId, ...confirmation
+        });
+        assert.equal(finished.status, 200);
+        assert.equal(finished.data.sticker.latitude, initial.location.latitude);
+        assert.equal(JSON.stringify(finished.data).includes('measuredLocation'), false);
+        assert.equal((await f.call('POST', '/v1/publications/prepare', { ...initial, ...confirmation,
+            confirmedLocation: { ...confirmation.confirmedLocation, latitude: 35.681 }
+        })).status, 409);
+    } finally { await f.close(); }
+});
+
 test('prepare retry accepts fresh GPS drift but preserves first placement', async () => {
     const f = await fixture();
     try {
