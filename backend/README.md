@@ -30,7 +30,7 @@ gcloud run deploy tagtag-api --source backend --project <PROJECT_ID> --region as
   --set-env-vars GOOGLE_CLOUD_PROJECT=<PROJECT_ID>,TAGTAG_MAP_BUCKET=<PRIVATE_MAP_BUCKET>,FIREBASE_API_KEY=<PUBLIC_FIREBASE_API_KEY>
 ```
 
-Explore accepts fresh location fixes up to 5,000 metres accuracy for `/v1/nearby`, with its 2 km search radius unchanged. This browsing allowance does not change AR recovery/collection (50 metres accuracy), publication (100 metres accuracy), or the 30-second freshness limit.
+Explore accepts fresh location fixes up to 5,000 metres accuracy for `/v1/nearby`, with its 2 km search radius unchanged. This browsing allowance does not change AR recovery/collection (50 metres accuracy), automatic publication (100 metres accuracy), or the 30-second freshness limit.
 
 The Cloud Run service accepts anonymous `/v1/nearby` and `/health`; every other `/v1` route verifies a Firebase ID token, including revocation. Grant the runtime service account `roles/datastore.user` on the project, `roles/storage.objectAdmin` on the private map bucket, `firebaseauth.users.get` through a custom project role, and `iam.serviceAccounts.signBlob` on itself for V4 signed URLs. A broader self-scoped `roles/iam.serviceAccountTokenCreator` also provides signing. It does not need Firebase Auth admin or user deletion permission. Enable the Identity Toolkit and IAM Service Account Credentials APIs.
 
@@ -93,3 +93,13 @@ The PNG must be at most 5 MiB with a longest edge of 1024 pixels. Finalize check
 Publication prepare accepts exactly one `presetId` or `designId`; the latter must name a ready design owned by the publishing account. Design summaries add `designId`, `artworkWidth`, `artworkHeight`, `artworkUrl`, and `thumbnailUrl`; preset summaries retain their existing fields. Deploy Firestore composite indexes for `designs(status, createdAt)` and `designs(ownerId, status)` with the backend before enabling client uploads.
 
 One instance limits all `/v1` calls to 120/min per observed IP, nearby to 30/min per IP, recover to 20/min per user, reports to 10/hour per user, and collection/authored reads to 60/min per user. Responses use `429 rate_limited`. These in-memory limits reset on restart and are not a global cost cap. Keep max instances low, set budget alerts, and monitor Firestore reads and Storage egress.
+
+### Map-confirmed publishing
+
+Clients can send `locationConfirmed: true` and a separate `confirmedLocation`
+pin on publication prepare and finalize. The API accepts a fresh measured fix
+up to 5 km accuracy only when the confirmed pin lies inside its uncertainty
+radius plus 100 m. It stores the pin and private measurement provenance
+separately, preserves that pin across retries, and keeps discovery/collection
+gates unchanged. Deploy this backward-compatible API before distributing the
+map-confirmation client. See the [contract](../docs/plans/tagtag-api-contract.md).

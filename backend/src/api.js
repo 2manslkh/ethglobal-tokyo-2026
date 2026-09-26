@@ -95,6 +95,16 @@ export function createApi({ adapter, now = () => Math.floor(Date.now() / 1000), 
         if (!Number.isInteger(value.measuredUnixSeconds) || value.measuredUnixSeconds < now() - 30 || value.measuredUnixSeconds > now() + 5) bad('Location fix is stale');
         return point;
     };
+    const publicationLocation = data => {
+        if (data.locationConfirmed !== undefined && typeof data.locationConfirmed !== 'boolean')
+            bad('locationConfirmed must be a boolean');
+        const measured = location(data.location, data.locationConfirmed === true ? 5000 : 100);
+        if (data.locationConfirmed !== true) return measured;
+        const confirmed = coordinates(data.confirmedLocation);
+        if (distanceMeters(measured, confirmed) > data.location.accuracyMeters + 100)
+            bad('Confirmed spot must be within your measured location area');
+        return confirmed;
+    };
     const auth = async (request, optional = false) => {
         const header = request.headers.authorization;
         if (!header) {
@@ -350,7 +360,7 @@ export function createApi({ adapter, now = () => Math.floor(Date.now() / 1000), 
                 if (hasPreset === hasDesign) bad('Exactly one presetId or designId is required');
                 if (hasPreset && !PRESETS.has(data.presetId)) bad('presetId is invalid');
                 if (hasDesign && !/^[a-f0-9]{64}$/.test(data.designId)) bad('designId is invalid');
-                const point = location(data.location, 100);
+                const point = publicationLocation(data);
                 const input = {
                     ...(hasPreset ? { presetId: data.presetId } : { designId: data.designId }),
                     place: content(data.place, 80, 'place'), teaser: content(data.teaser, 180, 'teaser'),
@@ -361,7 +371,8 @@ export function createApi({ adapter, now = () => Math.floor(Date.now() / 1000), 
                 if (!Number.isInteger(input.mapBytes)) bad('mapBytes is invalid');
                 const id = digest(`${user.uid}\0${operationId}`);
                 const { latitude: _latitude, longitude: _longitude, ...stableInput } = input;
-                const requestHash = digest(JSON.stringify(stableInput));
+                const requestHash = digest(JSON.stringify(data.locationConfirmed === true ?
+                    { ...stableInput, confirmedLocation: point } : stableInput));
                 const day = Math.floor(now() / 86400);
                 await adapter.transaction(async tx => {
                     if ((await tx.get('accounts', user.uid))?.deleted) denied();
@@ -380,6 +391,10 @@ export function createApi({ adapter, now = () => Math.floor(Date.now() / 1000), 
                     if (design) await tx.set('designs', design.id, { ...design, references: (design.references || 0) + 1 });
                     await tx.set('stickers', id, { id, authorId: user.uid, authorName: String(user.name || 'Explorer').slice(0, 80),
                         operationId, requestHash, ...input,
+                        locationSource: data.locationConfirmed === true ? 'map-confirmed' : 'device',
+                        locationAccuracyMeters: data.location.accuracyMeters,
+                        measuredLocation: { latitude: data.location.latitude, longitude: data.location.longitude,
+                            accuracyMeters: data.location.accuracyMeters, measuredUnixSeconds: data.location.measuredUnixSeconds },
                         ...(design ? { artworkWidth: design.width, artworkHeight: design.height } : {}),
                         geoCell: geohash(point.latitude, point.longitude), status: 'pending',
                         createdAt: now(), revision: 1 });
@@ -393,11 +408,15 @@ export function createApi({ adapter, now = () => Math.floor(Date.now() / 1000), 
                 const id = segments[2];
                 const data = await bodyJson(request);
                 const operationId = text(data.operationId, 100, 'operationId');
-                const point = location(data.location, 100);
+                const point = publicationLocation(data);
                 const sticker = await adapter.get('stickers', id);
                 if (!sticker) missing();
                 if (sticker.authorId !== user.uid) denied();
                 if (sticker.operationId !== operationId) conflict('Operation ID mismatch');
+                if ((sticker.locationSource === 'map-confirmed') !== (data.locationConfirmed === true))
+                    conflict('Use the original location confirmation');
+                if (data.locationConfirmed === true && distanceMeters(point, sticker) > 1)
+                    conflict('Confirmed spot cannot change during publication');
                 if (sticker.status === 'published') return send(response, 200, { sticker: await visibleSummary(sticker) });
                 if (sticker.status !== 'pending') conflict('Publication is unavailable');
                 if (distanceMeters(point, sticker) > 100) denied();

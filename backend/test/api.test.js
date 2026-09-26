@@ -79,6 +79,84 @@ test('publication accepts a fresh 75 metre fix through finalization', async () =
     } finally { await f.close(); }
 });
 
+test('Unity default zero-valued pin is ignored without explicit confirmation', async () => {
+    const f = await fixture();
+    try {
+        const result = await f.call('POST', '/v1/publications/prepare', {
+            ...draft('unity-precise'), locationConfirmed: false, confirmedLocation: { latitude: 0, longitude: 0 }
+        });
+        assert.equal(result.status, 200);
+        const saved = await f.adapter.get('stickers', result.data.id);
+        assert.equal(saved.latitude, 35.68);
+        assert.equal(saved.locationSource, 'device');
+    } finally { await f.close(); }
+});
+
+test('map-confirmed publication retains real uncertainty and publishes at the confirmed pin', async () => {
+    const f = await fixture();
+    try {
+        const measured = { ...fix(), accuracyMeters: 2000.149 };
+        const confirmedLocation = { latitude: 35.681, longitude: 139.761 };
+        const prepared = await f.call('POST', '/v1/publications/prepare', {
+            ...draft('confirmed'), location: measured, confirmedLocation, locationConfirmed: true
+        });
+        assert.equal(prepared.status, 200);
+        const saved = await f.adapter.get('stickers', prepared.data.id);
+        assert.equal(saved.latitude, confirmedLocation.latitude);
+        assert.equal(saved.longitude, confirmedLocation.longitude);
+        assert.equal(saved.locationSource, 'map-confirmed');
+        assert.equal(saved.locationAccuracyMeters, measured.accuracyMeters);
+        f.adapter.upload(prepared.data.id, 12);
+        assert.equal((await f.call('POST', `/v1/publications/${prepared.data.id}/finalize`, {
+            operationId: 'confirmed', location: measured, confirmedLocation, locationConfirmed: true
+        })).status, 200);
+        assert.equal((await f.call('POST', `/v1/stickers/${prepared.data.id}/recover`, {
+            location: measured
+        }, 'bob')).status, 400);
+    } finally { await f.close(); }
+});
+
+test('map confirmation cannot bypass freshness, uncertainty bounds or measured proximity', async () => {
+    const f = await fixture();
+    try {
+        const confirmedLocation = { latitude: 35.681, longitude: 139.761 };
+        for (const location of [fix(999_969), { ...fix(), accuracyMeters: 5001 },
+            { ...fix(), accuracyMeters: -1 }, { ...fix(), accuracyMeters: 2000, latitude: 36 }]) {
+            assert.equal((await f.call('POST', '/v1/publications/prepare', {
+                ...draft(), location, confirmedLocation, locationConfirmed: true
+            })).status, 400);
+        }
+        assert.equal((await f.call('POST', '/v1/publications/prepare', {
+            ...draft(), location: { ...fix(), accuracyMeters: 2000 }
+        })).status, 400);
+    } finally { await f.close(); }
+});
+
+test('confirmed pin is immutable across publication retries and finalization', async () => {
+    const f = await fixture();
+    try {
+        const location = { ...fix(), accuracyMeters: 2000 };
+        const confirmedLocation = { latitude: 35.681, longitude: 139.761 };
+        const input = { ...draft('pin-retry'), location, confirmedLocation, locationConfirmed: true };
+        const first = await f.call('POST', '/v1/publications/prepare', input);
+        assert.equal(first.status, 200);
+        assert.equal((await f.call('POST', '/v1/publications/prepare', {
+            ...input, location: { ...location, latitude: 35.682, accuracyMeters: 1800 }
+        })).status, 200);
+        const changed = { ...confirmedLocation, latitude: 35.683 };
+        assert.equal((await f.call('POST', '/v1/publications/prepare', {
+            ...input, confirmedLocation: changed
+        })).status, 409);
+        f.adapter.upload(first.data.id, 12);
+        assert.equal((await f.call('POST', `/v1/publications/${first.data.id}/finalize`, {
+            operationId: 'pin-retry', location, confirmedLocation: changed, locationConfirmed: true
+        })).status, 409);
+        assert.equal((await f.call('POST', `/v1/publications/${first.data.id}/finalize`, {
+            operationId: 'pin-retry', location
+        })).status, 400);
+    } finally { await f.close(); }
+});
+
 test('prepare retry accepts fresh GPS drift but preserves first placement', async () => {
     const f = await fixture();
     try {

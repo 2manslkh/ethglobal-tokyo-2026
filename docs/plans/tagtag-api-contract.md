@@ -42,7 +42,7 @@ Unity configuration adds `nftEnabled` (default false) and `thirdwebClientId` (pu
 
 Admin custom claim `admin:true`: report list and moderation actions; agent may define private admin wire details and document under backend.
 
-Defaults: location ≤30s old; publication prepare/finalize accept accuracy ≤100m, while nearby/recovery/collection require ≤50m; recovery/collection within 100m of placement; note ≤2000 chars, teaser ≤180, place ≤80; 5 publications/user/day; bounded nearby results (100). Never return coordinates/notes/tokens in request logs. Maps private in bucket. Presets have no uploads from end users. Published original persists after collection. Backend agent adds tests with injected adapters and emulator integration where available.
+Defaults: location ≤30s old; publication prepare/finalize accept accuracy ≤100m automatically; map-confirmed publications accept measured accuracy ≤5000m as described below; nearby accepts ≤5000m, while recovery/collection require ≤50m; recovery/collection within 100m of placement; note ≤2000 chars, teaser ≤180, place ≤80; 5 publications/user/day; bounded nearby results (100). Never return coordinates/notes/tokens in request logs. Maps private in bucket. Presets have no uploads from end users. Published original persists after collection. Backend agent adds tests with injected adapters and emulator integration where available.
 
 ## Ownership and coordination
 
@@ -58,3 +58,19 @@ UI agent owns UI/Resources art. AR agent owns AR/native/Packages/Editor build. B
 - Publication prepare accepts exactly one nonempty `presetId` or `designId`. A custom design must be finalized and owned by the publisher. Dimensions come from the server's validated design.
 - Custom publication/recovery/collection summaries add `{designId,artworkWidth,artworkHeight,artworkUrl,thumbnailUrl}`. Existing preset responses retain their original fields. Removed/blocked content gets no artwork URL. Notes retain existing collection authorization.
 - Design uploads are distinct from AR world-map uploads. Limits: PNG <=5 MiB, longest edge <=1024, thumbnail <=256; 20 creations/day/account, 100 active designs/account.
+
+## Confirmed publication location
+
+Prepare and finalize optionally accept `locationConfirmed: true` and
+`confirmedLocation: {latitude, longitude}` alongside the unchanged measured
+`location`. The measured fix must be ≤30 seconds old, ≤5000 m accuracy, and the
+confirmed pin must fall within its accuracy radius plus 100 m. A missing/false
+flag retains the automatic ≤100 m policy and ignores the confirmedLocation
+object (Unity serializes absent nested objects with zero-valued fields).
+
+The confirmed pin becomes the publication's coordinates. `locationSource`,
+`locationAccuracyMeters`, and `measuredLocation` retain private provenance;
+public summaries do not expose the measured fix. Confirmation is immutable
+across prepare retries and must match within 1 m on finalize. The measured fix
+may refresh, but must still support that same pin. AR recovery/collection keep
+their existing measured accuracy and proximity requirements.
