@@ -262,10 +262,13 @@ public static class BuildIos
             var resourceGuid = project.AddFile("TagtagMapResources/" + filename, "TagtagMapResources/" + filename, PBXSourceTree.Source);
             project.AddFileToBuild(main, resourceGuid);
         }
-        const string clusterFont = "InstrumentSemibold.ttf";
-        File.Copy(Path.Combine("Assets/Resources/Tagtag/Fonts", clusterFont), Path.Combine(mapResources, clusterFont), true);
-        var fontGuid = project.AddFile("TagtagMapResources/" + clusterFont, "TagtagMapResources/" + clusterFont, PBXSourceTree.Source);
-        project.AddFileToBuild(main, fontGuid);
+        var nativeFonts = new[] { "InstrumentSemibold.ttf", "InstrumentRegular.ttf", "ShadowsIntoLight.ttf" };
+        foreach (var filename in nativeFonts)
+        {
+            File.Copy(Path.Combine("Assets/Resources/Tagtag/Fonts", filename), Path.Combine(mapResources, filename), true);
+            var fontGuid = project.AddFile("TagtagMapResources/" + filename, "TagtagMapResources/" + filename, PBXSourceTree.Source);
+            project.AddFileToBuild(main, fontGuid);
+        }
         project.WriteToFile(path);
 
         var infoPath = Path.Combine(output, "Info.plist");
@@ -280,7 +283,8 @@ public static class BuildIos
         info.root.SetString("UIStatusBarStyle", "UIStatusBarStyleDarkContent");
         var bundledFonts = info.root.values.ContainsKey("UIAppFonts")
             ? info.root["UIAppFonts"].AsArray() : info.root.CreateArray("UIAppFonts");
-        bundledFonts.AddString(clusterFont);
+        foreach (var filename in nativeFonts)
+            bundledFonts.AddString(filename);
         var googleScheme = staging ? stagingConfiguration.googleReversedClientId :
             Environment.GetEnvironmentVariable("TAGTAG_GOOGLE_REVERSED_CLIENT_ID");
         if (!staging && string.IsNullOrWhiteSpace(googleScheme))

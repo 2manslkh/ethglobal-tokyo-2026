@@ -769,3 +769,39 @@ backend rollout and installation, test a previously published indoor sticker:
 
 Record the device, OS, installed commit, API revision, and observed results here
 when those checks are performed. Deploy the backend before the updated client.
+
+## Sticker editor typography and fields — 2026-09-26
+
+Implemented paper-white, padded fields with charcoal input text, readable muted
+placeholders and a darker focus border. The native editor uses Shadows Into Light
+for titles and Instrument Sans for fields, guidance, and controls. Its paper theme
+is explicit in either system appearance. The form scrolls above the keyboard and
+sizes fields and guidance for Dynamic Type.
+
+Validation:
+
+- Unity `BuildIos.PrepareArKit`, then `BuildIos.Build`: passed. Logs:
+  `/tmp/tagtag-sticker-prepare.log`, `/tmp/tagtag-sticker-export.log`.
+- Unsigned device Debug build with the README `xcodebuild` command: passed;
+  `/tmp/tagtag-sticker-xcode.log`. Built `UIAppFonts` includes Regular, SemiBold,
+  and Shadows Into Light.
+- Native editor simulator harness (actual Objective-C++ editor, Unity callback
+  stubbed, supplied Taggi sample): iPhone 17 Pro / iOS 26.2 normal text, and
+  compact iPhone / iOS 18.5 with accessibility-medium text, dark system appearance,
+  focused caption and software keyboard. Confirmed fonts load, fields are at least
+  48 points tall, and caption/Preview remain visible above the keyboard.
+- Harness exercised actual PNG generation through Preview → Edit → Preview →
+  Save; caption survived Edit and asynchronous saving completed. This does not
+  verify the Unity callback or library insertion.
+- Calculated contrast: input text 16.17:1, placeholders 5.85:1, guidance 5.41:1.
+- Captures: [standard](verification/sticker-editor/normal.png) and
+  [large text with keyboard](verification/sticker-editor/large-keyboard.png), and
+  [import controls](verification/sticker-editor/import.png). The imported-image
+  layout also fits the Full image/Square crop selector and cutout switch.
+
+Physical-device verification remains **pending**. On the next installed build,
+open a Polaroid from a real photo, drag/pinch its crop, edit both fields, dismiss
+and reopen the keyboard, preview, return to Edit, and save to Your Designs.
+Repeat with an imported image and enlarged text; check both crop modes and the
+cutout control. Confirm Photos/Files/camera return correctly and the saved design
+appears in Unity. No phone was installed or physical gestures verified by this task.

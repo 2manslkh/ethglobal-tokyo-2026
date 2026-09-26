@@ -13,6 +13,35 @@ extern "C" void TagtagStickerCreationAICancel(void);
 static const NSUInteger TagtagMaximumPNGBytes = 5 * 1024 * 1024;
 static const CGFloat TagtagMaximumEdge = 1024;
 
+static UIColor *TagtagEditorInk(void) {
+    return [UIColor colorWithRed:32.0/255 green:32.0/255 blue:30.0/255 alpha:1];
+}
+
+static UIColor *TagtagEditorSecondaryInk(void) {
+    return [UIColor colorWithRed:104.0/255 green:100.0/255 blue:89.0/255 alpha:1];
+}
+
+static UIFont *TagtagEditorFont(NSString *name, CGFloat size, UIFontTextStyle style) {
+    UIFont *font = [UIFont fontWithName:name size:size] ?: [UIFont systemFontOfSize:size];
+    return [[UIFontMetrics metricsForTextStyle:style] scaledFontForFont:font];
+}
+
+static void TagtagStyleEditorField(UITextField *field) {
+    field.borderStyle = UITextBorderStyleNone;
+    field.backgroundColor = [UIColor colorWithRed:1 green:254.0/255 blue:250.0/255 alpha:1];
+    field.textColor = TagtagEditorInk();
+    field.tintColor = TagtagEditorInk();
+    field.font = TagtagEditorFont(@"InstrumentSans-Regular", 17, UIFontTextStyleBody);
+    field.layer.cornerRadius = 12;
+    field.layer.borderWidth = 1;
+    field.layer.borderColor = [TagtagEditorSecondaryInk() colorWithAlphaComponent:0.6].CGColor;
+    field.leftView = [[UIView alloc] initWithFrame:CGRectMake(0, 0, 14, 1)];
+    field.rightView = [[UIView alloc] initWithFrame:CGRectMake(0, 0, 14, 1)];
+    field.leftViewMode = field.rightViewMode = UITextFieldViewModeAlways;
+    field.attributedPlaceholder = [[NSAttributedString alloc] initWithString:field.placeholder ?: @""
+        attributes:@{NSForegroundColorAttributeName: TagtagEditorSecondaryInk()}];
+}
+
 @class TagtagStickerEditor;
 static TagtagStickerEditor *activeEditor;
 
@@ -98,6 +127,8 @@ static UIImage *TagtagCutout(UIImage *image, NSError **error) {
 @property(nonatomic, copy) NSString *callback;
 @property(nonatomic, strong) UIImage *image;
 @property(nonatomic, strong) UIScrollView *cropView;
+@property(nonatomic, strong) UIScrollView *formView;
+@property(nonatomic) CGRect keyboardFrame;
 @property(nonatomic, strong) UIImageView *imageView;
 @property(nonatomic, strong) UIImageView *fullImageView;
 @property(nonatomic, strong) UIImageView *previewView;
@@ -124,6 +155,16 @@ static UIImage *TagtagCutout(UIImage *image, NSError **error) {
     self.title = @"Create sticker";
     self.navigationItem.leftBarButtonItem = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemCancel
                                                                                    target:self action:@selector(cancelTapped)];
+    self.overrideUserInterfaceStyle = UIUserInterfaceStyleLight;
+    self.formView = [UIScrollView new];
+    self.formView.keyboardDismissMode = UIScrollViewKeyboardDismissModeInteractive;
+    self.formView.showsVerticalScrollIndicator = NO;
+    self.formView.contentInsetAdjustmentBehavior = UIScrollViewContentInsetAdjustmentNever;
+    [self.view addSubview:self.formView];
+    [NSNotificationCenter.defaultCenter addObserver:self selector:@selector(keyboardChanged:)
+        name:UIKeyboardWillChangeFrameNotification object:nil];
+    [NSNotificationCenter.defaultCenter addObserver:self selector:@selector(textSizeChanged:)
+        name:UIContentSizeCategoryDidChangeNotification object:nil];
     self.cropView = [UIScrollView new];
     self.cropView.delegate = self;
     self.cropView.bouncesZoom = YES;
@@ -131,7 +172,7 @@ static UIImage *TagtagCutout(UIImage *image, NSError **error) {
     self.cropView.backgroundColor = UIColor.darkGrayColor;
     self.cropView.accessibilityLabel = @"Drag and pinch to crop image";
     self.cropView.hidden = YES;
-    [self.view addSubview:self.cropView];
+    [self.formView addSubview:self.cropView];
     self.imageView = [UIImageView new];
     self.imageView.contentMode = UIViewContentModeScaleToFill;
     [self.cropView addSubview:self.imageView];
@@ -139,7 +180,7 @@ static UIImage *TagtagCutout(UIImage *image, NSError **error) {
     self.fullImageView.contentMode = UIViewContentModeScaleAspectFit;
     self.fullImageView.backgroundColor = UIColor.darkGrayColor;
     self.fullImageView.hidden = YES;
-    [self.view addSubview:self.fullImageView];
+    [self.formView addSubview:self.fullImageView];
     self.previewView = [UIImageView new];
     self.previewView.contentMode = UIViewContentModeScaleAspectFit;
     self.previewView.accessibilityLabel = @"Final sticker preview";
@@ -151,14 +192,16 @@ static UIImage *TagtagCutout(UIImage *image, NSError **error) {
     self.cropMode.accessibilityLabel = @"Image shape";
     [self.cropMode addTarget:self action:@selector(cropModeChanged) forControlEvents:UIControlEventValueChanged];
     self.cropMode.hidden = YES;
-    [self.view addSubview:self.cropMode];
+    [self.formView addSubview:self.cropMode];
 
     self.hintLabel = [UILabel new];
     self.hintLabel.text = @"Drag and pinch to crop";
-    self.hintLabel.font = [UIFont systemFontOfSize:13];
+    self.hintLabel.numberOfLines = 0;
+    self.hintLabel.textColor = TagtagEditorSecondaryInk();
+    self.hintLabel.adjustsFontForContentSizeCategory = YES;
     self.hintLabel.textAlignment = NSTextAlignmentCenter;
     self.hintLabel.hidden = YES;
-    [self.view addSubview:self.hintLabel];
+    [self.formView addSubview:self.hintLabel];
 
     self.nameField = [UITextField new];
     self.nameField.borderStyle = UITextBorderStyleRoundedRect;
@@ -170,7 +213,7 @@ static UIImage *TagtagCutout(UIImage *image, NSError **error) {
     self.nameField.accessibilityLabel = @"Sticker name, up to 80 characters";
     self.nameField.delegate = self;
     self.nameField.hidden = YES;
-    [self.view addSubview:self.nameField];
+    [self.formView addSubview:self.nameField];
 
     self.captionField = [UITextField new];
     self.captionField.borderStyle = UITextBorderStyleRoundedRect;
@@ -180,30 +223,89 @@ static UIImage *TagtagCutout(UIImage *image, NSError **error) {
     self.captionField.adjustsFontForContentSizeCategory = YES;
     self.captionField.delegate = self;
     self.captionField.hidden = YES;
-    [self.view addSubview:self.captionField];
+    [self.formView addSubview:self.captionField];
 
     self.cutoutSwitch = [UISwitch new];
     self.cutoutSwitch.accessibilityLabel = @"Cut out subject with white border";
     self.cutoutSwitch.hidden = YES;
-    [self.view addSubview:self.cutoutSwitch];
+    [self.formView addSubview:self.cutoutSwitch];
     UILabel *cutoutLabel = [UILabel new];
     cutoutLabel.tag = 101;
     cutoutLabel.text = @"Cut out subject + white border";
     cutoutLabel.font = [UIFont preferredFontForTextStyle:UIFontTextStyleSubheadline];
     cutoutLabel.adjustsFontForContentSizeCategory = YES;
+    cutoutLabel.numberOfLines = 0;
+    cutoutLabel.textColor = TagtagEditorInk();
     cutoutLabel.hidden = YES;
-    [self.view addSubview:cutoutLabel];
+    [self.formView addSubview:cutoutLabel];
 
     self.saveButton = [UIButton buttonWithType:UIButtonTypeSystem];
     [self.saveButton setTitle:@"Preview" forState:UIControlStateNormal];
     self.saveButton.titleLabel.font = [UIFont preferredFontForTextStyle:UIFontTextStyleHeadline];
     self.saveButton.titleLabel.adjustsFontForContentSizeCategory = YES;
     self.saveButton.backgroundColor = [UIColor colorWithRed:1 green:0.84 blue:0.22 alpha:1];
-    self.saveButton.tintColor = UIColor.blackColor;
+    self.saveButton.tintColor = TagtagEditorInk();
     self.saveButton.layer.cornerRadius = 14;
     [self.saveButton addTarget:self action:@selector(saveTapped) forControlEvents:UIControlEventTouchUpInside];
     self.saveButton.hidden = YES;
     [self.view addSubview:self.saveButton];
+    [self updateTypography];
+}
+
+- (void)updateTypography {
+    TagtagStyleEditorField(self.nameField);
+    TagtagStyleEditorField(self.captionField);
+    self.captionField.accessibilityLabel = @"Caption, optional, up to 40 characters";
+    self.hintLabel.font = TagtagEditorFont(@"InstrumentSans-Regular", 14, UIFontTextStyleSubheadline);
+    ((UILabel *)[self.view viewWithTag:101]).font = TagtagEditorFont(@"InstrumentSans-Regular", 15, UIFontTextStyleSubheadline);
+    self.saveButton.titleLabel.font = TagtagEditorFont(@"InstrumentSans-SemiBold", 17, UIFontTextStyleHeadline);
+    NSDictionary *segmentStyle = @{NSFontAttributeName: TagtagEditorFont(@"InstrumentSans-SemiBold", 14, UIFontTextStyleSubheadline),
+                                   NSForegroundColorAttributeName: TagtagEditorInk()};
+    [self.cropMode setTitleTextAttributes:segmentStyle forState:UIControlStateNormal];
+    [self.cropMode setTitleTextAttributes:segmentStyle forState:UIControlStateSelected];
+    self.cropMode.selectedSegmentTintColor = self.saveButton.backgroundColor;
+    UINavigationBarAppearance *appearance = [UINavigationBarAppearance new];
+    [appearance configureWithOpaqueBackground];
+    appearance.backgroundColor = self.view.backgroundColor;
+    appearance.shadowColor = UIColor.clearColor;
+    appearance.titleTextAttributes = @{NSFontAttributeName: TagtagEditorFont(@"ShadowsIntoLight", 28, UIFontTextStyleHeadline),
+                                      NSForegroundColorAttributeName: TagtagEditorInk()};
+    UIBarButtonItemAppearance *buttons = [UIBarButtonItemAppearance new];
+    buttons.normal.titleTextAttributes = @{NSFontAttributeName: TagtagEditorFont(@"InstrumentSans-Regular", 17, UIFontTextStyleBody),
+                                           NSForegroundColorAttributeName: TagtagEditorInk()};
+    appearance.buttonAppearance = buttons;
+    self.navigationItem.standardAppearance = appearance;
+    self.navigationItem.scrollEdgeAppearance = appearance;
+    self.navigationItem.compactAppearance = appearance;
+    self.navigationController.navigationBar.tintColor = TagtagEditorInk();
+}
+
+- (void)textSizeChanged:(NSNotification *)notification {
+    [self updateTypography];
+    [self.view setNeedsLayout];
+}
+
+- (void)keyboardChanged:(NSNotification *)notification {
+    self.keyboardFrame = [notification.userInfo[UIKeyboardFrameEndUserInfoKey] CGRectValue];
+    [self.view setNeedsLayout];
+    [self.view layoutIfNeeded];
+    UITextField *field = self.captionField.isFirstResponder ? self.captionField : self.nameField;
+    if (field.isFirstResponder) [self.formView scrollRectToVisible:CGRectInset(field.frame, 0, -12) animated:YES];
+}
+
+- (void)textFieldDidBeginEditing:(UITextField *)textField {
+    textField.layer.borderColor = TagtagEditorInk().CGColor;
+    textField.layer.borderWidth = 2;
+    [self.formView scrollRectToVisible:CGRectInset(textField.frame, 0, -12) animated:YES];
+}
+
+- (void)textFieldDidEndEditing:(UITextField *)textField {
+    textField.layer.borderColor = [TagtagEditorSecondaryInk() colorWithAlphaComponent:0.6].CGColor;
+    textField.layer.borderWidth = 1;
+}
+
+- (void)dealloc {
+    [NSNotificationCenter.defaultCenter removeObserver:self];
 }
 
 - (void)viewDidAppear:(BOOL)animated {
@@ -224,28 +326,43 @@ static UIImage *TagtagCutout(UIImage *image, NSError **error) {
     [super viewDidLayoutSubviews];
     CGRect safe = self.view.safeAreaLayoutGuide.layoutFrame;
     CGFloat margin = 22, width = safe.size.width - 2 * margin;
-    CGFloat controls = [self.source isEqualToString:@"import"] ? 230 :
-        ([self.source isEqualToString:@"polaroid"] ? 220 : 178);
-    CGFloat cropSize = MAX(100, MIN(width, safe.size.height - controls - 30));
-    self.cropView.frame = CGRectMake((safe.size.width - cropSize) / 2, safe.origin.y + 10, cropSize, cropSize);
+    CGFloat buttonHeight = MAX(50, ceil(self.saveButton.titleLabel.font.lineHeight) + 24);
+    CGFloat bottom = CGRectGetMaxY(safe);
+    if (!CGRectIsEmpty(self.keyboardFrame)) {
+        CGRect keyboard = [self.view convertRect:self.keyboardFrame fromView:nil];
+        if (CGRectIntersectsRect(safe, keyboard)) bottom = MIN(bottom, CGRectGetMinY(keyboard));
+    }
+    self.saveButton.frame = CGRectMake(safe.origin.x + margin, bottom - buttonHeight - 4, width, buttonHeight);
+    self.formView.frame = CGRectMake(safe.origin.x, safe.origin.y, safe.size.width,
+        MAX(0, CGRectGetMinY(self.saveButton.frame) - safe.origin.y - 12));
+    // Keep the crop viewport stable when the keyboard or text size changes.
+    CGFloat cropSize = MAX(100, MIN(width, safe.size.height - 250));
+    self.cropView.frame = CGRectMake((safe.size.width - cropSize) / 2, 10, cropSize, cropSize);
     self.fullImageView.frame = self.cropView.frame;
-    self.previewView.frame = CGRectMake(margin, safe.origin.y + 10, width, safe.size.height - 80);
-    CGFloat y = CGRectGetMaxY(self.cropView.frame) + 8;
-    self.hintLabel.frame = CGRectMake(margin, y, width, 20);
-    y += 28;
-    self.nameField.frame = CGRectMake(margin, y, width, 38);
-    y += 44;
+    self.previewView.frame = CGRectMake(safe.origin.x + margin, safe.origin.y + 10, width,
+        MAX(0, CGRectGetMinY(self.saveButton.frame) - safe.origin.y - 26));
+    CGFloat y = CGRectGetMaxY(self.cropView.frame) + 10;
+    CGFloat hintHeight = ceil([self.hintLabel sizeThatFits:CGSizeMake(width, CGFLOAT_MAX)].height);
+    self.hintLabel.frame = CGRectMake(margin, y, width, hintHeight);
+    y += hintHeight + 12;
+    CGFloat fieldHeight = MAX(48, ceil(self.nameField.font.lineHeight) + 24);
+    self.nameField.frame = CGRectMake(margin, y, width, fieldHeight);
+    y += fieldHeight + 12;
     if ([self.source isEqualToString:@"import"]) {
-        self.cropMode.frame = CGRectMake(margin, y, width, 34);
-        y += 40;
+        CGFloat segmentHeight = MAX(44, ceil(TagtagEditorFont(@"InstrumentSans-SemiBold", 14, UIFontTextStyleSubheadline).lineHeight) + 16);
+        self.cropMode.frame = CGRectMake(margin, y, width, segmentHeight);
+        y += segmentHeight + 12;
     }
     if ([self.source isEqualToString:@"polaroid"]) {
-        self.captionField.frame = CGRectMake(margin, y, width, 38);
-        y += 44;
+        self.captionField.frame = CGRectMake(margin, y, width, fieldHeight);
+        y += fieldHeight + 12;
     }
-    self.cutoutSwitch.frame = CGRectMake(safe.size.width - margin - 51, y, 51, 31);
-    [self.view viewWithTag:101].frame = CGRectMake(margin, y, width - 60, 31);
-    self.saveButton.frame = CGRectMake(margin, CGRectGetMaxY(safe) - 54, width, 50);
+    UILabel *cutoutLabel = (UILabel *)[self.view viewWithTag:101];
+    CGFloat cutoutHeight = MAX(44, ceil([cutoutLabel sizeThatFits:CGSizeMake(width - 64, CGFLOAT_MAX)].height));
+    self.cutoutSwitch.frame = CGRectMake(safe.size.width - margin - 51, y + (cutoutHeight - 31) / 2, 51, 31);
+    cutoutLabel.frame = CGRectMake(margin, y, width - 64, cutoutHeight);
+    if (!self.cutoutSwitch.hidden) y += cutoutHeight + 12;
+    self.formView.contentSize = CGSizeMake(safe.size.width, y);
     if (self.image && !self.initialCropLayout && cropSize > 0) {
         self.imageView.frame = CGRectMake(0, 0, self.image.size.width, self.image.size.height);
         self.cropView.contentSize = self.image.size;
@@ -264,6 +381,7 @@ static UIImage *TagtagCutout(UIImage *image, NSError **error) {
     self.cropView.hidden = full || self.previewMode;
     self.fullImageView.hidden = !full || self.previewMode;
     self.hintLabel.text = full ? @"Full image keeps the original edges" : @"Drag and pinch to crop";
+    [self.view setNeedsLayout];
 }
 
 - (UIView *)viewForZoomingInScrollView:(UIScrollView *)scrollView { return self.imageView; }
@@ -498,6 +616,8 @@ static UIImage *TagtagCutout(UIImage *image, NSError **error) {
 }
 
 - (void)showPreview {
+    [self.view endEditing:YES];
+    self.formView.hidden = YES;
     self.title = @"Preview sticker";
     self.navigationItem.leftBarButtonItem = [[UIBarButtonItem alloc] initWithTitle:@"Edit" style:UIBarButtonItemStylePlain
                                                                             target:self action:@selector(backToEdit)];
@@ -515,6 +635,7 @@ static UIImage *TagtagCutout(UIImage *image, NSError **error) {
 
 - (void)backToEdit {
     if (self.busy || self.finished) return;
+    self.formView.hidden = NO;
     self.pendingPNG = nil;
     self.previewView.image = nil;
     self.previewView.hidden = YES;
@@ -653,6 +774,7 @@ extern "C" void TagtagStickerCreationOpen(const char *source, const char *receiv
         editor.receiver = receiverValue;
         editor.callback = callbackValue;
         UINavigationController *navigation = [[UINavigationController alloc] initWithRootViewController:editor];
+        navigation.overrideUserInterfaceStyle = UIUserInterfaceStyleLight;
         navigation.modalPresentationStyle = UIModalPresentationFullScreen;
         activeEditor = editor;
         [presenter presentViewController:navigation animated:YES completion:nil];
