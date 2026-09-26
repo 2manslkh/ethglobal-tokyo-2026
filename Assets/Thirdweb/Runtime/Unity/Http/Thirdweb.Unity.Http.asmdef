@@ -1,0 +1,6 @@
+{
+    "name": "Thirdweb.Unity.Http",
+    "rootNamespace": "Thirdweb.Unity",
+    "overrideReferences": true,
+    "precompiledReferences": ["Thirdweb.dll"]
+}

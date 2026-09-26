@@ -1,0 +1,7 @@
+{
+    "name": "Tagtag.Blockchain",
+    "rootNamespace": "Tagtag.Blockchain",
+    "references": ["Thirdweb.Unity.Http"],
+    "overrideReferences": true,
+    "precompiledReferences": ["Thirdweb.dll"]
+}
