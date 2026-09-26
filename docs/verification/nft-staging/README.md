@@ -25,6 +25,26 @@ Unity tests used Editor 6000.5.5f1 and StandaloneOSX in the isolated worktree.
 Production `ServiceConfiguration.json` and PlayerSettings hashes were unchanged.
 Concurrent header/sticker work in the main checkout was not edited or built here.
 
+## Native build
+
+On 2026-09-26, `scripts/build-ios-staging.sh` completed its separate preparation
+and export invocations with exit 0. It used temporary, deliberately nonfunctional
+Firebase/Google JSON and plist fixtures with the correct staging identity, plus
+the supplied public Thirdweb client ID. These are compilation fixtures, not
+provider-issued credentials, and the resulting app must not be distributed.
+
+- Export: `Build/iOS-staging`; ARKit native library and
+  `TagtagWalletSessionProtection.mm` included.
+- Unsigned `xcodebuild` using the documented staging command: **BUILD SUCCEEDED**,
+  exit 0. Log: `/private/tmp/tagtag-staging-xcode.log`.
+- Built app plist: bundle `com.kenk.tagtag.staging`, display name `tagtag staging`,
+  minimum iOS `15.0`; Google URL scheme matches the compile-only staging fixture.
+- Exported `Data/resources.assets` contains the staging API URL and fixture key,
+  and does not contain the production API URL or Firebase key.
+- Source service configuration and PlayerSettings SHA-256 hashes match before
+  and after the disposable-copy export. The temporary project was cleaned up.
+- No signing, installation, live login, wallet provisioning, or NFT mint occurred.
+
 ## Pending live checks
 
 Billing project quota blocks the staging deployment; the user requested local

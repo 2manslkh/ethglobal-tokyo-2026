@@ -31,3 +31,6 @@ Agents request an exclusive Git slot before staging/committing. Coordinator veri
 - Backend baseline: 79 passed, one emulator-only test skipped. Separate Auth/Firestore/Storage emulator: 1/1 passed. Contracts: 9/9 passed.
 - Public Hosting emulator: all eight JSON/PNG URLs return 200 with correct content types and exact artifact bytes. Default port 5000 belongs to macOS Control Center; dedicated emulator config uses loopback port 5017.
 - Unity verification coordinated with header task on main; no main-project builds or index writes from this worktree.
+- Completed: 16 staging tooling tests, 226 Unity Edit Mode tests, one NFT Play Mode fixture, isolated iOS export and unsigned Xcode build. Compiled with clearly nonfunctional auth fixtures; live authentication is not verified. Source configuration hashes unchanged.
+- Security review resolved missing-job bootstrap and Firebase project ownership findings; no remaining Important/Critical findings. Atomic commits pushed on `feat/nft-staging`; draft PR #3.
+- Separate user request completed: production tagtag alert budget changed from S$10 to S$1/month and read back, preserving 10/50/100% thresholds. This does not unblock staging or impose a spend cap.
