@@ -170,3 +170,21 @@ Existing daily counts carry over; UTC reset and separate design quotas are
 unchanged. No app rebuild is required. Prior revision `tagtag-api-00012-l95`
 is available for rollback. Local logs: `/tmp/tagtag-quota100-deploy.log`,
 `/tmp/tagtag-quota100-traffic.log`, and `/tmp/tagtag-quota100-green.log`.
+
+## Thirteenth Taggi preset — 2026-09-27
+
+Backend source at `eaf521a` (including preset commit `5037c61`) passed `npm test`
+with 86 passed, one emulator-only skipped. Cloud Run source deployment created
+revision `tagtag-api-00027-lih` with image digest
+`sha256:e8c77467bbbe2c32ee5576ab4dcacb6a1a48316260ca2ea726d33c11620a62ce`.
+It passed zero-traffic checks, then received 100% public traffic. The
+`nft-candidate` tag now resolves to the same revision. Both `tagtag-cleanup`
+and `tagtag-nft-mint` jobs use that exact image digest; their commands,
+identities, environment variable names, and secret mappings were retained.
+No manual job execution was triggered.
+
+The public and `nft-candidate` URLs returned health 200, unauthenticated
+collection 401, and excessive-location nearby rejection 400 after promotion.
+The candidate also returned nearby 200 with a valid approximate fix before
+promotion. These checks did not create or collect a sticker. Existing revision
+`tagtag-api-00024-dub` remains available for rollback.

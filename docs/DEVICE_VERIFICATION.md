@@ -898,3 +898,28 @@ an additional temporary check of the actual chooser cells. A separate clean
 harness using the old archive's four images failed the Taggi #7 assertion.
 The user then confirmed that the on-map image displays correctly on the phone.
 No source-code fix was needed beyond the existing `0ad5424` change.
+
+## Thirteenth Taggi install — 2026-09-27
+
+Built source `eaf521a`, including `taggi-13`, for Dawg. (iPhone 15 Pro Max,
+iOS 26.6.1). The user chose to retain the phone's live NFT features, so this
+build temporarily used `nftEnabled=true` and the documented public Thirdweb
+client ID. The committed service configuration was restored byte-for-byte
+after export. The exported Unity resource and signed app were checked for the
+enabled configuration, and the signed app includes `taggi-13.png` for native
+map pins.
+
+Unity iOS Edit Mode passed 259/259, backend HTTP tests passed 86 with one
+emulator-only skip, ARKit preparation and Unity export exited 0, and the signed
+Xcode Debug/iphoneos build reported `BUILD SUCCEEDED`. The app signature
+verified with team `5Y6QUA9GA6` and bundle ID `com.kenk.tagtag`. CoreDevice
+installed it over the existing app without an uninstall, then launched it.
+CoreDevice subsequently listed the new installation's `tagtag` process as
+running. No in-app AR placement, publication, or NFT transaction was performed
+as part of this install check.
+
+Local evidence: `/tmp/tagtag-latest-backend-tests.log`,
+`/tmp/tagtag-latest-deploy-edit-tests.xml`, `/tmp/tagtag-latest-prepare.log`,
+`/tmp/tagtag-latest-nft-export.log`, `/tmp/tagtag-latest-nft-signed-build.log`,
+`/tmp/tagtag-latest-iphone-install.log`, and
+`/tmp/tagtag-latest-iphone-launch.log`.
