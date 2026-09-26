@@ -1,5 +1,11 @@
 # Device verification
 
+## On-device wallet build — 2026-09-27
+
+The Thirdweb JWT adapter was replaced with an on-device 12-word BIP-39 wallet. Unity iOS Edit Mode passed **258/258** (`/tmp/tagtag-phone-wallet-final-tests.xml`); the focused wallet test suite also passed **6/6** after adding an independent Foundry EIP-191 signature vector (`/tmp/tagtag-phone-wallet-signature.xml`). Separate ARKit preparation and Unity iOS export exited 0. A signed Xcode Debug/iphoneos build succeeded and was installed over the existing app on **Dawg., iPhone 15 Pro Max**. CoreDevice launched `com.kenk.tagtag` and captured the home screen with no stickers collected. The installed app is `Build/DerivedDataPhoneWallet/Build/Products/Debug-iphoneos/tagtag.app`.
+
+After launch, the production project's Firestore `wallets` collection contained one binding for `0xBC5fc5e8EBd5611DdE4b56C88236F5878E85bACb`; it had been empty before this build. This is evidence of phone-wallet creation and backend challenge binding, without exposing the recovery phrase. The `nftMints` collection remained empty. The owner has been asked to record the words privately and collect a new nearby sticker in the app. A minted NFT, restore on a second phone, and transfer remain unverified.
+
 ## Sepolia NFT test build — 2026-09-27
 
 The NFT-enabled build targets the zero-traffic `nft-candidate` API revision in
@@ -11,10 +17,12 @@ installed the app over the existing installation on **Dawg., iPhone 15 Pro Max**
 and launched `com.kenk.tagtag`; both commands exited 0. The app is at
 `Build/DerivedDataNftTokyo/Build/Products/Debug-iphoneos/tagtag.app`.
 
-This verifies installation and launch, not wallet creation or minting. Thirdweb
-custom JWT settings have been requested from the owner but are not confirmed
-saved. CoreDevice later timed out initializing, so no screenshot or interaction
-was captured. After the phone is reconnected and unlocked, verify the wallet
+This verifies installation and launch of the previous Thirdweb-auth build, not
+wallet creation or minting. Its JWT settings are no longer needed because the
+replacement build generates a recovery phrase on the iPhone. After a temporary
+CoreDevice timeout, the phone reconnected and a
+screenshot showed the app open on its Your Note form. No wallet status or
+collection was visible. After installing the replacement build, verify the wallet
 address in Settings, a new in-app collection, the queued mint, a successful
 worker run, the finalized Sepolia receipt and token owner/URI, and a retry of
 the same collection without another token. Record the actual addresses,
@@ -363,7 +371,7 @@ Implemented against the [approved NFT plan](plans/2026-09-26-nfts.md), including
 - At implementation commit `7b61fb4`, separate `BuildIos.PrepareArKit` and `BuildIos.Build` invocations exited **0** using Unity `6000.5.5f1` and `-buildTarget iOS`. Export includes `libUnityARKit.a`, `ARKit.framework`, and `TagtagWalletSessionProtection.mm`. Local logs: `/private/tmp/tagtag-nft-final-prepare.log` and `/private/tmp/tagtag-nft-final-export.log`.
 - The already-running unsigned native check completed with **BUILD SUCCEEDED**, exit **0**: `xcodebuild -project Build/iOS/Unity-iPhone.xcodeproj -scheme Unity-iPhone -configuration Debug -sdk iphoneos -destination 'generic/platform=iOS' -derivedDataPath Build/DerivedData CODE_SIGNING_ALLOWED=NO build`. Local log: `/private/tmp/tagtag-nft-final-xcode.log`. No deployment or installation was performed; the user owns consolidation and the subsequent combined build.
 
-Live NFT rollout remains **disabled**. No live mint, live transfer, Thirdweb wallet restoration, or NFT physical-device result is claimed. Thirdweb JWT configuration, pinned metadata, a deployed contract, funded signer, worker deployment, and the two-device checks in [NFT setup](NFT_SETUP.md) remain required before enabling the feature.
+At the time of this 2026-09-26 integration record, live NFT rollout was disabled and no live mint or transfer was claimed. The later Tokyo rollout enabled the API and deployed the contract; the owner then replaced Thirdweb JWT wallet authentication with an on-device recovery phrase. Current acceptance status is recorded at the top of this file and in [NFT setup](NFT_SETUP.md).
 
 ## Build under review
 

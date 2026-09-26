@@ -2,10 +2,11 @@
 
 The owner selected the existing billed Google Cloud/Firebase project
 `tagtag-tokyo-2026` in place of the isolated `tagtag-nft-staging-2026` project.
-This changes the deployment target of the [NFT setup](NFT_SETUP.md). The live
-API still serves its prior revision; the NFT-enabled API is tagged at zero
-traffic. A test app build targets that candidate revision. Only new collections
-made after enablement enqueue an NFT.
+This changes the deployment target of the [NFT setup](NFT_SETUP.md). A test app
+build targets the `nft-candidate` API tag. On 2026-09-27, a later deployment
+placed NFT-enabled revision `tagtag-api-00024-dub` at 100% public traffic and
+moved that tag to the same revision. Only new collections made after enablement
+enqueue an NFT. No automatic mint schedule exists yet.
 
 ## Public metadata
 
@@ -52,9 +53,12 @@ generic NFT assets. Preserve all earlier version directories in future releases.
   `{"acquired":true,"processed":0}` against the empty queue. An earlier
   execution failed because the shared Firebase adapter also required the
   public bucket name and Firebase API key; those settings were added.
-- API revision `tagtag-api-00023-yoq` has the NFT configuration and the
-  `nft-candidate` tag at zero traffic. `/health` returned 200 and anonymous
-  `/v1/wallet` returned 401. The existing live revision kept 100% traffic.
+- API revision `tagtag-api-00023-yoq` initially had the NFT configuration and
+  the `nft-candidate` tag at zero traffic. `/health` returned 200 and anonymous
+  `/v1/wallet` returned 401. A subsequent API deployment created
+  `tagtag-api-00024-dub` with the same NFT environment settings and a newer
+  image. It now has 100% public traffic and the `nft-candidate` tag. The prior
+  revision is retired.
 
 Do not grant the existing API service account access to the signer secret. The
 API receives only `NFT_ENABLED`, chain ID, contract address, and wallet domain;
@@ -64,18 +68,25 @@ URIs are `https://tagtag-tokyo-2026.web.app/nft/v1/taggi-1.json` through
 
 ## Remaining acceptance
 
-Complete Thirdweb custom JWT authentication for Firebase issuer
-`https://securetoken.google.com/tagtag-tokyo-2026` and audience
-`tagtag-tokyo-2026`, allowing the production bundle `com.kenk.tagtag`. The
-local test build uses `nftEnabled=true`, the public Thirdweb client ID, and
-the zero-traffic candidate API URL. Unity Edit Mode passed 255/255 after fixing
+The wallet has changed to a 12-word BIP-39 phrase generated and stored on the
+iPhone. Thirdweb custom JWT authentication is no longer required. The public
+client ID is used for Sepolia RPC only. The local test build uses
+`nftEnabled=true`, that public RPC client ID, and
+the `nft-candidate` API URL. The original JWT build passed Unity Edit Mode
+255/255 after fixing
 three stale publication-test fixtures. Separate ARKit preparation, Unity iOS
 export, and signed Xcode Debug/iphoneos build succeeded. CoreDevice installed
 and launched the app over the existing installation on Dawg. (iPhone 15 Pro
-Max); no app interaction or wallet result has yet been observed. Verify one
+Max). On 2026-09-27, CoreDevice captured the app open on its Your Note form,
+but no wallet result or collection had been observed. The `wallets` and
+`nftMints` Firestore collections were both empty at that check. The replacement
+phone-wallet build passed 258/258 Edit Mode tests, exported and signed for iOS,
+and was installed and launched on Dawg. Its first launch produced one verified
+wallet binding, address `0xBC5fc5e8EBd5611DdE4b56C88236F5878E85bACb`.
+The `nftMints` collection was still empty. Verify one
 new discovery in the app produces one finalized ERC-721 on Sepolia, with the
-collector's embedded wallet as owner and the expected token URI. Record the
+collector's phone wallet as owner and the expected token URI. Record the
 transaction, token ID, wallet address, app/device behavior, and retry result in
-[device verification](DEVICE_VERIFICATION.md). Then promote the candidate API,
-schedule the mint job, and build with the public production API URL. No live
+[device verification](DEVICE_VERIFICATION.md). Then schedule the mint job and
+build with the public production API URL. No live
 mint is yet claimed.
