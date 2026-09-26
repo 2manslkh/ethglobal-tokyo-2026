@@ -32,6 +32,7 @@ namespace Tagtag.AR
 
         public void SetVisible(bool isVisible)
         {
+            if (visible == isVisible) return;
             visible = isVisible;
             if (isVisible) pulseStartedAt = Time.unscaledTime;
             for (var i = 0; i < stars.Length; i++)
