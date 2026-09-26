@@ -49,3 +49,7 @@ Billing uses SGD. The project budget is S$10/month with 10%, 50%, and 100% alert
 - Anonymous nearby request with a fresh synthetic Tokyo coordinate → 200 with an empty list. No test stickers were published.
 - Cleanup execution `tagtag-cleanup-fqg5g` completed successfully.
 - Firebase emulator test passed against Auth, Firestore, and Storage; see [device verification](DEVICE_VERIFICATION.md) for app-level evidence and pending hardware checks.
+
+## Explore accuracy rollout
+
+On 2026-09-26, revision `tagtag-api-00005-sos` was built from the browse-location fix and checked at zero traffic before promotion to 100%. Nearby requests with fresh synthetic coordinates and 75, 2,000.149, and 5,000-metre accuracy returned 200. A 5,001-metre fix and a stale fix returned 400. Health returned 200 and unauthenticated collection returned 401. After promotion, the public app URL passed the 2,000.149/5,000-metre success and excessive/stale rejection checks again. No test stickers were published. Client regression and pending hardware checks are recorded in [Explore location verification](verification/explore-location.md).
