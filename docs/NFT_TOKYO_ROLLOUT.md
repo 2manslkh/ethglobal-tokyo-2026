@@ -6,7 +6,8 @@ This changes the deployment target of the [NFT setup](NFT_SETUP.md). A test app
 build targets the `nft-candidate` API tag. On 2026-09-27, a later deployment
 placed NFT-enabled revision `tagtag-api-00024-dub` at 100% public traffic and
 moved that tag to the same revision. Only new collections made after enablement
-enqueue an NFT. No automatic mint schedule exists yet.
+enqueue an NFT. A five-minute mint schedule was enabled after the first live
+mint transaction succeeded.
 
 ## Public metadata
 
@@ -48,7 +49,7 @@ generic NFT assets. Preserve all earlier version directories in future releases.
   passed, and `mintPaused` is false.
 - All three `nftMints` composite indexes reached `READY`.
 - The `tagtag-nft-mint` Cloud Run job uses a separate service account, the
-  deployed API image, and pinned secret versions. It has no scheduler yet.
+  deployed API image, and pinned secret versions. It initially had no scheduler.
   Manual execution `tagtag-nft-mint-k8czq` succeeded with
   `{"acquired":true,"processed":0}` against the empty queue. An earlier
   execution failed because the shared Firebase adapter also required the
@@ -59,6 +60,12 @@ generic NFT assets. Preserve all earlier version directories in future releases.
   `tagtag-api-00024-dub` with the same NFT environment settings and a newer
   image. It now has 100% public traffic and the `nft-candidate` tag. The prior
   revision is retired.
+- Scheduler job `tagtag-nft-mint-every-5m` runs `tagtag-nft-mint` every five
+  minutes in `asia-northeast1`. Its dedicated OAuth identity
+  `tagtag-nft-scheduler@tagtag-tokyo-2026.iam.gserviceaccount.com` has
+  `roles/run.invoker` only on the mint job and no signer-secret access.
+  An explicit Scheduler dispatch created execution `tagtag-nft-mint-dp8gt`,
+  which completed successfully.
 
 Do not grant the existing API service account access to the signer secret. The
 API receives only `NFT_ENABLED`, chain ID, contract address, and wallet domain;
@@ -83,10 +90,17 @@ but no wallet result or collection had been observed. The `wallets` and
 phone-wallet build passed 258/258 Edit Mode tests, exported and signed for iOS,
 and was installed and launched on Dawg. Its first launch produced one verified
 wallet binding, address `0xBC5fc5e8EBd5611DdE4b56C88236F5878E85bACb`.
-The `nftMints` collection was still empty. Verify one
-new discovery in the app produces one finalized ERC-721 on Sepolia, with the
-collector's phone wallet as owner and the expected token URI. Record the
-transaction, token ID, wallet address, app/device behavior, and retry result in
-[device verification](DEVICE_VERIFICATION.md). Then schedule the mint job and
-build with the public production API URL. No live
-mint is yet claimed.
+The collector then completed a new discovery in the app. Worker execution
+`tagtag-nft-mint-ncpd8` submitted transaction
+`0xd13cee7be67abf116654c1f92afeb208432a6ad6fe3f381ae4443644895f6b05`;
+its receipt succeeded and `ownerOf` returned the phone wallet. The token URI
+matched the first generic Taggi metadata. Once Sepolia finalized its block,
+worker execution `tagtag-nft-mint-g4wkv` marked the Firestore mint `confirmed`
+with one signing attempt. A worker fix prevents rebroadcasting a mined receipt
+while waiting for finality; the mint job now uses the corrected image, and the
+backend suite passed 85 tests with one emulator-only skip. The collected-sticker
+sheet then displayed “Souvenir NFT minted on Sepolia” on Dawg. after its next
+successful refresh. Second-device recovery remains to verify.
+See [device verification](DEVICE_VERIFICATION.md) for the token ID and device
+record. The current local test build still uses the candidate API URL, which
+resolves to the same live revision as the public production URL.
