@@ -379,3 +379,19 @@ location, and fetching nearby stickers; failures offer retry without blanking
 existing content. Nearby results, including empty results, are reused for 60
 seconds on automatic navigation; explicit refresh always requests fresh data.
 A location opened from Placed is a browsing target, never a device location fix.
+
+### Hanging page headers
+
+Home, placement, and Explore use warm-white die-cut paper signs suspended from
+exactly two strings. Each string reaches the physical top edge and meets a small
+punched hole in the paper. Titles and adjacent controls remain below the safe
+area. Profile, Close, and Recenter sit outside the paper and remain stationary.
+Home's sign stays above its scrolling content.
+
+On each page visit, the sign lowers 24 points over 600 ms with a small swing
+(maximum 3 degrees), then rests level. The upper string anchors stay fixed while
+the knots follow the paper. Refreshes, Home section changes, and camera state
+updates do not replay the entrance. Reduced-motion presentation is immediately
+settled; detaching or suspending the view cancels the motion. Strings are
+non-interactive and stay behind sheets; celebrations hide them. Long titles can
+wrap without shrinking their display type or overlapping adjacent controls.

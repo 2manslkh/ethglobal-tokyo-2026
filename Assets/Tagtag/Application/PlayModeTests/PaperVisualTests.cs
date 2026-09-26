@@ -502,7 +502,7 @@ namespace Tagtag.Tests
             Assert.That(collectedNumber, Is.Not.Null);
             Assert.That(collectedNumber.text, Is.EqualTo("0"));
             Assert.That(collectedNumber.resolvedStyle.fontSize, Is.GreaterThan(collectedCaption.resolvedStyle.fontSize * 1.5f));
-            var brand = document.rootVisualElement.Query<Label>().ToList().First(label => label.text == "Your sticker book");
+            var brand = document.rootVisualElement.Query<Label>().ToList().First(label => label.text == "Your Sticker Book");
             Assert.That(brand.resolvedStyle.unityFont, Is.SameAs(Resources.Load<Font>("Tagtag/Fonts/ShadowsIntoLight")));
             foreach (var label in document.rootVisualElement.Query<Label>(className: "nav-label").ToList())
                 Assert.That(label.resolvedStyle.unityFont, Is.SameAs(Resources.Load<Font>("Tagtag/Fonts/InstrumentSemibold")));

@@ -258,6 +258,11 @@ namespace Tagtag.UI
                 screenHost.style.minHeight = 0f;
                 navHost = Column(safeRoot);
                 navHost.style.flexShrink = 0f;
+                headerStringsHost = new VisualElement { name = "Header strings layer", pickingMode = PickingMode.Ignore };
+                headerStringsHost.style.position = Position.Absolute;
+                headerStringsHost.style.left = headerStringsHost.style.right = 0f;
+                headerStringsHost.style.top = headerStringsHost.style.bottom = 0f;
+                root.Add(headerStringsHost);
                 overlayHost = new VisualElement { pickingMode = PickingMode.Ignore };
                 overlayHost.style.position = Position.Absolute;
                 overlayHost.style.left = 0f;
@@ -433,6 +438,8 @@ namespace Tagtag.UI
                 focusedField = null;
                 SyncDraftFromState();
                 screenHost.Clear();
+                headerStringsHost.Clear();
+                pageHeader = null;
                 navHost.Clear();
                 root.style.backgroundColor = Paper;
                 if (loginRequired) BuildLogin(state);
@@ -445,7 +452,7 @@ namespace Tagtag.UI
                     if (PaperFlow.ShowBottomNavigation(state)) BuildTabBar(state);
                 }
                 var reason = navigationMotion.Observe(identity, !state.accountOpen);
-                PaperNavigationMotion.Enter(screenHost, reason);
+                EnterPageHeader(reason);
                 renderedIdentity = identity;
             }
             else
@@ -483,6 +490,8 @@ namespace Tagtag.UI
             {
                 mapDirty = true;
             }
+            headerStringsHost.style.display = CelebrationActive ? DisplayStyle.None : DisplayStyle.Flex;
+            if (CelebrationActive) pageHeader?.Settle();
             RenderCelebration(state);
             ApplyTextScale();
             UpdateCameraInteraction();
