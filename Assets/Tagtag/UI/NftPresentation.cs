@@ -36,6 +36,7 @@ namespace Tagtag.UI
             {
                 case "ready": return state.walletAddress;
                 case "disabled": return "NFT minting is not enabled yet.";
+                case "needsRecovery": return "Restore your 12-word wallet phrase to receive your NFTs on this phone.";
                 case "delayed": return "Wallet setup delayed. Your discoveries are safe; setup will retry.";
                 default: return "Preparing your wallet…";
             }

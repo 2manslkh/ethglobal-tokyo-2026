@@ -91,7 +91,7 @@ namespace Tagtag.Blockchain.Tests
         [Test]
         public void InvalidRecipientAndHashFailBeforeNetwork()
         {
-            IEmbeddedWallet wallet = new ThirdwebEmbeddedWallet("test-client-id");
+            IEmbeddedWallet wallet = new PhoneSeedWallet("test-client-id");
             var transfer = Assert.ThrowsAsync<WalletTransferException>(async () =>
             {
                 await wallet.TransferNft(Owner, "1", Zero);

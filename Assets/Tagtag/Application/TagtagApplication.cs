@@ -28,10 +28,11 @@ namespace Tagtag
             var identity = gameObject.AddComponent<NativeIdentity>();
             if (configuration.nftEnabled && !string.IsNullOrWhiteSpace(configuration.thirdwebClientId))
             {
-                var wallet = new ThirdwebEmbeddedWallet(configuration.thirdwebClientId);
+                var wallet = new PhoneSeedWallet(configuration.thirdwebClientId);
                 controller = new TagtagController(configuration, ar, map, identity,
                     locationConfirmation: gameObject.AddComponent<NativeLocationConfirmation>(),
                     connectWallet: wallet.Connect, signWalletMessage: wallet.SignMessage, disconnectWallet: wallet.Disconnect,
+                    restoreWallet: wallet.Restore, revealWalletPhrase: wallet.RecoveryPhrase,
                     nftOwner: wallet.GetNftOwner,
                     transferNft: async (contract, token, recipient) =>
                     {

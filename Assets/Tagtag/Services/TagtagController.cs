@@ -7,7 +7,7 @@ using UnityEngine;
 
 namespace Tagtag.Services
 {
-    public sealed partial class TagtagController : ITagtagController, INftTransferController
+    public sealed partial class TagtagController : ITagtagController, INftTransferController, IPhoneWalletController
     {
         public AppState State { get; } = new AppState();
         public IArExperience Ar { get; }
@@ -55,6 +55,7 @@ namespace Tagtag.Services
         private string publicationStage;
         private long publicationStageStarted;
         private readonly WalletBinding wallet;
+        private readonly Func<string, string> revealWalletPhrase;
         private bool refreshingNfts;
         private readonly NftTransfers transfers;
         private readonly NftTransferStore transferStore;
@@ -63,9 +64,11 @@ namespace Tagtag.Services
             Func<CancellationToken, Task<LocationFix>> locateNearby = null,
             Func<LocationFix, Task<StickerSummary[]>> loadNearby = null,
             DeviceLocation deviceLocation = null, IStickerCreation stickerCreation = null,
-            Func<string, Task<string>> connectWallet = null,
+            Func<string, string, Task<string>> connectWallet = null,
             Func<string, Task<string>> signWalletMessage = null,
             Func<Task> disconnectWallet = null,
+            Func<string, string, string, Task<string>> restoreWallet = null,
+            Func<string, string> revealWalletPhrase = null,
             Func<string, string, Task<string>> nftOwner = null,
             Func<string, string, string, Task<string>> transferNft = null,
             Func<string, Task<string>> transferStatus = null,
@@ -75,6 +78,7 @@ namespace Tagtag.Services
             Func<string, LocationFix, CancellationToken, Task<RecoveryData>> loadRecovery = null)
         {
             this.locationConfirmation = locationConfirmation;
+            this.revealWalletPhrase = revealWalletPhrase;
             this.configuration = configuration;
             this.identity = identity;
             location = deviceLocation ?? new DeviceLocation();
@@ -92,7 +96,7 @@ namespace Tagtag.Services
                     token => api.Call<WalletStatus>("GET", "/v1/wallet", null, token),
                     (address, token) => api.Call<WalletChallenge>("POST", "/v1/wallet/challenge", new WalletChallengeRequest { address = address }, token),
                     (challengeId, signature, token) => api.Call<WalletStatus>("POST", "/v1/wallet/bind",
-                        new WalletBindRequest { challengeId = challengeId, signature = signature }, token));
+                        new WalletBindRequest { challengeId = challengeId, signature = signature }, token), restoreWallet);
                 wallet.Changed += WalletChanged;
             }
             else if (configuration.nftEnabled) State.walletStatus = "delayed";

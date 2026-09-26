@@ -8,7 +8,9 @@ namespace Tagtag.Services
     // Wallet errors are deliberately separate from gameplay errors and busy state.
     public sealed class WalletBinding
     {
-        private readonly Func<string, Task<string>> connect, sign;
+        private readonly Func<string, string, Task<string>> connect;
+        private readonly Func<string, Task<string>> sign;
+        private readonly Func<string, string, string, Task<string>> restore;
         private readonly Func<Task> disconnect;
         private readonly Func<string, Task<WalletStatus>> read;
         private readonly Func<string, string, Task<WalletChallenge>> challenge;
@@ -21,20 +23,21 @@ namespace Tagtag.Services
         public string Status { get; private set; } = "";
         public event Action Changed;
 
-        public WalletBinding(Func<string, Task<string>> connect, Func<string, Task<string>> sign,
+        public WalletBinding(Func<string, string, Task<string>> connect, Func<string, Task<string>> sign,
             Func<Task> disconnect, Func<string, Task<WalletStatus>> read,
             Func<string, string, Task<WalletChallenge>> challenge,
-            Func<string, string, string, Task<WalletStatus>> bind)
+            Func<string, string, string, Task<WalletStatus>> bind,
+            Func<string, string, string, Task<string>> restore = null)
         {
             this.connect = connect; this.sign = sign; this.disconnect = disconnect;
-            this.read = read; this.challenge = challenge; this.bind = bind;
+            this.read = read; this.challenge = challenge; this.bind = bind; this.restore = restore;
         }
 
         public Task Ensure(string uid, Func<Task<string>> token)
         {
             if (string.IsNullOrEmpty(uid)) return Clear();
             if (userId == uid && pending != null && !pending.IsCompleted) return pending;
-            if (userId == uid && Status == "ready") return Task.CompletedTask;
+            if (userId == uid && (Status == "ready" || Status == "needsRecovery")) return Task.CompletedTask;
             bool changedUser = userId != uid;
             if (changedUser) generation++;
             userId = uid;
@@ -49,6 +52,27 @@ namespace Tagtag.Services
             generation++; userId = null; pending = null;
             Address = ""; Status = ""; Changed?.Invoke();
             return ClearSdk();
+        }
+
+        public async Task Restore(string uid, string phrase, Func<Task<string>> token)
+        {
+            if (restore == null || string.IsNullOrEmpty(uid) || uid != userId)
+                throw new InvalidOperationException("The wallet cannot be restored for this account.");
+            int current = generation;
+            await gate.WaitAsync();
+            try
+            {
+                if (current != generation || uid != userId) return;
+                WalletStatus existing = await read(await token());
+                if (current != generation || uid != userId) return;
+                if (existing == null || !existing.enabled || existing.chainId != 11155111)
+                    throw new InvalidOperationException("Wallet service is unavailable.");
+                await restore(uid, phrase, existing.address);
+                if (current != generation || uid != userId) return;
+                Status = "";
+            }
+            finally { gate.Release(); }
+            await Ensure(uid, token);
         }
 
         private async Task ClearSdk()
@@ -74,13 +98,13 @@ namespace Tagtag.Services
                 if (existing == null) throw new InvalidOperationException();
                 if (!existing.enabled) { Status = "disabled"; return; }
                 if (existing.chainId != 11155111) throw new InvalidOperationException();
-                string address = await connect(jwt);
+                string address = await connect(userId, existing.address);
                 if (current != generation) return;
                 if (string.IsNullOrEmpty(address)) throw new InvalidOperationException();
                 if (!string.IsNullOrEmpty(existing.address))
                 {
                     if (!string.Equals(existing.address, address, StringComparison.OrdinalIgnoreCase))
-                        throw new InvalidOperationException();
+                        throw new Tagtag.Blockchain.WalletRecoveryRequiredException();
                 }
                 else
                 {
@@ -101,6 +125,11 @@ namespace Tagtag.Services
                         throw new InvalidOperationException();
                 }
                 Address = existing.address; Status = "ready";
+            }
+            catch (Tagtag.Blockchain.WalletRecoveryRequiredException)
+            {
+                if (current == generation) { Address = ""; Status = "needsRecovery"; }
+                try { await disconnect(); } catch { }
             }
             catch
             {
