@@ -24,6 +24,16 @@ namespace Tagtag
         public string note;
         public long collectedAt;
         public bool unavailable;
+        public NftStatus nft;
+    }
+    [Serializable] public sealed class NftStatus
+    {
+        public string status, contractAddress, tokenId, transactionHash;
+        public int chainId;
+    }
+    [Serializable] public sealed class NftTransfer
+    {
+        public string stickerId, contractAddress, tokenId, recipient, transactionHash, status, message;
     }
     [Serializable] public sealed class SpatialSnapshot
     {
@@ -57,6 +67,8 @@ namespace Tagtag
     [Serializable] public sealed class ServiceConfiguration
     {
         public string apiBaseUrl, firebaseApiKey, googleClientId, googleReversedClientId;
+        public bool nftEnabled;
+        public string thirdwebClientId;
         public bool Configured => !string.IsNullOrEmpty(apiBaseUrl) && !string.IsNullOrEmpty(firebaseApiKey);
     }
     public sealed class AppState
@@ -71,6 +83,10 @@ namespace Tagtag
         public CollectedSticker detail;
         public string status = "", error = "", selectedPreset = "", draftPlace = "", draftTeaser = "", draftNote = "";
         public bool busy, nearbyLoading, accountOpen, servicesConfigured, hasPendingPublication;
+        public bool nftEnabled;
+        public string walletAddress = "", walletStatus = "";
+        public List<NftTransfer> nftTransfers = new List<NftTransfer>();
+        public bool nftDeletionAcknowledged;
     }
     public interface IArExperience
     {
@@ -133,5 +149,11 @@ namespace Tagtag
         void Block(string authorId);
         void Withdraw(string id);
         void DeleteAccount();
+    }
+    public interface INftTransferController
+    {
+        void TransferNft(string stickerId, string recipient);
+        void RefreshNftTransfers();
+        void AcknowledgeNftLoss(bool acknowledged);
     }
 }

@@ -7,7 +7,7 @@ using UnityEngine;
 
 namespace Tagtag.Services
 {
-    public sealed class TagtagController : ITagtagController
+    public sealed class TagtagController : ITagtagController, INftTransferController
     {
         public AppState State { get; } = new AppState();
         public IArExperience Ar { get; }
@@ -33,16 +33,40 @@ namespace Tagtag.Services
         private PlacementDraft pendingDraft;
         private int accountGeneration;
         private bool disposed;
+        private readonly WalletBinding wallet;
+        private bool refreshingNfts;
+        private readonly NftTransfers transfers;
+        private readonly NftTransferStore transferStore;
 
         public TagtagController(ServiceConfiguration configuration, IArExperience ar, IMapExperience map, INativeIdentity identity,
             Func<CancellationToken, Task<LocationFix>> locateNearby = null,
-            Func<LocationFix, Task<StickerSummary[]>> loadNearby = null)
+            Func<LocationFix, Task<StickerSummary[]>> loadNearby = null,
+            Func<string, Task<string>> connectWallet = null,
+            Func<string, Task<string>> signWalletMessage = null,
+            Func<Task> disconnectWallet = null,
+            Func<string, string, Task<string>> nftOwner = null,
+            Func<string, string, string, Task<string>> transferNft = null,
+            Func<string, Task<string>> transferStatus = null)
         {
             this.configuration = configuration;
             this.identity = identity;
             Ar = ar; Map = map;
             api = new TagtagApi(configuration);
             session = new FirebaseSession(configuration, identity);
+            State.nftEnabled = configuration.nftEnabled;
+            if (configuration.nftEnabled && connectWallet != null && signWalletMessage != null && disconnectWallet != null)
+            {
+                wallet = new WalletBinding(connectWallet, signWalletMessage, disconnectWallet,
+                    token => api.Call<WalletStatus>("GET", "/v1/wallet", null, token),
+                    (address, token) => api.Call<WalletChallenge>("POST", "/v1/wallet/challenge", new WalletChallengeRequest { address = address }, token),
+                    (challengeId, signature, token) => api.Call<WalletStatus>("POST", "/v1/wallet/bind",
+                        new WalletBindRequest { challengeId = challengeId, signature = signature }, token));
+                wallet.Changed += WalletChanged;
+            }
+            else if (configuration.nftEnabled) State.walletStatus = "delayed";
+            transferStore = new NftTransferStore(System.IO.Path.Combine(Application.persistentDataPath, "nft-transfers"));
+            if (nftOwner != null && transferNft != null && transferStatus != null)
+                transfers = new NftTransfers(transferStore.Save, nftOwner, transferNft, transferStatus);
             this.locateNearby = locateNearby ?? (token => location.Current(token));
             this.loadNearby = loadNearby ?? (async fix =>
                 (await api.Call<SummaryList>("POST", "/v1/nearby", new LocationRequest { location = fix }, await session.Token(false))).items);
@@ -50,6 +74,7 @@ namespace Tagtag.Services
             publications = new PendingPublication(System.IO.Path.Combine(Application.persistentDataPath, "publications"));
             State.servicesConfigured = configuration.Configured;
             State.user = session.Current;
+            State.nftTransfers = transferStore.Read(State.user?.uid);
             State.collection = cache.Read(State.user?.uid);
             RestorePublication();
             blockedAuthors = localBlocks.Read(State.user?.uid); ApplyBlocks();
@@ -63,6 +88,7 @@ namespace Tagtag.Services
         public void Dispose()
         {
             disposed = true; accountGeneration++;
+            if (wallet != null) { wallet.Changed -= WalletChanged; _ = wallet.Clear(); }
             CancelNearby();
             Ar.Changed -= Notify; Ar.StickerTapped -= Collect; Map.StickerSelected -= SelectSticker;
             Ar.Exit(); Map.Hide();
@@ -91,10 +117,14 @@ namespace Tagtag.Services
             State.busy = true; State.error = ""; Notify();
             identity.SignIn(provider, configuration, credential =>
             {
+                accountGeneration++;
                 State.busy = false;
                 Run(async () =>
                 {
                     State.user = await session.SignIn(credential);
+                    State.nftTransfers = transferStore.Read(State.user.uid);
+                    State.nftDeletionAcknowledged = false;
+                    EnsureWallet();
                     State.collection = cache.Read(State.user.uid);
                     RestorePublication();
                     blockedAuthors = localBlocks.Read(State.user.uid); ApplyBlocks();
@@ -108,6 +138,7 @@ namespace Tagtag.Services
             if (State.busy) return;
             CancelNearby();
             accountGeneration++; session.SignOut(); State.user = null; recovery = null;
+            ClearWallet();
             blockedAuthors.Clear(); State.collection.Clear(); State.authored.Clear(); State.detail = null; State.selected = null;
             Ar.CancelPlacement(); pendingDraft = null; State.hasPendingPublication = false;
             State.draftNote = State.draftTeaser = State.draftPlace = State.selectedPreset = "";
@@ -148,7 +179,11 @@ namespace Tagtag.Services
             finally
             {
                 bool identityChanged = !disposed && generation == accountGeneration && State.user != session.Current;
-                if (identityChanged) State.user = session.Current;
+                if (identityChanged)
+                {
+                    State.user = session.Current;
+                    if (State.user == null) ClearWallet();
+                }
                 if (nearbyCancellation == request)
                 {
                     nearbyCancellation = null;
@@ -314,12 +349,18 @@ namespace Tagtag.Services
         public void DeleteAccount()
         {
             if (!RequireAccount()) return;
+            if ((State.nftEnabled || State.collection.Any(item => !string.IsNullOrEmpty(item.nft?.status))) && !State.nftDeletionAcknowledged)
+            {
+                State.error = "Review your NFT transfers and acknowledge possible wallet access loss before deleting your account.";
+                Notify(); return;
+            }
             Run(async () =>
             {
                 string uid = State.user.uid;
                 await api.Call<OkResult>("DELETE", "/v1/account", null, await session.Token());
                 session.SignOut(); accountGeneration++;
-                try { cache.Remove(uid); publications.Remove(uid); localBlocks.Remove(uid); }
+                ClearWallet();
+                try { cache.Remove(uid); publications.Remove(uid); localBlocks.Remove(uid); transferStore.Remove(uid); }
                 catch { /* Account access is revoked even when local file removal must wait. */ }
                 State.user = null; blockedAuthors.Clear(); State.collection.Clear(); State.authored.Clear(); State.nearby.Clear(); State.detail = null; State.selected = null;
                 pendingDraft = null; State.hasPendingPublication = false; recovery = null; Ar.CancelPlacement(); State.draftNote = State.draftTeaser = State.draftPlace = State.selectedPreset = "";
@@ -338,8 +379,90 @@ namespace Tagtag.Services
         }
         public void Resume()
         {
+            EnsureWallet();
             if (!State.busy && State.user != null && configuration.Configured)
                 Run(async () => { synchronizing = true; try { await SyncAccount(); } finally { synchronizing = false; } });
+        }
+        private void WalletChanged()
+        {
+            if (disposed) return;
+            State.walletAddress = State.user == null ? "" : wallet.Address;
+            State.walletStatus = State.user == null ? "" : wallet.Status;
+            Notify();
+        }
+        private void ClearWallet()
+        {
+            State.walletAddress = State.walletStatus = "";
+            State.nftTransfers = new List<NftTransfer>();
+            State.nftDeletionAcknowledged = false;
+            if (wallet != null) _ = wallet.Clear();
+        }
+        private void EnsureWallet()
+        {
+            if (disposed || wallet == null || session.Current == null) return;
+            string uid = session.Current.uid;
+            int generation = accountGeneration;
+            _ = wallet.Ensure(uid, async () =>
+            {
+                if (disposed || generation != accountGeneration || session.Current?.uid != uid)
+                    throw new OperationCanceledException();
+                string token = await session.Token();
+                if (disposed || generation != accountGeneration || session.Current?.uid != uid)
+                    throw new OperationCanceledException();
+                return token;
+            });
+        }
+        public async void RefreshNfts()
+        {
+            if (disposed || !configuration.nftEnabled || State.busy || refreshingNfts || session.Current == null) return;
+            EnsureWallet();
+            if (!State.collection.Any(item => item.nft != null && (item.nft.status == "pending" || item.nft.status == "delayed"))) return;
+            string uid = session.Current.uid;
+            int generation = accountGeneration;
+            refreshingNfts = true;
+            try
+            {
+                var collection = await api.Call<CollectionList>("GET", "/v1/collection", null, await session.Token());
+                if (disposed || generation != accountGeneration || session.Current?.uid != uid || State.busy) return;
+                State.collection = CollectionBook.Normalize(collection.items); ApplyBlocks(); SaveCollection();
+                if (State.detail != null) State.detail = State.collection.FirstOrDefault(item => item.id == State.detail.id);
+                Notify();
+            }
+            catch { /* Keep the collected sticker; a later foreground refresh retries. */ }
+            finally
+            {
+                refreshingNfts = false;
+                if (!disposed && generation == accountGeneration && session.Current == null)
+                {
+                    State.user = null; ClearWallet(); Notify();
+                }
+            }
+        }
+        public void AcknowledgeNftLoss(bool acknowledged) { State.nftDeletionAcknowledged = acknowledged; Notify(); }
+        public void TransferNft(string stickerId, string recipient)
+        {
+            if (!RequireAccount() || transfers == null) return;
+            Run(async () =>
+            {
+                string uid = State.user.uid;
+                await SyncAccount();
+                EnsureWallet();
+                if (wallet?.Status != "ready") throw new ApiFailure("Wait for your souvenir wallet to finish connecting, then retry.");
+                var sticker = State.collection.FirstOrDefault(item => item.id == stickerId);
+                await transfers.Send(uid, wallet.Address, sticker, (recipient ?? "").Trim(), State.nftTransfers);
+                State.status = "Check the transfer status below before deleting your account.";
+            });
+        }
+        public void RefreshNftTransfers()
+        {
+            if (!RequireAccount() || transfers == null) return;
+            Run(async () =>
+            {
+                EnsureWallet();
+                if (wallet?.Status != "ready") throw new ApiFailure("Wait for your souvenir wallet to finish connecting, then retry.");
+                await transfers.Refresh(State.user.uid, wallet.Address, State.nftTransfers);
+                State.status = "Transfer status refreshed.";
+            });
         }
         private void RestorePublication()
         {
@@ -380,6 +503,7 @@ namespace Tagtag.Services
             finally
             {
                 State.busy = false; State.user = session.Current; Notify();
+                if (State.user == null) ClearWallet();
                 ResumeNearby();
             }
         }

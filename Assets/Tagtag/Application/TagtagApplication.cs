@@ -1,4 +1,5 @@
 using Tagtag.AR;
+using Tagtag.Blockchain;
 using Tagtag.Services;
 using Tagtag.UI;
 using UnityEngine;
@@ -8,6 +9,7 @@ namespace Tagtag
     public sealed class TagtagApplication : MonoBehaviour
     {
         private TagtagController controller;
+        private float nextNftRefresh;
         private void Awake()
         {
             // Always clear to paper, including frames before the UI or AR rig is ready.
@@ -24,11 +26,29 @@ namespace Tagtag
             var ar = gameObject.AddComponent<ArExperience>();
             var map = gameObject.AddComponent<NativeMapView>();
             var identity = gameObject.AddComponent<NativeIdentity>();
-            controller = new TagtagController(configuration, ar, map, identity);
+            if (configuration.nftEnabled && !string.IsNullOrWhiteSpace(configuration.thirdwebClientId))
+            {
+                var wallet = new ThirdwebEmbeddedWallet(configuration.thirdwebClientId);
+                controller = new TagtagController(configuration, ar, map, identity,
+                    connectWallet: wallet.Connect, signWalletMessage: wallet.SignMessage, disconnectWallet: wallet.Disconnect,
+                    nftOwner: wallet.GetNftOwner,
+                    transferNft: async (contract, token, recipient) =>
+                    {
+                        try { return await wallet.TransferNft(contract, token, recipient); }
+                        catch (WalletTransferException error) { throw new NftTransferFailure(error.Code); }
+                    }, transferStatus: wallet.GetTransferStatus);
+            }
+            else controller = new TagtagController(configuration, ar, map, identity);
             gameObject.AddComponent<TagtagAppView>().Initialize(controller);
             controller.Start();
         }
         private void OnApplicationPause(bool paused) { if (!paused) controller?.Resume(); }
+        private void Update()
+        {
+            if (Time.unscaledTime < nextNftRefresh) return;
+            nextNftRefresh = Time.unscaledTime + 15f;
+            controller?.RefreshNfts();
+        }
         private void OnDestroy() { controller?.Dispose(); }
     }
 }

@@ -22,6 +22,68 @@ namespace Tagtag.Tests
         private int oldMotion;
 
         [UnityTest]
+        public IEnumerator NftStatusUpdatesWithoutReplacingPrivateNotes()
+        {
+            oldScale = PlayerPrefs.GetFloat("tagtag.textScale", 1f);
+            oldMotion = PlayerPrefs.GetInt("tagtag.reducedMotion", 0);
+            PlayerPrefs.SetFloat("tagtag.textScale", 1f);
+            PlayerPrefs.SetInt("tagtag.reducedMotion", 1);
+            controller = new ReviewController();
+            controller.State.user = new UserSession { uid = "nft-review", displayName = "Aki" };
+            controller.State.nftEnabled = true;
+            controller.State.walletStatus = "ready";
+            controller.State.walletAddress = "0x1111111111111111111111111111111111111111";
+            var sticker = Sticker(0);
+            sticker.nft = new NftStatus { status = "pending", chainId = 11155111 };
+            controller.State.collection.Add(sticker);
+            host = new GameObject("NFT visual review");
+            host.AddComponent<TagtagAppView>().Initialize(controller);
+            document = host.GetComponent<UIDocument>();
+            target = new RenderTexture(390, 844, 24);
+            target.Create();
+            document.panelSettings.targetTexture = target;
+            document.panelSettings.clearColor = true;
+            document.panelSettings.colorClearValue = new Color32(218, 225, 222, 255);
+            yield return Capture("nft-home");
+            var bookCell = document.rootVisualElement.Query<VisualElement>().ToList().First(element => element.userData as string == sticker.id);
+            bookCell.Focus();
+            using (var key = KeyDownEvent.GetPooled(new Event { type = EventType.KeyDown, keyCode = KeyCode.Return }))
+            { key.target = bookCell; bookCell.SendEvent(key); }
+            yield return Capture("nft-pending");
+            Assert.That(document.rootVisualElement.Query<Label>().ToList().Any(label => label.text == NftPresentation.Status(sticker.nft)), Is.True);
+            sticker.nft.status = "confirmed";
+            sticker.nft.transactionHash = "0x" + new string('a', 64);
+            controller.Notify();
+            yield return Capture("nft-confirmed");
+            Assert.That(document.rootVisualElement.Query<Label>().ToList().Any(label => label.text == sticker.note), Is.True);
+            Assert.That(document.rootVisualElement.Query<Button>().ToList().Any(button => button.text == "View NFT transaction"), Is.True);
+            Submit("Close");
+            yield return new WaitForSecondsRealtime(.4f);
+            controller.SetAccountOpen(true);
+            yield return Capture("nft-wallet");
+            Assert.That(document.rootVisualElement.Query<Label>().ToList().Any(label => label.text == controller.State.walletAddress), Is.True);
+            Submit("Delete account and stickers");
+            yield return Capture("nft-transfer-out");
+            document.rootVisualElement.Q<TextField>("Delete confirmation").value = "DELETE";
+            var delete = document.rootVisualElement.Query<Button>().ToList().First(button => button.text == "Permanently delete account");
+            Assert.IsFalse(delete.enabledSelf, "Typing DELETE alone must not bypass NFT access-loss acknowledgement.");
+            document.rootVisualElement.Q<TextField>("NFT recipient").value = "0x2222222222222222222222222222222222222222";
+            Submit("Send this NFT");
+            yield return Capture("nft-transfer-pending");
+            Assert.AreEqual("pending", controller.State.nftTransfers[0].status);
+            document.rootVisualElement.Q<Toggle>("Acknowledge NFT access loss").value = true;
+            yield return null;
+            Assert.IsTrue(delete.enabledSelf, "An informed fallback remains available even while a transfer is pending.");
+            document.rootVisualElement.Q<ScrollView>("Account scroll").scrollOffset = new Vector2(0, 2000);
+            yield return Capture("nft-deletion-fallback");
+            var acknowledgementTrack = document.rootVisualElement.Q<Toggle>("Acknowledge NFT access loss").Q(className: "switch-track");
+            Assert.GreaterOrEqual(acknowledgementTrack.resolvedStyle.width, 48f,
+                "Long acknowledgement copy must not compress the switch or clip its thumb.");
+            Assert.LessOrEqual(acknowledgementTrack.worldBound.xMax, document.rootVisualElement.worldBound.xMax,
+                "The access-loss acknowledgement control must remain visible inside the screen.");
+        }
+
+        [UnityTest]
         public IEnumerator CameraInventoryFlowUsesFullScreenAndExplicitPlacement()
         {
             oldScale = PlayerPrefs.GetFloat("tagtag.textScale", 1f);
@@ -480,7 +542,7 @@ namespace Tagtag.Tests
             public void Recover(RecoveryData recovery) { }
         }
 
-        private sealed class ReviewController : ITagtagController
+        private sealed class ReviewController : ITagtagController, INftTransferController
         {
             public readonly ReviewCamera Camera = new ReviewCamera();
             public AppState State { get; } = new AppState { servicesConfigured = true,
@@ -507,6 +569,14 @@ namespace Tagtag.Tests
             public void Block(string authorId) { }
             public void Withdraw(string id) { }
             public void DeleteAccount() { }
+            public void AcknowledgeNftLoss(bool acknowledged) { State.nftDeletionAcknowledged = acknowledged; Notify(); }
+            public void RefreshNftTransfers() { }
+            public void TransferNft(string id, string recipient)
+            {
+                State.nftTransfers.Add(new NftTransfer { stickerId = id, recipient = recipient, status = "pending",
+                    transactionHash = "0x" + new string('b', 64), message = "Transfer submitted. Waiting for Sepolia confirmation." });
+                Notify();
+            }
         }
     }
 }

@@ -9,7 +9,8 @@ namespace Tagtag.UI
             if (sticker == null) return "missing:" + busy;
             return sticker.id + ":" + sticker.revision + ":" + sticker.unavailable + ":" +
                 sticker.collectedAt + ":" + sticker.place + ":" + sticker.teaser + ":" +
-                sticker.authorName + ":" + sticker.note;
+                sticker.authorName + ":" + sticker.note + ":" + sticker.nft?.status + ":" +
+                sticker.nft?.transactionHash + ":" + sticker.nft?.chainId;
         }
 
         public static List<CollectedSticker> OrderedDistinct(IReadOnlyList<CollectedSticker> source)
