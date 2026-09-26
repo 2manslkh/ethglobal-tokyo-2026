@@ -10,7 +10,7 @@ namespace Tagtag.UI
     public sealed partial class TagtagAppView : MonoBehaviour
     {
         private enum AccountScreen { Overview, SignIn, Authored, DeleteConfirmation }
-        private enum Sheet { None, Picker, Creator, HomeDesignPreview, DeleteDesign, Note, Collected, Report, Block, Withdraw }
+        private enum Sheet { None, Picker, Creator, HomeDesignPreview, DeleteDesign, Note, Collected, Report, Block, Withdraw, ReferencePhoto }
 
         private static readonly Color Paper = new Color32(255, 254, 250, 255);
         private static readonly Color Ink = new Color32(32, 32, 30, 255);
@@ -324,6 +324,12 @@ namespace Tagtag.UI
             SyncHomeIdentity(state);
             SyncDeleteDesign(state);
             SyncHomePlacement(state);
+            if (sheet == Sheet.ReferencePhoto && (state.page != AppPage.Stick || state.accountOpen ||
+                state.selected?.id != sheetStickerId || PaperFlow.HasPlacementSelection(state)))
+            {
+                sheet = Sheet.None;
+                sheetStickerId = null;
+            }
             if (sheet == Sheet.HomeDesignPreview &&
                 (state.page != AppPage.Home || HomeOwnedDesigns(state).All(design => design.id != sheetDesignId)))
             {

@@ -9,5 +9,6 @@ Source repository: `~/Desktop/coding-projects/sticker-app`, commit `ec7765379ae5
 | `unity/Assets/StickerHunt/Device/DeviceARSession.Placement.cs` | `ArExperience.cs`: tracked, unsubsumed plane scanning, frustum availability and 10 Hz boundary updates; the plane-local yellow hatch mesh and shader are tagtag-specific |
 | `unity/Assets/StickerHunt/Device/DeviceARSession.cs` (`Place`, `Adjust`, `Hit`) | `ArExperience.cs` and `PlacementFlow.cs`: explicit screen-point polygon raycast, same-plane drag, scale and rotation; ARKit world-map publication and recovery remain tagtag-specific |
 | `unity/Assets/StickerHunt/Core/SurfaceTap.cs` and `docs/STICKER_PLACEMENT_UX.md` | Camera input contract: UI recognizes short taps and gestures; AR accepts camera points and checks the hit area, tracking and current plane |
+| `unity/Assets/StickerHunt/Core/ReferencePhotoCapture.cs` and `Playable/DeviceApp.ReferencePhoto.cs` | Camera-only JPEG capture and Original spot thumbnail/enlarged-view interaction; tagtag adds bounded JPEG validation and carries the photo in its private versioned AR-map envelope for authorized finders |
 
 No source glass, page curl, cloud anchor or persistence code is imported.

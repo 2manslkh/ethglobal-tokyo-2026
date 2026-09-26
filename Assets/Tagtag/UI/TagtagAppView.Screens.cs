@@ -331,6 +331,7 @@ namespace Tagtag.UI
             stickRetryButton = Action(actions, "Retry AR search", controller.StartDiscovery, false);
             stickRetryButton.name = "STICK Retry AR search";
             stickCancelButton = Action(actions, "Cancel placement", controller.CancelPlacement, false);
+            BuildRecoveryPreview(page, dock);
             RefreshStick(state);
             RefreshCamera(state);
         }
@@ -340,6 +341,7 @@ namespace Tagtag.UI
             if (stickActions == null) return;
             IArExperience ar = controller?.Ar;
             bool selected = PaperFlow.HasPlacementSelection(state);
+            RefreshRecoveryPreview(state);
             PaperStickState placement = PaperFlow.StickPlacement(state, ar?.IsTracking ?? false,
                 ar?.HasPlacementSurface ?? false, ar?.HasPlacementPreview ?? false,
                 ar?.PlacementBusy ?? false);
