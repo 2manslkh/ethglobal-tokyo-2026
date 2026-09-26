@@ -5,7 +5,11 @@ import { deleteAccountData as removeAccountData } from './account.js';
 import { inspectDesignImage, MAX_DESIGN_BYTES, MAX_DESIGN_EDGE } from './design-image.js';
 
 const MAX_MAP = 16 * 1024 * 1024;
-const PRESETS = new Set(['taggi-1', 'taggi-2', 'taggi-3', 'taggi-4']);
+const PRESET_NFT_VARIANTS = new Map([
+    ['taggi-1', 0], ['taggi-2', 1], ['taggi-3', 2], ['taggi-4', 3],
+    ['taggi-5', 0], ['taggi-6', 0], ['taggi-7', 0], ['taggi-8', 0],
+    ['taggi-9', 0], ['taggi-10', 0], ['taggi-11', 0], ['taggi-12', 0]
+]);
 const MAX_BODY = 32768;
 const DISCOVERY_SECONDS = 300;
 const NEARBY_METERS = 2000;
@@ -370,7 +374,7 @@ export function createApi({ adapter, now = () => Math.floor(Date.now() / 1000), 
                 const hasPreset = typeof data.presetId === 'string' && data.presetId.length > 0;
                 const hasDesign = typeof data.designId === 'string' && data.designId.length > 0;
                 if (hasPreset === hasDesign) bad('Exactly one presetId or designId is required');
-                if (hasPreset && !PRESETS.has(data.presetId)) bad('presetId is invalid');
+                if (hasPreset && !PRESET_NFT_VARIANTS.has(data.presetId)) bad('presetId is invalid');
                 if (hasDesign && !/^[a-f0-9]{64}$/.test(data.designId)) bad('designId is invalid');
                 const point = publicationLocation(data);
                 const input = {
@@ -489,7 +493,8 @@ export function createApi({ adapter, now = () => Math.floor(Date.now() / 1000), 
                             BigInt(freshTokenId) >= 2n ** 256n) throw new Error('Invalid token ID generator');
                         await tx.set('nftMints', collectionId, { id: collectionId, userId: user.uid, stickerId: id,
                             // Custom artwork remains private; its souvenir uses the generic first Taggi preset.
-                            authorId: sticker.authorId, tokenId: freshTokenId, preset: sticker.designId ? 0 : Number(sticker.presetId.slice(-1)) - 1,
+                            authorId: sticker.authorId, tokenId: freshTokenId,
+                            preset: sticker.designId ? 0 : (PRESET_NFT_VARIANTS.get(sticker.presetId) ?? 0),
                             chainId: 11155111, contractAddress: nft.contractAddress,
                             recipient: wallet?.address || '', state: wallet ? 'queued' : 'waiting',
                             createdAt: timestamp, nextAttemptAt: timestamp, attempts: 0, transactionHash: '' });

@@ -26,11 +26,12 @@ async function fixture({ injectedTokenId = tokenId } = {}) {
         const response = await fetch(base + path, { method, headers: { authorization: `Bearer ${user}`, 'content-type': 'application/json' }, body: body === undefined ? undefined : JSON.stringify(body) });
         return { status: response.status, data: await response.json() };
     };
-    const publish = async () => {
-        const prepared = await call('POST', '/v1/publications/prepare', { operationId: 'one', presetId: 'taggi-2', place: 'Tokyo', teaser: 'Hello', note: 'Private note', location,
-            position: { x: 0, y: 0, z: 0 }, rotation: { x: 0, y: 0, z: 0, w: 1 }, widthMeters: 0.2, mapBytes: 12 }, 'alice');
+    const publish = async ({ operationId = 'one', presetId = 'taggi-2', author = 'alice' } = {}) => {
+        const prepared = await call('POST', '/v1/publications/prepare', { operationId, presetId, place: 'Tokyo', teaser: 'Hello', note: 'Private note', location,
+            position: { x: 0, y: 0, z: 0 }, rotation: { x: 0, y: 0, z: 0, w: 1 }, widthMeters: 0.2, mapBytes: 12 }, author);
+        assert.equal(prepared.status, 200);
         adapter.upload(prepared.data.id, 12);
-        assert.equal((await call('POST', `/v1/publications/${prepared.data.id}/finalize`, { operationId: 'one', location }, 'alice')).status, 200);
+        assert.equal((await call('POST', `/v1/publications/${prepared.data.id}/finalize`, { operationId, location }, author)).status, 200);
         return prepared.data.id;
     };
     const collect = async id => {
@@ -92,6 +93,29 @@ test('first collection atomically queues one private-free mint and exposes pendi
         assert.equal(jobs[0].preset, 1);
         assert.equal(JSON.stringify(jobs).includes('Private note'), false);
         assert.equal((await f.call('GET', '/v1/collection')).data.items[0].nft.status, 'pending');
+    } finally { await f.close(); }
+});
+
+test('all twelve preset collections keep their IDs and map to the four supported NFT variants', async () => {
+    const f = await fixture();
+    try {
+        const expectedVariants = [0, 1, 2, 3, 0, 0, 0, 0, 0, 0, 0, 0];
+        const expected = new Map();
+        for (let index = 1; index <= 12; index++) {
+            const presetId = `taggi-${index}`;
+            const id = await f.publish({ operationId: `preset-${index}`, presetId, author: index <= 6 ? 'alice' : 'admin' });
+            const result = await f.collect(id);
+            assert.equal(result.status, 200, presetId);
+            assert.equal(result.data.sticker.presetId, presetId);
+            expected.set(id, { presetId, variant: expectedVariants[index - 1] });
+        }
+        const collection = await f.call('GET', '/v1/collection');
+        assert.equal(collection.status, 200);
+        assert.equal(collection.data.items.length, 12);
+        for (const item of collection.data.items) assert.equal(item.presetId, expected.get(item.id).presetId);
+        const jobs = await f.adapter.query('nftMints');
+        assert.equal(jobs.length, 12);
+        for (const job of jobs) assert.equal(job.preset, expected.get(job.stickerId).variant, job.stickerId);
     } finally { await f.close(); }
 });
 
