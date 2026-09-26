@@ -28,6 +28,17 @@ Success JSON object; errors `{error:{code,message}}`. Authorization uses Bearer 
 - `DELETE /v1/account` → `{ok:true}`. Remove authored content, own collection and Firebase user; revoke other users' note access.
 - `GET /health` → readiness without credentials/content.
 
+## NFT extension
+
+NFT support is opt-in at deployment and Sepolia-only. Legacy collection entries omit `nft` and are never backfilled. New eligible collections atomically create a mint outbox entry, even if their embedded wallet is not ready. Collect/recover authorization and note access remain unchanged.
+
+- `GET /v1/wallet` → `{enabled,address,chainId}`; authenticated, empty address until bound.
+- `POST /v1/wallet/challenge` body `{address}` → `{challengeId,message,expiresAt}`; five-minute, account-bound, single-use EIP-191 challenge.
+- `POST /v1/wallet/bind` body `{challengeId,signature}` → wallet status; verifies ownership, reserves one address per account, and rejects replacement or reuse across accounts.
+- `CollectedSticker.nft` → `{status,chainId,contractAddress,tokenId,transactionHash}` when a mint job exists. Public statuses: `pending`, `confirmed`, `delayed`, `cancelled`. Token IDs are decimal strings; chain ID is `11155111`. No transaction payloads or signing credentials are returned.
+
+Unity configuration adds `nftEnabled` (default false) and `thirdwebClientId` (public). Wallet setup and mint status run separately from gameplay busy/error state. The app refreshes pending mint status while foregrounded. The optional `INftTransferController` UI boundary supports standard EOA transfer-out, receipt refresh, and explicit NFT-loss acknowledgement before deletion. Transfer state is account-specific local data; no new backend transfer authority is granted. Account deletion remains available with an informed NFT access-loss fallback; minted tokens remain on-chain. See [setup and rollout](../NFT_SETUP.md).
+
 Admin custom claim `admin:true`: report list and moderation actions; agent may define private admin wire details and document under backend.
 
 Defaults: location ≤30s old and accuracy ≤50m; recovery/collection within 100m of placement; note ≤2000 chars, teaser ≤180, place ≤80; 5 publications/user/day; bounded nearby results (100). Never return coordinates/notes/tokens in request logs. Maps private in bucket. Presets have no uploads from end users. Published original persists after collection. Backend agent adds tests with injected adapters and emulator integration where available.

@@ -1,5 +1,20 @@
 # Device verification
 
+## NFT integration — 2026-09-26
+
+Implemented against the [approved NFT plan](plans/2026-09-26-nfts.md), including the user's later transfer-out decision. Operational defaults still apply: account deletion does not erase NFTs. The deletion screen offers individual Sepolia transfers, persisted submission and confirmation states, and explicit acknowledgement of access loss before the deletion fallback. Transfer gas requires Sepolia test ETH in the embedded wallet.
+
+- [Unity Edit Mode](verification/nfts/edit-mode.xml): **124/124 passed**, including wallet lifecycle/account isolation, NFT presentation, recipient checksum validation, transfer persistence failures, restart recovery, and receipt states.
+- [Graphics Play Mode](verification/nfts/play-mode.xml): **1/1 passed** for `NftStatusUpdatesWithoutReplacingPrivateNotes`. It exercises book detail updates, preserved private notes, wallet presentation, transfer submission, and deletion acknowledgement. The final switch has a geometry assertion preventing label-induced compression.
+- Backend `cd backend && npm test`: **46 passed, 0 failed**, with one emulator-only case skipped. The separately approved Firebase Auth/Firestore/Storage emulator run passed **1/1** using `npx --yes firebase-tools@14.21.0 emulators:exec --only auth,firestore,storage --project demo-tagtag 'cd backend && npm run test:emulator'` (local log `/private/tmp/tagtag-nft-final-emulator.log`, exit 0).
+- Contracts `cd contracts && forge test --offline`: **9/9 passed**, including mint authorization, duplicate prevention after transfer, metadata selection, pause behavior, and non-Sepolia deployment rejection.
+- Security review closed all findings: interrupted wallet binding recovery, pending account-deletion handling, signer-specific nonce state, transfer persistence failure recovery/temporary-file cleanup, and checksum-invalid recipient rejection. An independent harness checked seven recipient cases across UI, service, and wallet boundaries.
+- Rendered fixtures: [pending NFT](verification/nfts/nft-pending.png), [confirmed NFT](verification/nfts/nft-confirmed.png), [wallet](verification/nfts/nft-wallet.png), [transfer-out](verification/nfts/nft-transfer-out.png), [pending transfer](verification/nfts/nft-transfer-pending.png), and [informed deletion fallback](verification/nfts/nft-deletion-fallback.png). These use deterministic data, not live transactions.
+- At implementation commit `7b61fb4`, separate `BuildIos.PrepareArKit` and `BuildIos.Build` invocations exited **0** using Unity `6000.5.5f1` and `-buildTarget iOS`. Export includes `libUnityARKit.a`, `ARKit.framework`, and `TagtagWalletSessionProtection.mm`. Local logs: `/private/tmp/tagtag-nft-final-prepare.log` and `/private/tmp/tagtag-nft-final-export.log`.
+- The already-running unsigned native check completed with **BUILD SUCCEEDED**, exit **0**: `xcodebuild -project Build/iOS/Unity-iPhone.xcodeproj -scheme Unity-iPhone -configuration Debug -sdk iphoneos -destination 'generic/platform=iOS' -derivedDataPath Build/DerivedData CODE_SIGNING_ALLOWED=NO build`. Local log: `/private/tmp/tagtag-nft-final-xcode.log`. No deployment or installation was performed; the user owns consolidation and the subsequent combined build.
+
+Live NFT rollout remains **disabled**. No live mint, live transfer, Thirdweb wallet restoration, or NFT physical-device result is claimed. Thirdweb JWT configuration, pinned metadata, a deployed contract, funded signer, worker deployment, and the two-device checks in [NFT setup](NFT_SETUP.md) remain required before enabling the feature.
+
 ## Build under review
 
 Unity 6000.5.5f1; bundle `com.kenk.tagtag`; Apple team `5Y6QUA9GA6`. Target: Dawg., iPhone 15 Pro Max. A second ARKit iPhone is required for shared recovery.

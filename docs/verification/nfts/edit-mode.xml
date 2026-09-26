@@ -1,0 +1,919 @@
+<?xml version="1.0" encoding="utf-8"?>
+<test-run id="2" testcasecount="124" result="Passed" total="124" passed="124" failed="0" inconclusive="0" skipped="0" asserts="0" engine-version="3.5.0.0" clr-version="4.0.30319.42000" start-time="2026-09-26 01:51:10Z" end-time="2026-09-26 01:51:11Z" duration="0.3591075">
+  <test-suite type="TestSuite" id="1000" name="tagtag" fullname="tagtag" runstate="Runnable" testcasecount="124" result="Passed" start-time="2026-09-26 01:51:10Z" end-time="2026-09-26 01:51:11Z" duration="0.359108" total="124" passed="124" failed="0" inconclusive="0" skipped="0" asserts="0">
+    <properties>
+      <property name="platform" value="EditMode" />
+    </properties>
+    <test-suite type="Assembly" id="1006" name="Tagtag.Application.Tests.dll" fullname="/private/tmp/tagtag-nfts/Library/ScriptAssemblies/Tagtag.Application.Tests.dll" runstate="Runnable" testcasecount="3" result="Passed" start-time="2026-09-26 01:51:10Z" end-time="2026-09-26 01:51:10Z" duration="0.026552" total="3" passed="3" failed="0" inconclusive="0" skipped="0" asserts="0">
+      <properties>
+        <property name="_PID" value="1857" />
+        <property name="_APPDOMAIN" value="Unity Child Domain" />
+        <property name="platform" value="EditMode" />
+        <property name="EditorOnly" value="True" />
+      </properties>
+      <test-suite type="TestSuite" id="1007" name="Tagtag" fullname="Tagtag" runstate="Runnable" testcasecount="3" result="Passed" start-time="2026-09-26 01:51:10Z" end-time="2026-09-26 01:51:10Z" duration="0.026280" total="3" passed="3" failed="0" inconclusive="0" skipped="0" asserts="0">
+        <properties />
+        <test-suite type="TestSuite" id="1008" name="Tests" fullname="Tagtag.Tests" runstate="Runnable" testcasecount="3" result="Passed" start-time="2026-09-26 01:51:10Z" end-time="2026-09-26 01:51:10Z" duration="0.026084" total="3" passed="3" failed="0" inconclusive="0" skipped="0" asserts="0">
+          <properties />
+          <test-suite type="TestFixture" id="1001" name="LocalBlocksTests" fullname="Tagtag.Tests.LocalBlocksTests" classname="Tagtag.Tests.LocalBlocksTests" runstate="Runnable" testcasecount="1" result="Passed" start-time="2026-09-26 01:51:10Z" end-time="2026-09-26 01:51:10Z" duration="0.013848" total="1" passed="1" failed="0" inconclusive="0" skipped="0" asserts="0">
+            <properties />
+            <test-case id="1002" name="OfflineBlocksPersistOnlyForTheirAccount" fullname="Tagtag.Tests.LocalBlocksTests.OfflineBlocksPersistOnlyForTheirAccount" methodname="OfflineBlocksPersistOnlyForTheirAccount" classname="Tagtag.Tests.LocalBlocksTests" runstate="Runnable" seed="188005237" result="Passed" start-time="2026-09-26 01:51:10Z" end-time="2026-09-26 01:51:10Z" duration="0.008482" asserts="0">
+              <properties>
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+          </test-suite>
+          <test-suite type="TestFixture" id="1003" name="PendingPublicationTests" fullname="Tagtag.Tests.PendingPublicationTests" classname="Tagtag.Tests.PendingPublicationTests" runstate="Runnable" testcasecount="2" result="Passed" start-time="2026-09-26 01:51:10Z" end-time="2026-09-26 01:51:10Z" duration="0.011634" total="2" passed="2" failed="0" inconclusive="0" skipped="0" asserts="0">
+            <properties />
+            <test-case id="1005" name="DamagedLatestSaveRecoversBackupAndCancelRemovesBoth" fullname="Tagtag.Tests.PendingPublicationTests.DamagedLatestSaveRecoversBackupAndCancelRemovesBoth" methodname="DamagedLatestSaveRecoversBackupAndCancelRemovesBoth" classname="Tagtag.Tests.PendingPublicationTests" runstate="Runnable" seed="191832883" result="Passed" start-time="2026-09-26 01:51:10Z" end-time="2026-09-26 01:51:10Z" duration="0.008188" asserts="0">
+              <properties>
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1004" name="RestartRestoresSameOperationAndSeparatesAccounts" fullname="Tagtag.Tests.PendingPublicationTests.RestartRestoresSameOperationAndSeparatesAccounts" methodname="RestartRestoresSameOperationAndSeparatesAccounts" classname="Tagtag.Tests.PendingPublicationTests" runstate="Runnable" seed="1065422943" result="Passed" start-time="2026-09-26 01:51:10Z" end-time="2026-09-26 01:51:10Z" duration="0.000819" asserts="0">
+              <properties>
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+          </test-suite>
+        </test-suite>
+      </test-suite>
+    </test-suite>
+    <test-suite type="Assembly" id="1032" name="Tagtag.AR.Tests.dll" fullname="/private/tmp/tagtag-nfts/Library/ScriptAssemblies/Tagtag.AR.Tests.dll" runstate="Runnable" testcasecount="20" result="Passed" start-time="2026-09-26 01:51:10Z" end-time="2026-09-26 01:51:10Z" duration="0.035758" total="20" passed="20" failed="0" inconclusive="0" skipped="0" asserts="0">
+      <properties>
+        <property name="_PID" value="1857" />
+        <property name="_APPDOMAIN" value="Unity Child Domain" />
+        <property name="platform" value="EditMode" />
+        <property name="EditorOnly" value="True" />
+      </properties>
+      <test-suite type="TestSuite" id="1033" name="Tagtag" fullname="Tagtag" runstate="Runnable" testcasecount="20" result="Passed" start-time="2026-09-26 01:51:10Z" end-time="2026-09-26 01:51:10Z" duration="0.007641" total="20" passed="20" failed="0" inconclusive="0" skipped="0" asserts="0">
+        <properties />
+        <test-suite type="TestSuite" id="1034" name="AR" fullname="Tagtag.AR" runstate="Runnable" testcasecount="20" result="Passed" start-time="2026-09-26 01:51:10Z" end-time="2026-09-26 01:51:10Z" duration="0.007447" total="20" passed="20" failed="0" inconclusive="0" skipped="0" asserts="0">
+          <properties />
+          <test-suite type="TestSuite" id="1035" name="Tests" fullname="Tagtag.AR.Tests" runstate="Runnable" testcasecount="20" result="Passed" start-time="2026-09-26 01:51:10Z" end-time="2026-09-26 01:51:10Z" duration="0.007272" total="20" passed="20" failed="0" inconclusive="0" skipped="0" asserts="0">
+            <properties />
+            <test-suite type="TestFixture" id="1009" name="ArGatesTests" fullname="Tagtag.AR.Tests.ArGatesTests" classname="Tagtag.AR.Tests.ArGatesTests" runstate="Runnable" testcasecount="4" result="Passed" start-time="2026-09-26 01:51:10Z" end-time="2026-09-26 01:51:10Z" duration="0.002381" total="4" passed="4" failed="0" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <test-case id="1010" name="PublicationRequiresTrackedAnchorAndMappedSurface" fullname="Tagtag.AR.Tests.ArGatesTests.PublicationRequiresTrackedAnchorAndMappedSurface" methodname="PublicationRequiresTrackedAnchorAndMappedSurface" classname="Tagtag.AR.Tests.ArGatesTests" runstate="Runnable" seed="845075818" result="Passed" start-time="2026-09-26 01:51:10Z" end-time="2026-09-26 01:51:10Z" duration="0.000433" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1012" name="RecoveryNeedsSustainedMatchingFrames" fullname="Tagtag.AR.Tests.ArGatesTests.RecoveryNeedsSustainedMatchingFrames" methodname="RecoveryNeedsSustainedMatchingFrames" classname="Tagtag.AR.Tests.ArGatesTests" runstate="Runnable" seed="1589078425" result="Passed" start-time="2026-09-26 01:51:10Z" end-time="2026-09-26 01:51:10Z" duration="0.000133" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1011" name="TapRequiresRecoveredAnchorTrackingAndThreeMetres" fullname="Tagtag.AR.Tests.ArGatesTests.TapRequiresRecoveredAnchorTrackingAndThreeMetres" methodname="TapRequiresRecoveredAnchorTrackingAndThreeMetres" classname="Tagtag.AR.Tests.ArGatesTests" runstate="Runnable" seed="231105971" result="Passed" start-time="2026-09-26 01:51:10Z" end-time="2026-09-26 01:51:10Z" duration="0.000084" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1013" name="WorldMapEnvelopeRejectsTruncatedOrUnboundedPayloads" fullname="Tagtag.AR.Tests.ArGatesTests.WorldMapEnvelopeRejectsTruncatedOrUnboundedPayloads" methodname="WorldMapEnvelopeRejectsTruncatedOrUnboundedPayloads" classname="Tagtag.AR.Tests.ArGatesTests" runstate="Runnable" seed="1834317908" result="Passed" start-time="2026-09-26 01:51:10Z" end-time="2026-09-26 01:51:10Z" duration="0.001072" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+            </test-suite>
+            <test-suite type="TestFixture" id="1014" name="CameraPresentationTests" fullname="Tagtag.AR.Tests.CameraPresentationTests" classname="Tagtag.AR.Tests.CameraPresentationTests" runstate="Runnable" testcasecount="12" result="Passed" start-time="2026-09-26 01:51:10Z" end-time="2026-09-26 01:51:10Z" duration="0.002682" total="12" passed="12" failed="0" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <test-case id="1020" name="ExitPauseResumeAndRestartRequireFreshFrame" fullname="Tagtag.AR.Tests.CameraPresentationTests.ExitPauseResumeAndRestartRequireFreshFrame" methodname="ExitPauseResumeAndRestartRequireFreshFrame" classname="Tagtag.AR.Tests.CameraPresentationTests" runstate="Runnable" seed="1237782798" result="Passed" start-time="2026-09-26 01:51:10Z" end-time="2026-09-26 01:51:10Z" duration="0.000642" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1015" name="FirstFrameMustBeDisplayableBeforeCameraBecomesLive" fullname="Tagtag.AR.Tests.CameraPresentationTests.FirstFrameMustBeDisplayableBeforeCameraBecomesLive" methodname="FirstFrameMustBeDisplayableBeforeCameraBecomesLive" classname="Tagtag.AR.Tests.CameraPresentationTests" runstate="Runnable" seed="725420584" result="Passed" start-time="2026-09-26 01:51:10Z" end-time="2026-09-26 01:51:10Z" duration="0.000127" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1017" name="LostCameraFramesRestoreCoverAndNewFrameRecovers" fullname="Tagtag.AR.Tests.CameraPresentationTests.LostCameraFramesRestoreCoverAndNewFrameRecovers" methodname="LostCameraFramesRestoreCoverAndNewFrameRecovers" classname="Tagtag.AR.Tests.CameraPresentationTests" runstate="Runnable" seed="840726274" result="Passed" start-time="2026-09-26 01:51:10Z" end-time="2026-09-26 01:51:10Z" duration="0.000079" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1024" name="NativeAuthorizedCameraDoesNotBecomePermissionDeniedWhenUnityDisagrees" fullname="Tagtag.AR.Tests.CameraPresentationTests.NativeAuthorizedCameraDoesNotBecomePermissionDeniedWhenUnityDisagrees" methodname="NativeAuthorizedCameraDoesNotBecomePermissionDeniedWhenUnityDisagrees" classname="Tagtag.AR.Tests.CameraPresentationTests" runstate="Runnable" seed="277505438" result="Passed" start-time="2026-09-26 01:51:10Z" end-time="2026-09-26 01:51:10Z" duration="0.000101" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1025" name="OnlyNativeDenialOrRestrictionProducesPermissionDenied" fullname="Tagtag.AR.Tests.CameraPresentationTests.OnlyNativeDenialOrRestrictionProducesPermissionDenied" methodname="OnlyNativeDenialOrRestrictionProducesPermissionDenied" classname="Tagtag.AR.Tests.CameraPresentationTests" runstate="Runnable" seed="430337595" result="Passed" start-time="2026-09-26 01:51:10Z" end-time="2026-09-26 01:51:10Z" duration="0.000083" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1018" name="PermissionAndHardwareFailuresHaveDistinctStates" fullname="Tagtag.AR.Tests.CameraPresentationTests.PermissionAndHardwareFailuresHaveDistinctStates" methodname="PermissionAndHardwareFailuresHaveDistinctStates" classname="Tagtag.AR.Tests.CameraPresentationTests" runstate="Runnable" seed="1909809980" result="Passed" start-time="2026-09-26 01:51:10Z" end-time="2026-09-26 01:51:10Z" duration="0.000109" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1022" name="PermissionDialogFocusReturnWaitsForPauseReturn" fullname="Tagtag.AR.Tests.CameraPresentationTests.PermissionDialogFocusReturnWaitsForPauseReturn" methodname="PermissionDialogFocusReturnWaitsForPauseReturn" classname="Tagtag.AR.Tests.CameraPresentationTests" runstate="Runnable" seed="687884272" result="Passed" start-time="2026-09-26 01:51:10Z" end-time="2026-09-26 01:51:10Z" duration="0.000085" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1023" name="PermissionDialogPauseReturnWaitsForFocusReturn" fullname="Tagtag.AR.Tests.CameraPresentationTests.PermissionDialogPauseReturnWaitsForFocusReturn" methodname="PermissionDialogPauseReturnWaitsForFocusReturn" classname="Tagtag.AR.Tests.CameraPresentationTests" runstate="Runnable" seed="232787796" result="Passed" start-time="2026-09-26 01:51:10Z" end-time="2026-09-26 01:51:10Z" duration="0.000054" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1019" name="StartupTimeoutReportsFailureWithoutAFrame" fullname="Tagtag.AR.Tests.CameraPresentationTests.StartupTimeoutReportsFailureWithoutAFrame" methodname="StartupTimeoutReportsFailureWithoutAFrame" classname="Tagtag.AR.Tests.CameraPresentationTests" runstate="Runnable" seed="1033440752" result="Passed" start-time="2026-09-26 01:51:10Z" end-time="2026-09-26 01:51:10Z" duration="0.000057" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1016" name="TrackingLossKeepsFreshImageryVisible" fullname="Tagtag.AR.Tests.CameraPresentationTests.TrackingLossKeepsFreshImageryVisible" methodname="TrackingLossKeepsFreshImageryVisible" classname="Tagtag.AR.Tests.CameraPresentationTests" runstate="Runnable" seed="843531386" result="Passed" start-time="2026-09-26 01:51:10Z" end-time="2026-09-26 01:51:10Z" duration="0.000048" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1026" name="UnresolvedNativePermissionFailureIsNotReportedAsDenial" fullname="Tagtag.AR.Tests.CameraPresentationTests.UnresolvedNativePermissionFailureIsNotReportedAsDenial" methodname="UnresolvedNativePermissionFailureIsNotReportedAsDenial" classname="Tagtag.AR.Tests.CameraPresentationTests" runstate="Runnable" seed="90142589" result="Passed" start-time="2026-09-26 01:51:10Z" end-time="2026-09-26 01:51:10Z" duration="0.000069" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1021" name="WorldMapResetHidesPreviousFrameUntilNewImageryArrives" fullname="Tagtag.AR.Tests.CameraPresentationTests.WorldMapResetHidesPreviousFrameUntilNewImageryArrives" methodname="WorldMapResetHidesPreviousFrameUntilNewImageryArrives" classname="Tagtag.AR.Tests.CameraPresentationTests" runstate="Runnable" seed="1588723403" result="Passed" start-time="2026-09-26 01:51:10Z" end-time="2026-09-26 01:51:10Z" duration="0.000082" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+            </test-suite>
+            <test-suite type="TestFixture" id="1027" name="PlacementFlowTests" fullname="Tagtag.AR.Tests.PlacementFlowTests" classname="Tagtag.AR.Tests.PlacementFlowTests" runstate="Runnable" testcasecount="4" result="Passed" start-time="2026-09-26 01:51:10Z" end-time="2026-09-26 01:51:10Z" duration="0.001842" total="4" passed="4" failed="0" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <test-case id="1028" name="CameraActionsRequireAnUnblockedPointInsideTheCameraHitArea" fullname="Tagtag.AR.Tests.PlacementFlowTests.CameraActionsRequireAnUnblockedPointInsideTheCameraHitArea" methodname="CameraActionsRequireAnUnblockedPointInsideTheCameraHitArea" classname="Tagtag.AR.Tests.PlacementFlowTests" runstate="Runnable" seed="270627723" result="Passed" start-time="2026-09-26 01:51:10Z" end-time="2026-09-26 01:51:10Z" duration="0.000276" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1031" name="DragMovesAlongTheOriginalPlaneOnly" fullname="Tagtag.AR.Tests.PlacementFlowTests.DragMovesAlongTheOriginalPlaneOnly" methodname="DragMovesAlongTheOriginalPlaneOnly" classname="Tagtag.AR.Tests.PlacementFlowTests" runstate="Runnable" seed="2081816214" result="Passed" start-time="2026-09-26 01:51:10Z" end-time="2026-09-26 01:51:10Z" duration="0.000808" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1030" name="SurfaceOutlinesAppearOnlyWhileFindingAPlacement" fullname="Tagtag.AR.Tests.PlacementFlowTests.SurfaceOutlinesAppearOnlyWhileFindingAPlacement" methodname="SurfaceOutlinesAppearOnlyWhileFindingAPlacement" classname="Tagtag.AR.Tests.PlacementFlowTests" runstate="Runnable" seed="2126362274" result="Passed" start-time="2026-09-26 01:51:10Z" end-time="2026-09-26 01:51:10Z" duration="0.000116" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1029" name="UnchangedCameraBoundsDoNotRestartPlaneScanCadence" fullname="Tagtag.AR.Tests.PlacementFlowTests.UnchangedCameraBoundsDoNotRestartPlaneScanCadence" methodname="UnchangedCameraBoundsDoNotRestartPlaneScanCadence" classname="Tagtag.AR.Tests.PlacementFlowTests" runstate="Runnable" seed="856166496" result="Passed" start-time="2026-09-26 01:51:10Z" end-time="2026-09-26 01:51:10Z" duration="0.000090" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+            </test-suite>
+          </test-suite>
+        </test-suite>
+      </test-suite>
+    </test-suite>
+    <test-suite type="Assembly" id="1052" name="Tagtag.Blockchain.Tests.dll" fullname="/private/tmp/tagtag-nfts/Library/ScriptAssemblies/Tagtag.Blockchain.Tests.dll" runstate="Runnable" testcasecount="14" result="Passed" start-time="2026-09-26 01:51:10Z" end-time="2026-09-26 01:51:10Z" duration="0.028920" total="14" passed="14" failed="0" inconclusive="0" skipped="0" asserts="0">
+      <properties>
+        <property name="_PID" value="1857" />
+        <property name="_APPDOMAIN" value="Unity Child Domain" />
+        <property name="platform" value="EditMode" />
+        <property name="EditorOnly" value="True" />
+      </properties>
+      <test-suite type="TestSuite" id="1053" name="Tagtag" fullname="Tagtag" runstate="Runnable" testcasecount="14" result="Passed" start-time="2026-09-26 01:51:10Z" end-time="2026-09-26 01:51:10Z" duration="0.028735" total="14" passed="14" failed="0" inconclusive="0" skipped="0" asserts="0">
+        <properties />
+        <test-suite type="TestSuite" id="1054" name="Blockchain" fullname="Tagtag.Blockchain" runstate="Runnable" testcasecount="14" result="Passed" start-time="2026-09-26 01:51:10Z" end-time="2026-09-26 01:51:10Z" duration="0.028581" total="14" passed="14" failed="0" inconclusive="0" skipped="0" asserts="0">
+          <properties />
+          <test-suite type="TestSuite" id="1055" name="Tests" fullname="Tagtag.Blockchain.Tests" runstate="Runnable" testcasecount="14" result="Passed" start-time="2026-09-26 01:51:10Z" end-time="2026-09-26 01:51:10Z" duration="0.028419" total="14" passed="14" failed="0" inconclusive="0" skipped="0" asserts="0">
+            <properties />
+            <test-suite type="TestFixture" id="1036" name="ThirdwebEmbeddedWalletTests" fullname="Tagtag.Blockchain.Tests.ThirdwebEmbeddedWalletTests" classname="Tagtag.Blockchain.Tests.ThirdwebEmbeddedWalletTests" runstate="Runnable" testcasecount="6" result="Passed" start-time="2026-09-26 01:51:10Z" end-time="2026-09-26 01:51:10Z" duration="0.017773" total="6" passed="6" failed="0" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <test-case id="1038" name="ConnectRejectsMissingFirebaseTokenWithoutOpeningSession" fullname="Tagtag.Blockchain.Tests.ThirdwebEmbeddedWalletTests.ConnectRejectsMissingFirebaseTokenWithoutOpeningSession" methodname="ConnectRejectsMissingFirebaseTokenWithoutOpeningSession" classname="Tagtag.Blockchain.Tests.ThirdwebEmbeddedWalletTests" runstate="Runnable" seed="1599779766" result="Passed" start-time="2026-09-26 01:51:10Z" end-time="2026-09-26 01:51:10Z" duration="0.006516" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1037" name="ConstructorRejectsMissingClientId" fullname="Tagtag.Blockchain.Tests.ThirdwebEmbeddedWalletTests.ConstructorRejectsMissingClientId" methodname="ConstructorRejectsMissingClientId" classname="Tagtag.Blockchain.Tests.ThirdwebEmbeddedWalletTests" runstate="Runnable" seed="1641977977" result="Passed" start-time="2026-09-26 01:51:10Z" end-time="2026-09-26 01:51:10Z" duration="0.000402" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1040" name="DisconnectWithoutSessionIsIdempotent" fullname="Tagtag.Blockchain.Tests.ThirdwebEmbeddedWalletTests.DisconnectWithoutSessionIsIdempotent" methodname="DisconnectWithoutSessionIsIdempotent" classname="Tagtag.Blockchain.Tests.ThirdwebEmbeddedWalletTests" runstate="Runnable" seed="1341076304" result="Passed" start-time="2026-09-26 01:51:10Z" end-time="2026-09-26 01:51:10Z" duration="0.002156" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1042" name="SessionStorageRejectsCacheInsidePersistentData" fullname="Tagtag.Blockchain.Tests.ThirdwebEmbeddedWalletTests.SessionStorageRejectsCacheInsidePersistentData" methodname="SessionStorageRejectsCacheInsidePersistentData" classname="Tagtag.Blockchain.Tests.ThirdwebEmbeddedWalletTests" runstate="Runnable" seed="1370930399" result="Passed" start-time="2026-09-26 01:51:10Z" end-time="2026-09-26 01:51:10Z" duration="0.000476" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1041" name="SessionStorageRemovesLegacyAndAuthenticatedFiles" fullname="Tagtag.Blockchain.Tests.ThirdwebEmbeddedWalletTests.SessionStorageRemovesLegacyAndAuthenticatedFiles" methodname="SessionStorageRemovesLegacyAndAuthenticatedFiles" classname="Tagtag.Blockchain.Tests.ThirdwebEmbeddedWalletTests" runstate="Runnable" seed="460113055" result="Passed" start-time="2026-09-26 01:51:10Z" end-time="2026-09-26 01:51:10Z" duration="0.006615" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1039" name="SignMessageRequiresConnectedWallet" fullname="Tagtag.Blockchain.Tests.ThirdwebEmbeddedWalletTests.SignMessageRequiresConnectedWallet" methodname="SignMessageRequiresConnectedWallet" classname="Tagtag.Blockchain.Tests.ThirdwebEmbeddedWalletTests" runstate="Runnable" seed="1466765030" result="Passed" start-time="2026-09-26 01:51:10Z" end-time="2026-09-26 01:51:10Z" duration="0.000833" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+            </test-suite>
+            <test-suite type="TestFixture" id="1043" name="WalletTransferTests" fullname="Tagtag.Blockchain.Tests.WalletTransferTests" classname="Tagtag.Blockchain.Tests.WalletTransferTests" runstate="Runnable" testcasecount="8" result="Passed" start-time="2026-09-26 01:51:10Z" end-time="2026-09-26 01:51:10Z" duration="0.010374" total="8" passed="8" failed="0" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <test-case id="1050" name="FinalizedOwnerResponseDecodesToAddress" fullname="Tagtag.Blockchain.Tests.WalletTransferTests.FinalizedOwnerResponseDecodesToAddress" methodname="FinalizedOwnerResponseDecodesToAddress" classname="Tagtag.Blockchain.Tests.WalletTransferTests" runstate="Runnable" seed="916559842" result="Passed" start-time="2026-09-26 01:51:10Z" end-time="2026-09-26 01:51:10Z" duration="0.001410" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1047" name="GasPreflightRequiresSepoliaEth" fullname="Tagtag.Blockchain.Tests.WalletTransferTests.GasPreflightRequiresSepoliaEth" methodname="GasPreflightRequiresSepoliaEth" classname="Tagtag.Blockchain.Tests.WalletTransferTests" runstate="Runnable" seed="2013989932" result="Passed" start-time="2026-09-26 01:51:10Z" end-time="2026-09-26 01:51:10Z" duration="0.000575" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1051" name="InvalidRecipientAndHashFailBeforeNetwork" fullname="Tagtag.Blockchain.Tests.WalletTransferTests.InvalidRecipientAndHashFailBeforeNetwork" methodname="InvalidRecipientAndHashFailBeforeNetwork" classname="Tagtag.Blockchain.Tests.WalletTransferTests" runstate="Runnable" seed="2099286633" result="Passed" start-time="2026-09-26 01:51:10Z" end-time="2026-09-26 01:51:10Z" duration="0.003530" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1044" name="MixedCaseRecipientRequiresValidErc55Checksum" fullname="Tagtag.Blockchain.Tests.WalletTransferTests.MixedCaseRecipientRequiresValidErc55Checksum" methodname="MixedCaseRecipientRequiresValidErc55Checksum" classname="Tagtag.Blockchain.Tests.WalletTransferTests" runstate="Runnable" seed="1304650927" result="Passed" start-time="2026-09-26 01:51:10Z" end-time="2026-09-26 01:51:10Z" duration="0.001822" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1048" name="ReceiptIsConfirmedOnlyInCanonicalFinalizedBlock" fullname="Tagtag.Blockchain.Tests.WalletTransferTests.ReceiptIsConfirmedOnlyInCanonicalFinalizedBlock" methodname="ReceiptIsConfirmedOnlyInCanonicalFinalizedBlock" classname="Tagtag.Blockchain.Tests.WalletTransferTests" runstate="Runnable" seed="1089195570" result="Passed" start-time="2026-09-26 01:51:10Z" end-time="2026-09-26 01:51:10Z" duration="0.000177" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1045" name="RecipientMustBeDistinctNonzeroEthereumAddress" fullname="Tagtag.Blockchain.Tests.WalletTransferTests.RecipientMustBeDistinctNonzeroEthereumAddress" methodname="RecipientMustBeDistinctNonzeroEthereumAddress" classname="Tagtag.Blockchain.Tests.WalletTransferTests" runstate="Runnable" seed="464456718" result="Passed" start-time="2026-09-26 01:51:10Z" end-time="2026-09-26 01:51:10Z" duration="0.000176" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1046" name="TokenIdMustBeDecimalUint256" fullname="Tagtag.Blockchain.Tests.WalletTransferTests.TokenIdMustBeDecimalUint256" methodname="TokenIdMustBeDecimalUint256" classname="Tagtag.Blockchain.Tests.WalletTransferTests" runstate="Runnable" seed="1954419029" result="Passed" start-time="2026-09-26 01:51:10Z" end-time="2026-09-26 01:51:10Z" duration="0.001171" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1049" name="WrongChainFailsClosed" fullname="Tagtag.Blockchain.Tests.WalletTransferTests.WrongChainFailsClosed" methodname="WrongChainFailsClosed" classname="Tagtag.Blockchain.Tests.WalletTransferTests" runstate="Runnable" seed="575629349" result="Passed" start-time="2026-09-26 01:51:10Z" end-time="2026-09-26 01:51:10Z" duration="0.000605" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+            </test-suite>
+          </test-suite>
+        </test-suite>
+      </test-suite>
+    </test-suite>
+    <test-suite type="Assembly" id="1065" name="Tagtag.Core.Tests.dll" fullname="/private/tmp/tagtag-nfts/Library/ScriptAssemblies/Tagtag.Core.Tests.dll" runstate="Runnable" testcasecount="7" result="Passed" start-time="2026-09-26 01:51:10Z" end-time="2026-09-26 01:51:10Z" duration="0.004430" total="7" passed="7" failed="0" inconclusive="0" skipped="0" asserts="0">
+      <properties>
+        <property name="_PID" value="1857" />
+        <property name="_APPDOMAIN" value="Unity Child Domain" />
+        <property name="platform" value="EditMode" />
+        <property name="EditorOnly" value="True" />
+      </properties>
+      <test-suite type="TestSuite" id="1066" name="Tagtag" fullname="Tagtag" runstate="Runnable" testcasecount="7" result="Passed" start-time="2026-09-26 01:51:10Z" end-time="2026-09-26 01:51:10Z" duration="0.004128" total="7" passed="7" failed="0" inconclusive="0" skipped="0" asserts="0">
+        <properties />
+        <test-suite type="TestSuite" id="1067" name="Tests" fullname="Tagtag.Tests" runstate="Runnable" testcasecount="7" result="Passed" start-time="2026-09-26 01:51:10Z" end-time="2026-09-26 01:51:10Z" duration="0.003954" total="7" passed="7" failed="0" inconclusive="0" skipped="0" asserts="0">
+          <properties />
+          <test-suite type="TestFixture" id="1056" name="CollectionBookTests" fullname="Tagtag.Tests.CollectionBookTests" classname="Tagtag.Tests.CollectionBookTests" runstate="Runnable" testcasecount="7" result="Passed" start-time="2026-09-26 01:51:10Z" end-time="2026-09-26 01:51:10Z" duration="0.003758" total="7" passed="7" failed="0" inconclusive="0" skipped="0" asserts="0">
+            <properties />
+            <test-suite type="ParameterizedMethod" id="1061" name="BooksHaveTwentySpacesPerPage" fullname="Tagtag.Tests.CollectionBookTests.BooksHaveTwentySpacesPerPage" classname="Tagtag.Tests.CollectionBookTests" runstate="Runnable" testcasecount="4" result="Passed" start-time="2026-09-26 01:51:10Z" end-time="2026-09-26 01:51:10Z" duration="0.000686" total="4" passed="4" failed="0" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <test-case id="1057" name="BooksHaveTwentySpacesPerPage(0,1)" fullname="Tagtag.Tests.CollectionBookTests.BooksHaveTwentySpacesPerPage(0,1)" methodname="BooksHaveTwentySpacesPerPage" classname="Tagtag.Tests.CollectionBookTests" runstate="Runnable" seed="448689766" result="Passed" start-time="2026-09-26 01:51:10Z" end-time="2026-09-26 01:51:10Z" duration="0.000212" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1058" name="BooksHaveTwentySpacesPerPage(1,1)" fullname="Tagtag.Tests.CollectionBookTests.BooksHaveTwentySpacesPerPage(1,1)" methodname="BooksHaveTwentySpacesPerPage" classname="Tagtag.Tests.CollectionBookTests" runstate="Runnable" seed="365346440" result="Passed" start-time="2026-09-26 01:51:10Z" end-time="2026-09-26 01:51:10Z" duration="0.000031" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1059" name="BooksHaveTwentySpacesPerPage(20,1)" fullname="Tagtag.Tests.CollectionBookTests.BooksHaveTwentySpacesPerPage(20,1)" methodname="BooksHaveTwentySpacesPerPage" classname="Tagtag.Tests.CollectionBookTests" runstate="Runnable" seed="2042322903" result="Passed" start-time="2026-09-26 01:51:10Z" end-time="2026-09-26 01:51:10Z" duration="0.000028" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1060" name="BooksHaveTwentySpacesPerPage(21,2)" fullname="Tagtag.Tests.CollectionBookTests.BooksHaveTwentySpacesPerPage(21,2)" methodname="BooksHaveTwentySpacesPerPage" classname="Tagtag.Tests.CollectionBookTests" runstate="Runnable" seed="683738130" result="Passed" start-time="2026-09-26 01:51:10Z" end-time="2026-09-26 01:51:10Z" duration="0.000027" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+            </test-suite>
+            <test-case id="1063" name="ProximityCannotUnlockWithoutTrackedTapAndSession" fullname="Tagtag.Tests.CollectionBookTests.ProximityCannotUnlockWithoutTrackedTapAndSession" methodname="ProximityCannotUnlockWithoutTrackedTapAndSession" classname="Tagtag.Tests.CollectionBookTests" runstate="Runnable" seed="1462403615" result="Passed" start-time="2026-09-26 01:51:10Z" end-time="2026-09-26 01:51:10Z" duration="0.000163" asserts="0">
+              <properties>
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1064" name="StaleAndInaccurateLocationsAreRejected" fullname="Tagtag.Tests.CollectionBookTests.StaleAndInaccurateLocationsAreRejected" methodname="StaleAndInaccurateLocationsAreRejected" classname="Tagtag.Tests.CollectionBookTests" runstate="Runnable" seed="1391363486" result="Passed" start-time="2026-09-26 01:51:10Z" end-time="2026-09-26 01:51:10Z" duration="0.000162" asserts="0">
+              <properties>
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1062" name="SyncKeepsLatestRevisionAndCollectionOrder" fullname="Tagtag.Tests.CollectionBookTests.SyncKeepsLatestRevisionAndCollectionOrder" methodname="SyncKeepsLatestRevisionAndCollectionOrder" classname="Tagtag.Tests.CollectionBookTests" runstate="Runnable" seed="318710405" result="Passed" start-time="2026-09-26 01:51:10Z" end-time="2026-09-26 01:51:10Z" duration="0.002178" asserts="0">
+              <properties>
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+          </test-suite>
+        </test-suite>
+      </test-suite>
+    </test-suite>
+    <test-suite type="Assembly" id="1111" name="Tagtag.Services.Tests.dll" fullname="/private/tmp/tagtag-nfts/Library/ScriptAssemblies/Tagtag.Services.Tests.dll" runstate="Runnable" testcasecount="36" result="Passed" start-time="2026-09-26 01:51:10Z" end-time="2026-09-26 01:51:11Z" duration="0.211399" total="36" passed="36" failed="0" inconclusive="0" skipped="0" asserts="0">
+      <properties>
+        <property name="_PID" value="1857" />
+        <property name="_APPDOMAIN" value="Unity Child Domain" />
+        <property name="platform" value="EditMode" />
+        <property name="EditorOnly" value="True" />
+      </properties>
+      <test-suite type="TestSuite" id="1112" name="Tagtag" fullname="Tagtag" runstate="Runnable" testcasecount="36" result="Passed" start-time="2026-09-26 01:51:10Z" end-time="2026-09-26 01:51:11Z" duration="0.211173" total="36" passed="36" failed="0" inconclusive="0" skipped="0" asserts="0">
+        <properties />
+        <test-suite type="TestSuite" id="1113" name="Services" fullname="Tagtag.Services" runstate="Runnable" testcasecount="36" result="Passed" start-time="2026-09-26 01:51:10Z" end-time="2026-09-26 01:51:11Z" duration="0.211003" total="36" passed="36" failed="0" inconclusive="0" skipped="0" asserts="0">
+          <properties />
+          <test-suite type="TestSuite" id="1114" name="Tests" fullname="Tagtag.Services.Tests" runstate="Runnable" testcasecount="36" result="Passed" start-time="2026-09-26 01:51:10Z" end-time="2026-09-26 01:51:11Z" duration="0.210830" total="36" passed="36" failed="0" inconclusive="0" skipped="0" asserts="0">
+            <properties />
+            <test-suite type="TestFixture" id="1068" name="LocalCollectionTests" fullname="Tagtag.Services.Tests.LocalCollectionTests" classname="Tagtag.Services.Tests.LocalCollectionTests" runstate="Runnable" testcasecount="2" result="Passed" start-time="2026-09-26 01:51:10Z" end-time="2026-09-26 01:51:10Z" duration="0.004074" total="2" passed="2" failed="0" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <test-case id="1070" name="InterruptedFirstWriteCanRecoverTemporaryCopyAndRemoveCleansAllCopies" fullname="Tagtag.Services.Tests.LocalCollectionTests.InterruptedFirstWriteCanRecoverTemporaryCopyAndRemoveCleansAllCopies" methodname="InterruptedFirstWriteCanRecoverTemporaryCopyAndRemoveCleansAllCopies" classname="Tagtag.Services.Tests.LocalCollectionTests" runstate="Runnable" seed="1341429492" result="Passed" start-time="2026-09-26 01:51:10Z" end-time="2026-09-26 01:51:10Z" duration="0.001762" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1069" name="ReplacingCollectionKeepsLastCompleteCopyForCorruptionFallback" fullname="Tagtag.Services.Tests.LocalCollectionTests.ReplacingCollectionKeepsLastCompleteCopyForCorruptionFallback" methodname="ReplacingCollectionKeepsLastCompleteCopyForCorruptionFallback" classname="Tagtag.Services.Tests.LocalCollectionTests" runstate="Runnable" seed="2005537683" result="Passed" start-time="2026-09-26 01:51:10Z" end-time="2026-09-26 01:51:10Z" duration="0.001849" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+            </test-suite>
+            <test-suite type="TestFixture" id="1071" name="NearbyNavigationTests" fullname="Tagtag.Services.Tests.NearbyNavigationTests" classname="Tagtag.Services.Tests.NearbyNavigationTests" runstate="Runnable" testcasecount="7" result="Passed" start-time="2026-09-26 01:51:10Z" end-time="2026-09-26 01:51:10Z" duration="0.159739" total="7" passed="7" failed="0" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <test-case id="1073" name="LateLocationFailureCannotReplaceAnotherScreensStatus" fullname="Tagtag.Services.Tests.NearbyNavigationTests.LateLocationFailureCannotReplaceAnotherScreensStatus" methodname="LateLocationFailureCannotReplaceAnotherScreensStatus" classname="Tagtag.Services.Tests.NearbyNavigationTests" runstate="Runnable" seed="1024581862" result="Passed" start-time="2026-09-26 01:51:10Z" end-time="2026-09-26 01:51:10Z" duration="0.052354" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1074" name="LeavingDuringRequestDiscardsLateNearbyResults" fullname="Tagtag.Services.Tests.NearbyNavigationTests.LeavingDuringRequestDiscardsLateNearbyResults" methodname="LeavingDuringRequestDiscardsLateNearbyResults" classname="Tagtag.Services.Tests.NearbyNavigationTests" runstate="Runnable" seed="1702274555" result="Passed" start-time="2026-09-26 01:51:10Z" end-time="2026-09-26 01:51:10Z" duration="0.049699" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1078" name="NearbySessionInvalidationUpdatesIdentityEvenAfterNavigation" fullname="Tagtag.Services.Tests.NearbyNavigationTests.NearbySessionInvalidationUpdatesIdentityEvenAfterNavigation" methodname="NearbySessionInvalidationUpdatesIdentityEvenAfterNavigation" classname="Tagtag.Services.Tests.NearbyNavigationTests" runstate="Runnable" seed="1084791902" result="Passed" start-time="2026-09-26 01:51:10Z" end-time="2026-09-26 01:51:10Z" duration="0.049548" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1077" name="ResumeSynchronizationRestartsInterruptedNearbyLookup" fullname="Tagtag.Services.Tests.NearbyNavigationTests.ResumeSynchronizationRestartsInterruptedNearbyLookup" methodname="ResumeSynchronizationRestartsInterruptedNearbyLookup" classname="Tagtag.Services.Tests.NearbyNavigationTests" runstate="Runnable" seed="672821280" result="Passed" start-time="2026-09-26 01:51:10Z" end-time="2026-09-26 01:51:10Z" duration="0.003076" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1075" name="ReturningFromAccountRestartsInterruptedNearbyLookup" fullname="Tagtag.Services.Tests.NearbyNavigationTests.ReturningFromAccountRestartsInterruptedNearbyLookup" methodname="ReturningFromAccountRestartsInterruptedNearbyLookup" classname="Tagtag.Services.Tests.NearbyNavigationTests" runstate="Runnable" seed="1060755391" result="Passed" start-time="2026-09-26 01:51:10Z" end-time="2026-09-26 01:51:10Z" duration="0.000214" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1076" name="ReturningToExplorePreservesForegroundFailureWhileRestartingNearby" fullname="Tagtag.Services.Tests.NearbyNavigationTests.ReturningToExplorePreservesForegroundFailureWhileRestartingNearby" methodname="ReturningToExplorePreservesForegroundFailureWhileRestartingNearby" classname="Tagtag.Services.Tests.NearbyNavigationTests" runstate="Runnable" seed="182597064" result="Passed" start-time="2026-09-26 01:51:10Z" end-time="2026-09-26 01:51:10Z" duration="0.000138" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1072" name="WaitingForLocationDoesNotBlockLeavingExplore" fullname="Tagtag.Services.Tests.NearbyNavigationTests.WaitingForLocationDoesNotBlockLeavingExplore" methodname="WaitingForLocationDoesNotBlockLeavingExplore" classname="Tagtag.Services.Tests.NearbyNavigationTests" runstate="Runnable" seed="322949415" result="Passed" start-time="2026-09-26 01:51:10Z" end-time="2026-09-26 01:51:10Z" duration="0.000168" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+            </test-suite>
+            <test-suite type="TestFixture" id="1079" name="NftTransferTests" fullname="Tagtag.Services.Tests.NftTransferTests" classname="Tagtag.Services.Tests.NftTransferTests" runstate="Runnable" testcasecount="6" result="Passed" start-time="2026-09-26 01:51:10Z" end-time="2026-09-26 01:51:10Z" duration="0.009031" total="6" passed="6" failed="0" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <test-case id="1084" name="FailedIntentPersistenceDoesNotBlockALaterSafeRetry" fullname="Tagtag.Services.Tests.NftTransferTests.FailedIntentPersistenceDoesNotBlockALaterSafeRetry" methodname="FailedIntentPersistenceDoesNotBlockALaterSafeRetry" classname="Tagtag.Services.Tests.NftTransferTests" runstate="Runnable" seed="1373052176" result="Passed" start-time="2026-09-26 01:51:10Z" end-time="2026-09-26 01:51:10Z" duration="0.003486" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1082" name="FinalizedReceiptMarksTransferConfirmed" fullname="Tagtag.Services.Tests.NftTransferTests.FinalizedReceiptMarksTransferConfirmed" methodname="FinalizedReceiptMarksTransferConfirmed" classname="Tagtag.Services.Tests.NftTransferTests" runstate="Runnable" seed="252232353" result="Passed" start-time="2026-09-26 01:51:10Z" end-time="2026-09-26 01:51:10Z" duration="0.000906" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1083" name="InvalidOrSelfRecipientsAreRejected" fullname="Tagtag.Services.Tests.NftTransferTests.InvalidOrSelfRecipientsAreRejected" methodname="InvalidOrSelfRecipientsAreRejected" classname="Tagtag.Services.Tests.NftTransferTests" runstate="Runnable" seed="1777567160" result="Passed" start-time="2026-09-26 01:51:10Z" end-time="2026-09-26 01:51:10Z" duration="0.000123" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1085" name="RestartRetainsUncertainIntentWithoutLeakingItToAnotherAccount" fullname="Tagtag.Services.Tests.NftTransferTests.RestartRetainsUncertainIntentWithoutLeakingItToAnotherAccount" methodname="RestartRetainsUncertainIntentWithoutLeakingItToAnotherAccount" classname="Tagtag.Services.Tests.NftTransferTests" runstate="Runnable" seed="349428251" result="Passed" start-time="2026-09-26 01:51:10Z" end-time="2026-09-26 01:51:10Z" duration="0.002321" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1080" name="TransferIntentIsSavedBeforeBroadcastAndPendingHashIsRetained" fullname="Tagtag.Services.Tests.NftTransferTests.TransferIntentIsSavedBeforeBroadcastAndPendingHashIsRetained" methodname="TransferIntentIsSavedBeforeBroadcastAndPendingHashIsRetained" classname="Tagtag.Services.Tests.NftTransferTests" runstate="Runnable" seed="1835249756" result="Passed" start-time="2026-09-26 01:51:10Z" end-time="2026-09-26 01:51:10Z" duration="0.001119" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1081" name="UncertainSubmissionIsNeverAutomaticallySentAgain" fullname="Tagtag.Services.Tests.NftTransferTests.UncertainSubmissionIsNeverAutomaticallySentAgain" methodname="UncertainSubmissionIsNeverAutomaticallySentAgain" classname="Tagtag.Services.Tests.NftTransferTests" runstate="Runnable" seed="1215499850" result="Passed" start-time="2026-09-26 01:51:10Z" end-time="2026-09-26 01:51:10Z" duration="0.000375" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+            </test-suite>
+            <test-suite type="TestFixture" id="1086" name="ServiceBoundaryTests" fullname="Tagtag.Services.Tests.ServiceBoundaryTests" classname="Tagtag.Services.Tests.ServiceBoundaryTests" runstate="Runnable" testcasecount="16" result="Passed" start-time="2026-09-26 01:51:10Z" end-time="2026-09-26 01:51:10Z" duration="0.005513" total="16" passed="16" failed="0" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <test-case id="1101" name="NeedConfirmationGivesExistingMethodGuidanceWithoutCreatingSession" fullname="Tagtag.Services.Tests.ServiceBoundaryTests.NeedConfirmationGivesExistingMethodGuidanceWithoutCreatingSession" methodname="NeedConfirmationGivesExistingMethodGuidanceWithoutCreatingSession" classname="Tagtag.Services.Tests.ServiceBoundaryTests" runstate="Runnable" seed="1365470223" result="Passed" start-time="2026-09-26 01:51:10Z" end-time="2026-09-26 01:51:10Z" duration="0.000313" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1100" name="PrepareAllowsIdempotentRetryWithoutUpload" fullname="Tagtag.Services.Tests.ServiceBoundaryTests.PrepareAllowsIdempotentRetryWithoutUpload" methodname="PrepareAllowsIdempotentRetryWithoutUpload" classname="Tagtag.Services.Tests.ServiceBoundaryTests" runstate="Runnable" seed="930516924" result="Passed" start-time="2026-09-26 01:51:10Z" end-time="2026-09-26 01:51:10Z" duration="0.000559" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1093" name="PrepareReadsAllSignedUploadHeaders" fullname="Tagtag.Services.Tests.ServiceBoundaryTests.PrepareReadsAllSignedUploadHeaders" methodname="PrepareReadsAllSignedUploadHeaders" classname="Tagtag.Services.Tests.ServiceBoundaryTests" runstate="Runnable" seed="126893184" result="Passed" start-time="2026-09-26 01:51:10Z" end-time="2026-09-26 01:51:10Z" duration="0.000185" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-suite type="ParameterizedMethod" id="1099" name="PrepareRejectsMissingOrUnsafeSignedHeaders" fullname="Tagtag.Services.Tests.ServiceBoundaryTests.PrepareRejectsMissingOrUnsafeSignedHeaders" classname="Tagtag.Services.Tests.ServiceBoundaryTests" runstate="Runnable" testcasecount="5" result="Passed" start-time="2026-09-26 01:51:10Z" end-time="2026-09-26 01:51:10Z" duration="0.000598" total="5" passed="5" failed="0" inconclusive="0" skipped="0" asserts="0">
+                <properties />
+                <test-case id="1094" name="PrepareRejectsMissingOrUnsafeSignedHeaders(&quot;{\&quot;id\&quot;:\&quot;one\&quot;,\&quot;uploadUrl\&quot;:\&quot;https://example.com\&quot;}&quot;)" fullname="Tagtag.Services.Tests.ServiceBoundaryTests.PrepareRejectsMissingOrUnsafeSignedHeaders(&quot;{\&quot;id\&quot;:\&quot;one\&quot;,\&quot;uploadUrl\&quot;:\&quot;https://example.com\&quot;}&quot;)" methodname="PrepareRejectsMissingOrUnsafeSignedHeaders" classname="Tagtag.Services.Tests.ServiceBoundaryTests" runstate="Runnable" seed="325214412" result="Passed" start-time="2026-09-26 01:51:10Z" end-time="2026-09-26 01:51:10Z" duration="0.000127" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="1095" name="PrepareRejectsMissingOrUnsafeSignedHeaders(&quot;{\&quot;id\&quot;:\&quot;one\&quot;,\&quot;uploadUrl\&quot;:\&quot;https://example.com\&quot;,\&quot;uploadHeaders\&quot;:{}}&quot;)" fullname="Tagtag.Services.Tests.ServiceBoundaryTests.PrepareRejectsMissingOrUnsafeSignedHeaders(&quot;{\&quot;id\&quot;:\&quot;one\&quot;,\&quot;uploadUrl\&quot;:\&quot;https://example.com\&quot;,\&quot;uploadHeaders\&quot;:{}}&quot;)" methodname="PrepareRejectsMissingOrUnsafeSignedHeaders" classname="Tagtag.Services.Tests.ServiceBoundaryTests" runstate="Runnable" seed="306917911" result="Passed" start-time="2026-09-26 01:51:10Z" end-time="2026-09-26 01:51:10Z" duration="0.000041" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="1096" name="PrepareRejectsMissingOrUnsafeSignedHeaders(&quot;{\&quot;id\&quot;:\&quot;one\&quot;,\&quot;uploadUrl\&quot;:\&quot;https://example.com\&quot;,\&quot;uploadHeaders\&quot;:{\&quot;authorization\&quot;:\&quot;Bearer token\&quot;}}&quot;)" fullname="Tagtag.Services.Tests.ServiceBoundaryTests.PrepareRejectsMissingOrUnsafeSignedHeaders(&quot;{\&quot;id\&quot;:\&quot;one\&quot;,\&quot;uploadUrl\&quot;:\&quot;https://example.com\&quot;,\&quot;uploadHeaders\&quot;:{\&quot;authorization\&quot;:\&quot;Bearer token\&quot;}}&quot;)" methodname="PrepareRejectsMissingOrUnsafeSignedHeaders" classname="Tagtag.Services.Tests.ServiceBoundaryTests" runstate="Runnable" seed="1811020608" result="Passed" start-time="2026-09-26 01:51:10Z" end-time="2026-09-26 01:51:10Z" duration="0.000042" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="1097" name="PrepareRejectsMissingOrUnsafeSignedHeaders(&quot;{\&quot;id\&quot;:\&quot;one\&quot;,\&quot;uploadUrl\&quot;:\&quot;https://example.com\&quot;,\&quot;uploadHeaders\&quot;:{\&quot;content-type\&quot;:\&quot;safe\\r\\nInjected: true\&quot;}}&quot;)" fullname="Tagtag.Services.Tests.ServiceBoundaryTests.PrepareRejectsMissingOrUnsafeSignedHeaders(&quot;{\&quot;id\&quot;:\&quot;one\&quot;,\&quot;uploadUrl\&quot;:\&quot;https://example.com\&quot;,\&quot;uploadHeaders\&quot;:{\&quot;content-type\&quot;:\&quot;safe\\r\\nInjected: true\&quot;}}&quot;)" methodname="PrepareRejectsMissingOrUnsafeSignedHeaders" classname="Tagtag.Services.Tests.ServiceBoundaryTests" runstate="Runnable" seed="1637661140" result="Passed" start-time="2026-09-26 01:51:10Z" end-time="2026-09-26 01:51:10Z" duration="0.000041" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="1098" name="PrepareRejectsMissingOrUnsafeSignedHeaders(&quot;{\&quot;id\&quot;:\&quot;one\&quot;,\&quot;uploadUrl\&quot;:\&quot;https://example.com\&quot;,\&quot;uploadHeaders\&quot;:{\&quot;content-type\&quot;:\&quot;first\&quot;,\&quot;Content-Type\&quot;:\&quot;second\&quot;}}&quot;)" fullname="Tagtag.Services.Tests.ServiceBoundaryTests.PrepareRejectsMissingOrUnsafeSignedHeaders(&quot;{\&quot;id\&quot;:\&quot;one\&quot;,\&quot;uploadUrl\&quot;:\&quot;https://example.com\&quot;,\&quot;uploadHeaders\&quot;:{\&quot;content-type\&quot;:\&quot;first\&quot;,\&quot;Content-Type\&quot;:\&quot;second\&quot;}}&quot;)" methodname="PrepareRejectsMissingOrUnsafeSignedHeaders" classname="Tagtag.Services.Tests.ServiceBoundaryTests" runstate="Runnable" seed="1695299082" result="Passed" start-time="2026-09-26 01:51:10Z" end-time="2026-09-26 01:51:10Z" duration="0.000043" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+              </test-suite>
+              <test-case id="1103" name="RefreshRejectsChangedAccountAndDoesNotMutateOriginal" fullname="Tagtag.Services.Tests.ServiceBoundaryTests.RefreshRejectsChangedAccountAndDoesNotMutateOriginal" methodname="RefreshRejectsChangedAccountAndDoesNotMutateOriginal" classname="Tagtag.Services.Tests.ServiceBoundaryTests" runstate="Runnable" seed="1945470565" result="Passed" start-time="2026-09-26 01:51:10Z" end-time="2026-09-26 01:51:10Z" duration="0.000155" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1104" name="RefreshReplacesValidatedSession" fullname="Tagtag.Services.Tests.ServiceBoundaryTests.RefreshReplacesValidatedSession" methodname="RefreshReplacesValidatedSession" classname="Tagtag.Services.Tests.ServiceBoundaryTests" runstate="Runnable" seed="121294696" result="Passed" start-time="2026-09-26 01:51:10Z" end-time="2026-09-26 01:51:10Z" duration="0.000818" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-suite type="ParameterizedMethod" id="1092" name="SecureUrlsRequireHttpsWithoutEmbeddedCredentials" fullname="Tagtag.Services.Tests.ServiceBoundaryTests.SecureUrlsRequireHttpsWithoutEmbeddedCredentials" classname="Tagtag.Services.Tests.ServiceBoundaryTests" runstate="Runnable" testcasecount="5" result="Passed" start-time="2026-09-26 01:51:10Z" end-time="2026-09-26 01:51:10Z" duration="0.001938" total="5" passed="5" failed="0" inconclusive="0" skipped="0" asserts="0">
+                <properties />
+                <test-case id="1087" name="SecureUrlsRequireHttpsWithoutEmbeddedCredentials(&quot;http://example.com/api&quot;,False)" fullname="Tagtag.Services.Tests.ServiceBoundaryTests.SecureUrlsRequireHttpsWithoutEmbeddedCredentials(&quot;http://example.com/api&quot;,False)" methodname="SecureUrlsRequireHttpsWithoutEmbeddedCredentials" classname="Tagtag.Services.Tests.ServiceBoundaryTests" runstate="Runnable" seed="1808590854" result="Passed" start-time="2026-09-26 01:51:10Z" end-time="2026-09-26 01:51:10Z" duration="0.000133" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="1088" name="SecureUrlsRequireHttpsWithoutEmbeddedCredentials(&quot;https://example.com/api&quot;,True)" fullname="Tagtag.Services.Tests.ServiceBoundaryTests.SecureUrlsRequireHttpsWithoutEmbeddedCredentials(&quot;https://example.com/api&quot;,True)" methodname="SecureUrlsRequireHttpsWithoutEmbeddedCredentials" classname="Tagtag.Services.Tests.ServiceBoundaryTests" runstate="Runnable" seed="232029747" result="Passed" start-time="2026-09-26 01:51:10Z" end-time="2026-09-26 01:51:10Z" duration="0.001402" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="1089" name="SecureUrlsRequireHttpsWithoutEmbeddedCredentials(&quot;https://example.com/upload?signature=abc&quot;,True)" fullname="Tagtag.Services.Tests.ServiceBoundaryTests.SecureUrlsRequireHttpsWithoutEmbeddedCredentials(&quot;https://example.com/upload?signature=abc&quot;,True)" methodname="SecureUrlsRequireHttpsWithoutEmbeddedCredentials" classname="Tagtag.Services.Tests.ServiceBoundaryTests" runstate="Runnable" seed="2092692398" result="Passed" start-time="2026-09-26 01:51:10Z" end-time="2026-09-26 01:51:10Z" duration="0.000040" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="1090" name="SecureUrlsRequireHttpsWithoutEmbeddedCredentials(&quot;https://user:secret@example.com/api&quot;,False)" fullname="Tagtag.Services.Tests.ServiceBoundaryTests.SecureUrlsRequireHttpsWithoutEmbeddedCredentials(&quot;https://user:secret@example.com/api&quot;,False)" methodname="SecureUrlsRequireHttpsWithoutEmbeddedCredentials" classname="Tagtag.Services.Tests.ServiceBoundaryTests" runstate="Runnable" seed="532508214" result="Passed" start-time="2026-09-26 01:51:10Z" end-time="2026-09-26 01:51:10Z" duration="0.000041" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="1091" name="SecureUrlsRequireHttpsWithoutEmbeddedCredentials(&quot;https://example.com/api#fragment&quot;,False)" fullname="Tagtag.Services.Tests.ServiceBoundaryTests.SecureUrlsRequireHttpsWithoutEmbeddedCredentials(&quot;https://example.com/api#fragment&quot;,False)" methodname="SecureUrlsRequireHttpsWithoutEmbeddedCredentials" classname="Tagtag.Services.Tests.ServiceBoundaryTests" runstate="Runnable" seed="1683425213" result="Passed" start-time="2026-09-26 01:51:10Z" end-time="2026-09-26 01:51:10Z" duration="0.000035" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+              </test-suite>
+              <test-case id="1102" name="SignInRejectsIncompleteResponse" fullname="Tagtag.Services.Tests.ServiceBoundaryTests.SignInRejectsIncompleteResponse" methodname="SignInRejectsIncompleteResponse" classname="Tagtag.Services.Tests.ServiceBoundaryTests" runstate="Runnable" seed="667169754" result="Passed" start-time="2026-09-26 01:51:10Z" end-time="2026-09-26 01:51:10Z" duration="0.000266" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+            </test-suite>
+            <test-suite type="TestFixture" id="1105" name="WalletBindingTests" fullname="Tagtag.Services.Tests.WalletBindingTests" classname="Tagtag.Services.Tests.WalletBindingTests" runstate="Runnable" testcasecount="5" result="Passed" start-time="2026-09-26 01:51:10Z" end-time="2026-09-26 01:51:11Z" duration="0.032032" total="5" passed="5" failed="0" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <test-case id="1106" name="BindsAnOwnedWalletWithoutPuttingItInTheGameplayBusyState" fullname="Tagtag.Services.Tests.WalletBindingTests.BindsAnOwnedWalletWithoutPuttingItInTheGameplayBusyState" methodname="BindsAnOwnedWalletWithoutPuttingItInTheGameplayBusyState" classname="Tagtag.Services.Tests.WalletBindingTests" runstate="Runnable" seed="1302152904" result="Passed" start-time="2026-09-26 01:51:10Z" end-time="2026-09-26 01:51:10Z" duration="0.001626" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1109" name="BoundWalletMismatchNeverOverwritesTheExistingRecipient" fullname="Tagtag.Services.Tests.WalletBindingTests.BoundWalletMismatchNeverOverwritesTheExistingRecipient" methodname="BoundWalletMismatchNeverOverwritesTheExistingRecipient" classname="Tagtag.Services.Tests.WalletBindingTests" runstate="Runnable" seed="882761148" result="Passed" start-time="2026-09-26 01:51:10Z" end-time="2026-09-26 01:51:10Z" duration="0.000364" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1110" name="DisabledServerDoesNotProvisionAWallet" fullname="Tagtag.Services.Tests.WalletBindingTests.DisabledServerDoesNotProvisionAWallet" methodname="DisabledServerDoesNotProvisionAWallet" classname="Tagtag.Services.Tests.WalletBindingTests" runstate="Runnable" seed="1254946736" result="Passed" start-time="2026-09-26 01:51:10Z" end-time="2026-09-26 01:51:10Z" duration="0.000309" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1108" name="ProviderFailureBecomesRetryableWalletStatus" fullname="Tagtag.Services.Tests.WalletBindingTests.ProviderFailureBecomesRetryableWalletStatus" methodname="ProviderFailureBecomesRetryableWalletStatus" classname="Tagtag.Services.Tests.WalletBindingTests" runstate="Runnable" seed="1399827647" result="Passed" start-time="2026-09-26 01:51:10Z" end-time="2026-09-26 01:51:10Z" duration="0.000332" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1107" name="SigningOutDuringWalletCreationDiscardsTheOldAccountAndDisconnects" fullname="Tagtag.Services.Tests.WalletBindingTests.SigningOutDuringWalletCreationDiscardsTheOldAccountAndDisconnects" methodname="SigningOutDuringWalletCreationDiscardsTheOldAccountAndDisconnects" classname="Tagtag.Services.Tests.WalletBindingTests" runstate="Runnable" seed="550877359" result="Passed" start-time="2026-09-26 01:51:10Z" end-time="2026-09-26 01:51:11Z" duration="0.028887" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+            </test-suite>
+          </test-suite>
+        </test-suite>
+      </test-suite>
+    </test-suite>
+    <test-suite type="Assembly" id="1166" name="Tagtag.UI.Tests.dll" fullname="/private/tmp/tagtag-nfts/Library/ScriptAssemblies/Tagtag.UI.Tests.dll" runstate="Runnable" testcasecount="44" result="Passed" start-time="2026-09-26 01:51:11Z" end-time="2026-09-26 01:51:11Z" duration="0.047691" total="44" passed="44" failed="0" inconclusive="0" skipped="0" asserts="0">
+      <properties>
+        <property name="_PID" value="1857" />
+        <property name="_APPDOMAIN" value="Unity Child Domain" />
+        <property name="platform" value="EditMode" />
+        <property name="EditorOnly" value="True" />
+      </properties>
+      <test-suite type="TestSuite" id="1167" name="Tagtag" fullname="Tagtag" runstate="Runnable" testcasecount="44" result="Passed" start-time="2026-09-26 01:51:11Z" end-time="2026-09-26 01:51:11Z" duration="0.047643" total="44" passed="44" failed="0" inconclusive="0" skipped="0" asserts="0">
+        <properties />
+        <test-suite type="TestSuite" id="1168" name="UI" fullname="Tagtag.UI" runstate="Runnable" testcasecount="44" result="Passed" start-time="2026-09-26 01:51:11Z" end-time="2026-09-26 01:51:11Z" duration="0.047608" total="44" passed="44" failed="0" inconclusive="0" skipped="0" asserts="0">
+          <properties />
+          <test-suite type="TestSuite" id="1169" name="Tests" fullname="Tagtag.UI.Tests" runstate="Runnable" testcasecount="44" result="Passed" start-time="2026-09-26 01:51:11Z" end-time="2026-09-26 01:51:11Z" duration="0.047549" total="44" passed="44" failed="0" inconclusive="0" skipped="0" asserts="0">
+            <properties />
+            <test-suite type="TestFixture" id="1115" name="BookPresentationTests" fullname="Tagtag.UI.Tests.BookPresentationTests" classname="Tagtag.UI.Tests.BookPresentationTests" runstate="Runnable" testcasecount="9" result="Passed" start-time="2026-09-26 01:51:11Z" end-time="2026-09-26 01:51:11Z" duration="0.002913" total="9" passed="9" failed="0" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <test-case id="1125" name="CollectedDetailRefreshesWhenSyncRevokesOrReplacesTheSameSticker" fullname="Tagtag.UI.Tests.BookPresentationTests.CollectedDetailRefreshesWhenSyncRevokesOrReplacesTheSameSticker" methodname="CollectedDetailRefreshesWhenSyncRevokesOrReplacesTheSameSticker" classname="Tagtag.UI.Tests.BookPresentationTests" runstate="Runnable" seed="1424477277" result="Passed" start-time="2026-09-26 01:51:11Z" end-time="2026-09-26 01:51:11Z" duration="0.000510" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1122" name="CollectionOrderDeduplicatesByRevisionAndKeepsCollectionSequence" fullname="Tagtag.UI.Tests.BookPresentationTests.CollectionOrderDeduplicatesByRevisionAndKeepsCollectionSequence" methodname="CollectionOrderDeduplicatesByRevisionAndKeepsCollectionSequence" classname="Tagtag.UI.Tests.BookPresentationTests" runstate="Runnable" seed="46065403" result="Passed" start-time="2026-09-26 01:51:11Z" end-time="2026-09-26 01:51:11Z" duration="0.000901" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1121" name="HorizontalSwipeChangesPageAndDoesNotCountAsTap" fullname="Tagtag.UI.Tests.BookPresentationTests.HorizontalSwipeChangesPageAndDoesNotCountAsTap" methodname="HorizontalSwipeChangesPageAndDoesNotCountAsTap" classname="Tagtag.UI.Tests.BookPresentationTests" runstate="Runnable" seed="48166113" result="Passed" start-time="2026-09-26 01:51:11Z" end-time="2026-09-26 01:51:11Z" duration="0.000207" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1123" name="MapStaysHiddenUnderAccountAndDetailSheets" fullname="Tagtag.UI.Tests.BookPresentationTests.MapStaysHiddenUnderAccountAndDetailSheets" methodname="MapStaysHiddenUnderAccountAndDetailSheets" classname="Tagtag.UI.Tests.BookPresentationTests" runstate="Runnable" seed="1289982100" result="Passed" start-time="2026-09-26 01:51:11Z" end-time="2026-09-26 01:51:11Z" duration="0.000103" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1124" name="OpeningASheetHidesAMountedNativeMapBeforeItsOverlayAppears" fullname="Tagtag.UI.Tests.BookPresentationTests.OpeningASheetHidesAMountedNativeMapBeforeItsOverlayAppears" methodname="OpeningASheetHidesAMountedNativeMapBeforeItsOverlayAppears" classname="Tagtag.UI.Tests.BookPresentationTests" runstate="Runnable" seed="1274594412" result="Passed" start-time="2026-09-26 01:51:11Z" end-time="2026-09-26 01:51:11Z" duration="0.000101" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-suite type="ParameterizedMethod" id="1120" name="PageCountKeepsExactlyTwentySlotsPerPage" fullname="Tagtag.UI.Tests.BookPresentationTests.PageCountKeepsExactlyTwentySlotsPerPage" classname="Tagtag.UI.Tests.BookPresentationTests" runstate="Runnable" testcasecount="4" result="Passed" start-time="2026-09-26 01:51:11Z" end-time="2026-09-26 01:51:11Z" duration="0.000508" total="4" passed="4" failed="0" inconclusive="0" skipped="0" asserts="0">
+                <properties />
+                <test-case id="1116" name="PageCountKeepsExactlyTwentySlotsPerPage(0,1)" fullname="Tagtag.UI.Tests.BookPresentationTests.PageCountKeepsExactlyTwentySlotsPerPage(0,1)" methodname="PageCountKeepsExactlyTwentySlotsPerPage" classname="Tagtag.UI.Tests.BookPresentationTests" runstate="Runnable" seed="26313666" result="Passed" start-time="2026-09-26 01:51:11Z" end-time="2026-09-26 01:51:11Z" duration="0.000127" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="1117" name="PageCountKeepsExactlyTwentySlotsPerPage(1,1)" fullname="Tagtag.UI.Tests.BookPresentationTests.PageCountKeepsExactlyTwentySlotsPerPage(1,1)" methodname="PageCountKeepsExactlyTwentySlotsPerPage" classname="Tagtag.UI.Tests.BookPresentationTests" runstate="Runnable" seed="2010137193" result="Passed" start-time="2026-09-26 01:51:11Z" end-time="2026-09-26 01:51:11Z" duration="0.000035" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="1118" name="PageCountKeepsExactlyTwentySlotsPerPage(20,1)" fullname="Tagtag.UI.Tests.BookPresentationTests.PageCountKeepsExactlyTwentySlotsPerPage(20,1)" methodname="PageCountKeepsExactlyTwentySlotsPerPage" classname="Tagtag.UI.Tests.BookPresentationTests" runstate="Runnable" seed="1482764474" result="Passed" start-time="2026-09-26 01:51:11Z" end-time="2026-09-26 01:51:11Z" duration="0.000032" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="1119" name="PageCountKeepsExactlyTwentySlotsPerPage(21,2)" fullname="Tagtag.UI.Tests.BookPresentationTests.PageCountKeepsExactlyTwentySlotsPerPage(21,2)" methodname="PageCountKeepsExactlyTwentySlotsPerPage" classname="Tagtag.UI.Tests.BookPresentationTests" runstate="Runnable" seed="524870211" result="Passed" start-time="2026-09-26 01:51:11Z" end-time="2026-09-26 01:51:11Z" duration="0.000031" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+              </test-suite>
+            </test-suite>
+            <test-suite type="TestFixture" id="1126" name="NftPresentationTests" fullname="Tagtag.UI.Tests.NftPresentationTests" classname="Tagtag.UI.Tests.NftPresentationTests" runstate="Runnable" testcasecount="5" result="Passed" start-time="2026-09-26 01:51:11Z" end-time="2026-09-26 01:51:11Z" duration="0.001117" total="5" passed="5" failed="0" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <test-case id="1131" name="ExplorerLinksAreRestrictedToSepoliaAndValidatedTransactionHashes" fullname="Tagtag.UI.Tests.NftPresentationTests.ExplorerLinksAreRestrictedToSepoliaAndValidatedTransactionHashes" methodname="ExplorerLinksAreRestrictedToSepoliaAndValidatedTransactionHashes" classname="Tagtag.UI.Tests.NftPresentationTests" runstate="Runnable" seed="667609721" result="Passed" start-time="2026-09-26 01:51:11Z" end-time="2026-09-26 01:51:11Z" duration="0.000147" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1127" name="NftDeletionRequiresAnExplicitAccessLossAcknowledgement" fullname="Tagtag.UI.Tests.NftPresentationTests.NftDeletionRequiresAnExplicitAccessLossAcknowledgement" methodname="NftDeletionRequiresAnExplicitAccessLossAcknowledgement" classname="Tagtag.UI.Tests.NftPresentationTests" runstate="Runnable" seed="380402836" result="Passed" start-time="2026-09-26 01:51:11Z" end-time="2026-09-26 01:51:11Z" duration="0.000186" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1129" name="OldCollectionsRemainReadableWithoutNftFields" fullname="Tagtag.UI.Tests.NftPresentationTests.OldCollectionsRemainReadableWithoutNftFields" methodname="OldCollectionsRemainReadableWithoutNftFields" classname="Tagtag.UI.Tests.NftPresentationTests" runstate="Runnable" seed="1314950823" result="Passed" start-time="2026-09-26 01:51:11Z" end-time="2026-09-26 01:51:11Z" duration="0.000118" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1130" name="PendingToConfirmedRefreshesTheSameCollectedSticker" fullname="Tagtag.UI.Tests.NftPresentationTests.PendingToConfirmedRefreshesTheSameCollectedSticker" methodname="PendingToConfirmedRefreshesTheSameCollectedSticker" classname="Tagtag.UI.Tests.NftPresentationTests" runstate="Runnable" seed="1200884248" result="Passed" start-time="2026-09-26 01:51:11Z" end-time="2026-09-26 01:51:11Z" duration="0.000121" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1128" name="TransferUiRejectsChecksumInvalidRecipient" fullname="Tagtag.UI.Tests.NftPresentationTests.TransferUiRejectsChecksumInvalidRecipient" methodname="TransferUiRejectsChecksumInvalidRecipient" classname="Tagtag.UI.Tests.NftPresentationTests" runstate="Runnable" seed="321551597" result="Passed" start-time="2026-09-26 01:51:11Z" end-time="2026-09-26 01:51:11Z" duration="0.000114" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+            </test-suite>
+            <test-suite type="TestFixture" id="1132" name="PaperCameraFlowTests" fullname="Tagtag.UI.Tests.PaperCameraFlowTests" classname="Tagtag.UI.Tests.PaperCameraFlowTests" runstate="Runnable" testcasecount="11" result="Passed" start-time="2026-09-26 01:51:11Z" end-time="2026-09-26 01:51:11Z" duration="0.005409" total="11" passed="11" failed="0" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <test-case id="1137" name="CameraInteractionBlocksSheetsBusyAccountsAndOpaqueCamera" fullname="Tagtag.UI.Tests.PaperCameraFlowTests.CameraInteractionBlocksSheetsBusyAccountsAndOpaqueCamera" methodname="CameraInteractionBlocksSheetsBusyAccountsAndOpaqueCamera" classname="Tagtag.UI.Tests.PaperCameraFlowTests" runstate="Runnable" seed="576629650" result="Passed" start-time="2026-09-26 01:51:11Z" end-time="2026-09-26 01:51:11Z" duration="0.000101" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1136" name="DiscoveryRetainsTheSelectedClueAndRetryUntilAPlacementIsChosen" fullname="Tagtag.UI.Tests.PaperCameraFlowTests.DiscoveryRetainsTheSelectedClueAndRetryUntilAPlacementIsChosen" methodname="DiscoveryRetainsTheSelectedClueAndRetryUntilAPlacementIsChosen" classname="Tagtag.UI.Tests.PaperCameraFlowTests" runstate="Runnable" seed="1422359691" result="Passed" start-time="2026-09-26 01:51:11Z" end-time="2026-09-26 01:51:11Z" duration="0.000146" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1135" name="NoteNeedsPlacedPreviewExceptForAnExistingPublishRetry" fullname="Tagtag.UI.Tests.PaperCameraFlowTests.NoteNeedsPlacedPreviewExceptForAnExistingPublishRetry" methodname="NoteNeedsPlacedPreviewExceptForAnExistingPublishRetry" classname="Tagtag.UI.Tests.PaperCameraFlowTests" runstate="Runnable" seed="589461675" result="Passed" start-time="2026-09-26 01:51:11Z" end-time="2026-09-26 01:51:11Z" duration="0.000159" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1141" name="OneFingerMovesAndTwoFingersPinchAndTwist" fullname="Tagtag.UI.Tests.PaperCameraFlowTests.OneFingerMovesAndTwoFingersPinchAndTwist" methodname="OneFingerMovesAndTwoFingersPinchAndTwist" classname="Tagtag.UI.Tests.PaperCameraFlowTests" runstate="Runnable" seed="402792835" result="Passed" start-time="2026-09-26 01:51:11Z" end-time="2026-09-26 01:51:11Z" duration="0.002640" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1143" name="PanelCoordinatesConvertToBottomLeftScreenPixels" fullname="Tagtag.UI.Tests.PaperCameraFlowTests.PanelCoordinatesConvertToBottomLeftScreenPixels" methodname="PanelCoordinatesConvertToBottomLeftScreenPixels" classname="Tagtag.UI.Tests.PaperCameraFlowTests" runstate="Runnable" seed="1099574317" result="Passed" start-time="2026-09-26 01:51:11Z" end-time="2026-09-26 01:51:11Z" duration="0.000377" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1134" name="PlacementGuidanceNamesTrackingSurfaceTapAndAdjustmentPhases" fullname="Tagtag.UI.Tests.PaperCameraFlowTests.PlacementGuidanceNamesTrackingSurfaceTapAndAdjustmentPhases" methodname="PlacementGuidanceNamesTrackingSurfaceTapAndAdjustmentPhases" classname="Tagtag.UI.Tests.PaperCameraFlowTests" runstate="Runnable" seed="697137933" result="Passed" start-time="2026-09-26 01:51:11Z" end-time="2026-09-26 01:51:11Z" duration="0.000136" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1138" name="ShortTapPlacesButDragReturnLongPressAndSecondContactDoNot" fullname="Tagtag.UI.Tests.PaperCameraFlowTests.ShortTapPlacesButDragReturnLongPressAndSecondContactDoNot" methodname="ShortTapPlacesButDragReturnLongPressAndSecondContactDoNot" classname="Tagtag.UI.Tests.PaperCameraFlowTests" runstate="Runnable" seed="1401358635" result="Passed" start-time="2026-09-26 01:51:11Z" end-time="2026-09-26 01:51:11Z" duration="0.000570" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1133" name="StickUsesFullScreenCameraChromeAndAccountRestoresItsOwnHeader" fullname="Tagtag.UI.Tests.PaperCameraFlowTests.StickUsesFullScreenCameraChromeAndAccountRestoresItsOwnHeader" methodname="StickUsesFullScreenCameraChromeAndAccountRestoresItsOwnHeader" classname="Tagtag.UI.Tests.PaperCameraFlowTests" runstate="Runnable" seed="1887726245" result="Passed" start-time="2026-09-26 01:51:11Z" end-time="2026-09-26 01:51:11Z" duration="0.000068" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1139" name="ThirdContactCannotBecomeFreshTapWhileSecondContactRemainsDown" fullname="Tagtag.UI.Tests.PaperCameraFlowTests.ThirdContactCannotBecomeFreshTapWhileSecondContactRemainsDown" methodname="ThirdContactCannotBecomeFreshTapWhileSecondContactRemainsDown" classname="Tagtag.UI.Tests.PaperCameraFlowTests" runstate="Runnable" seed="311058670" result="Passed" start-time="2026-09-26 01:51:11Z" end-time="2026-09-26 01:51:11Z" duration="0.000112" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1140" name="TrackingLossBlocksCameraInteractionDespiteLiveImagery" fullname="Tagtag.UI.Tests.PaperCameraFlowTests.TrackingLossBlocksCameraInteractionDespiteLiveImagery" methodname="TrackingLossBlocksCameraInteractionDespiteLiveImagery" classname="Tagtag.UI.Tests.PaperCameraFlowTests" runstate="Runnable" seed="348976001" result="Passed" start-time="2026-09-26 01:51:11Z" end-time="2026-09-26 01:51:11Z" duration="0.000043" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1142" name="UnexpectedCaptureLossCancelsWholeAdjustmentButNormalReleaseKeepsRemainingFinger" fullname="Tagtag.UI.Tests.PaperCameraFlowTests.UnexpectedCaptureLossCancelsWholeAdjustmentButNormalReleaseKeepsRemainingFinger" methodname="UnexpectedCaptureLossCancelsWholeAdjustmentButNormalReleaseKeepsRemainingFinger" classname="Tagtag.UI.Tests.PaperCameraFlowTests" runstate="Runnable" seed="629260304" result="Passed" start-time="2026-09-26 01:51:11Z" end-time="2026-09-26 01:51:11Z" duration="0.000171" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+            </test-suite>
+            <test-suite type="TestFixture" id="1144" name="PaperFlowTests" fullname="Tagtag.UI.Tests.PaperFlowTests" classname="Tagtag.UI.Tests.PaperFlowTests" runstate="Runnable" testcasecount="11" result="Passed" start-time="2026-09-26 01:51:11Z" end-time="2026-09-26 01:51:11Z" duration="0.004111" total="11" passed="11" failed="0" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <test-case id="1152" name="ArtworkCommitRunsOnlyForANewCollectionFromStick" fullname="Tagtag.UI.Tests.PaperFlowTests.ArtworkCommitRunsOnlyForANewCollectionFromStick" methodname="ArtworkCommitRunsOnlyForANewCollectionFromStick" classname="Tagtag.UI.Tests.PaperFlowTests" runstate="Runnable" seed="993659181" result="Passed" start-time="2026-09-26 01:51:11Z" end-time="2026-09-26 01:51:11Z" duration="0.000122" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1145" name="CameraCoverRemainsOpaqueUntilCameraReportsLiveImagery" fullname="Tagtag.UI.Tests.PaperFlowTests.CameraCoverRemainsOpaqueUntilCameraReportsLiveImagery" methodname="CameraCoverRemainsOpaqueUntilCameraReportsLiveImagery" classname="Tagtag.UI.Tests.PaperFlowTests" runstate="Runnable" seed="1974535082" result="Passed" start-time="2026-09-26 01:51:11Z" end-time="2026-09-26 01:51:11Z" duration="0.000149" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1146" name="CameraFailureOffersTheRecoveryMatchingItsCause" fullname="Tagtag.UI.Tests.PaperFlowTests.CameraFailureOffersTheRecoveryMatchingItsCause" methodname="CameraFailureOffersTheRecoveryMatchingItsCause" classname="Tagtag.UI.Tests.PaperFlowTests" runstate="Runnable" seed="1862525024" result="Passed" start-time="2026-09-26 01:51:11Z" end-time="2026-09-26 01:51:11Z" duration="0.000097" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1153" name="EmptyHomeInvitationDoesNotRepeatAsStatusButOtherNoticesRemain" fullname="Tagtag.UI.Tests.PaperFlowTests.EmptyHomeInvitationDoesNotRepeatAsStatusButOtherNoticesRemain" methodname="EmptyHomeInvitationDoesNotRepeatAsStatusButOtherNoticesRemain" classname="Tagtag.UI.Tests.PaperFlowTests" runstate="Runnable" seed="262587963" result="Passed" start-time="2026-09-26 01:51:11Z" end-time="2026-09-26 01:51:11Z" duration="0.000098" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1155" name="NavigationUsesDedicatedTaggiArtworkResources" fullname="Tagtag.UI.Tests.PaperFlowTests.NavigationUsesDedicatedTaggiArtworkResources" methodname="NavigationUsesDedicatedTaggiArtworkResources" classname="Tagtag.UI.Tests.PaperFlowTests" runstate="Runnable" seed="738922656" result="Passed" start-time="2026-09-26 01:51:11Z" end-time="2026-09-26 01:51:11Z" duration="0.000725" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1154" name="NearbyReadStateDrivesExploreMessagesAndRetryWithoutBlockingDiscovery" fullname="Tagtag.UI.Tests.PaperFlowTests.NearbyReadStateDrivesExploreMessagesAndRetryWithoutBlockingDiscovery" methodname="NearbyReadStateDrivesExploreMessagesAndRetryWithoutBlockingDiscovery" classname="Tagtag.UI.Tests.PaperFlowTests" runstate="Runnable" seed="35955168" result="Passed" start-time="2026-09-26 01:51:11Z" end-time="2026-09-26 01:51:11Z" duration="0.000329" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1147" name="NoteReadinessKeepsIncompleteAndBusyDraftsFromPublishing" fullname="Tagtag.UI.Tests.PaperFlowTests.NoteReadinessKeepsIncompleteAndBusyDraftsFromPublishing" methodname="NoteReadinessKeepsIncompleteAndBusyDraftsFromPublishing" classname="Tagtag.UI.Tests.PaperFlowTests" runstate="Runnable" seed="582553377" result="Passed" start-time="2026-09-26 01:51:11Z" end-time="2026-09-26 01:51:11Z" duration="0.000078" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1151" name="OnlyASuccessfulSubmittedPublicationClearsTheLocalDraft" fullname="Tagtag.UI.Tests.PaperFlowTests.OnlyASuccessfulSubmittedPublicationClearsTheLocalDraft" methodname="OnlyASuccessfulSubmittedPublicationClearsTheLocalDraft" classname="Tagtag.UI.Tests.PaperFlowTests" runstate="Runnable" seed="290767510" result="Passed" start-time="2026-09-26 01:51:11Z" end-time="2026-09-26 01:51:11Z" duration="0.000126" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1149" name="RefreshDoesNotAdvanceNavigationHistoryOrReplayAnEntrance" fullname="Tagtag.UI.Tests.PaperFlowTests.RefreshDoesNotAdvanceNavigationHistoryOrReplayAnEntrance" methodname="RefreshDoesNotAdvanceNavigationHistoryOrReplayAnEntrance" classname="Tagtag.UI.Tests.PaperFlowTests" runstate="Runnable" seed="937196531" result="Passed" start-time="2026-09-26 01:51:11Z" end-time="2026-09-26 01:51:11Z" duration="0.000331" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1148" name="RepeatedActivationIsRejectedUntilTheFirstOperationCompletes" fullname="Tagtag.UI.Tests.PaperFlowTests.RepeatedActivationIsRejectedUntilTheFirstOperationCompletes" methodname="RepeatedActivationIsRejectedUntilTheFirstOperationCompletes" classname="Tagtag.UI.Tests.PaperFlowTests" runstate="Runnable" seed="800549498" result="Passed" start-time="2026-09-26 01:51:11Z" end-time="2026-09-26 01:51:11Z" duration="0.000070" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1150" name="ReturningToATabWithTheSameDataStillPopulatesItsNewHost" fullname="Tagtag.UI.Tests.PaperFlowTests.ReturningToATabWithTheSameDataStillPopulatesItsNewHost" methodname="ReturningToATabWithTheSameDataStillPopulatesItsNewHost" classname="Tagtag.UI.Tests.PaperFlowTests" runstate="Runnable" seed="939688598" result="Passed" start-time="2026-09-26 01:51:11Z" end-time="2026-09-26 01:51:11Z" duration="0.000055" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+            </test-suite>
+            <test-suite type="TestFixture" id="1156" name="PaperPrimitiveTests" fullname="Tagtag.UI.Tests.PaperPrimitiveTests" classname="Tagtag.UI.Tests.PaperPrimitiveTests" runstate="Runnable" testcasecount="8" result="Passed" start-time="2026-09-26 01:51:11Z" end-time="2026-09-26 01:51:11Z" duration="0.033660" total="8" passed="8" failed="0" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <test-case id="1157" name="FieldCountsDraftCharactersAndExposesValidationWithoutLosingItsValue" fullname="Tagtag.UI.Tests.PaperPrimitiveTests.FieldCountsDraftCharactersAndExposesValidationWithoutLosingItsValue" methodname="FieldCountsDraftCharactersAndExposesValidationWithoutLosingItsValue" classname="Tagtag.UI.Tests.PaperPrimitiveTests" runstate="Runnable" seed="1528922963" result="Passed" start-time="2026-09-26 01:51:11Z" end-time="2026-09-26 01:51:11Z" duration="0.024919" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1159" name="FieldSupportTextScalesWithItsInput" fullname="Tagtag.UI.Tests.PaperPrimitiveTests.FieldSupportTextScalesWithItsInput" methodname="FieldSupportTextScalesWithItsInput" classname="Tagtag.UI.Tests.PaperPrimitiveTests" runstate="Runnable" seed="1983620548" result="Passed" start-time="2026-09-26 01:51:11Z" end-time="2026-09-26 01:51:11Z" duration="0.002725" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1160" name="HandwrittenFontIsReservedForTitlesAndBodyFacesRemainAvailable" fullname="Tagtag.UI.Tests.PaperPrimitiveTests.HandwrittenFontIsReservedForTitlesAndBodyFacesRemainAvailable" methodname="HandwrittenFontIsReservedForTitlesAndBodyFacesRemainAvailable" classname="Tagtag.UI.Tests.PaperPrimitiveTests" runstate="Runnable" seed="1200760549" result="Passed" start-time="2026-09-26 01:51:11Z" end-time="2026-09-26 01:51:11Z" duration="0.000623" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1158" name="SelectionKeepsAStableButtonAndUpdatesItsSelectedState" fullname="Tagtag.UI.Tests.PaperPrimitiveTests.SelectionKeepsAStableButtonAndUpdatesItsSelectedState" methodname="SelectionKeepsAStableButtonAndUpdatesItsSelectedState" classname="Tagtag.UI.Tests.PaperPrimitiveTests" runstate="Runnable" seed="1909369079" result="Passed" start-time="2026-09-26 01:51:11Z" end-time="2026-09-26 01:51:11Z" duration="0.004133" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-suite type="ParameterizedMethod" id="1165" name="SheetDismissalRequiresAnIntentionalDownwardPull" fullname="Tagtag.UI.Tests.PaperPrimitiveTests.SheetDismissalRequiresAnIntentionalDownwardPull" classname="Tagtag.UI.Tests.PaperPrimitiveTests" runstate="Runnable" testcasecount="4" result="Passed" start-time="2026-09-26 01:51:11Z" end-time="2026-09-26 01:51:11Z" duration="0.000736" total="4" passed="4" failed="0" inconclusive="0" skipped="0" asserts="0">
+                <properties />
+                <test-case id="1161" name="SheetDismissalRequiresAnIntentionalDownwardPull(100.0f,0.0f,False)" fullname="Tagtag.UI.Tests.PaperPrimitiveTests.SheetDismissalRequiresAnIntentionalDownwardPull(100.0f,0.0f,False)" methodname="SheetDismissalRequiresAnIntentionalDownwardPull" classname="Tagtag.UI.Tests.PaperPrimitiveTests" runstate="Runnable" seed="309169971" result="Passed" start-time="2026-09-26 01:51:11Z" end-time="2026-09-26 01:51:11Z" duration="0.000146" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="1162" name="SheetDismissalRequiresAnIntentionalDownwardPull(100.0f,50.0f,False)" fullname="Tagtag.UI.Tests.PaperPrimitiveTests.SheetDismissalRequiresAnIntentionalDownwardPull(100.0f,50.0f,False)" methodname="SheetDismissalRequiresAnIntentionalDownwardPull" classname="Tagtag.UI.Tests.PaperPrimitiveTests" runstate="Runnable" seed="213597311" result="Passed" start-time="2026-09-26 01:51:11Z" end-time="2026-09-26 01:51:11Z" duration="0.000034" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="1163" name="SheetDismissalRequiresAnIntentionalDownwardPull(100.0f,70.0f,True)" fullname="Tagtag.UI.Tests.PaperPrimitiveTests.SheetDismissalRequiresAnIntentionalDownwardPull(100.0f,70.0f,True)" methodname="SheetDismissalRequiresAnIntentionalDownwardPull" classname="Tagtag.UI.Tests.PaperPrimitiveTests" runstate="Runnable" seed="1152616232" result="Passed" start-time="2026-09-26 01:51:11Z" end-time="2026-09-26 01:51:11Z" duration="0.000032" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="1164" name="SheetDismissalRequiresAnIntentionalDownwardPull(400.0f,100.0f,True)" fullname="Tagtag.UI.Tests.PaperPrimitiveTests.SheetDismissalRequiresAnIntentionalDownwardPull(400.0f,100.0f,True)" methodname="SheetDismissalRequiresAnIntentionalDownwardPull" classname="Tagtag.UI.Tests.PaperPrimitiveTests" runstate="Runnable" seed="536937205" result="Passed" start-time="2026-09-26 01:51:11Z" end-time="2026-09-26 01:51:11Z" duration="0.000030" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                  <output><![CDATA[Saving results to: /private/tmp/tagtag-nft-final-edit.xml
+]]></output>
+                </test-case>
+              </test-suite>
+            </test-suite>
+          </test-suite>
+        </test-suite>
+      </test-suite>
+    </test-suite>
+  </test-suite>
+</test-run>
