@@ -30,3 +30,5 @@ Review requires active publication drafts to stay immutable, a separately persis
 The user supplied the exact tagline **Find your places, Collect your moments**. Use it in project copy and the empty-book invitation while retaining the Explore nearby action.
 
 The six review repairs are implemented. Fresh pre-integration checks passed 120/120 Edit Mode and 8/8 graphics Play Mode; source review found no remaining concrete blocker. The parallel `feat/simplify-camera-navigation` task will be merged before the final player/native build, preserving both sets of changes and rerunning affected checks.
+
+Integration completed with navigation commits d638da6, a5b6714 and f79d599, preserving both branches' tests and documentation. Combined verification: Edit Mode 120/120, graphics Play Mode 8/8, fresh standalone player 8/8, ARKit preparation/export, unsigned Xcode compilation and development signing. Fifteen built-player captures and XML results are retained under docs/verification/publishing-dogfood. Physical installation/retest is pending an available USB iPhone.

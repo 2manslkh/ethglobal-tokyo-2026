@@ -178,3 +178,16 @@ pinch/twist, surface drag, sheet blocking, tracking interruption, background/res
 and VoiceOver remain **unverified** on this revision. Run and record these checks
 after the coordinator installs the combined build; do not replace that build with
 this branch's older standalone output.
+
+## Combined publishing build — 2026-09-26
+
+The publishing changes and the navigation/camera branch are integrated at `be3cf0a`. The exact tagline appears in the empty book and project copy. Button pointer/focus feedback changes color without outlines or content movement; Home and Account emphasize the collected count. The separate Home profile control, gesture-only camera adjustment, die-cut camera controls, and native status-bar configuration are retained.
+
+- [Edit Mode](verification/publishing-dogfood/edit-mode.xml): **120/120 passed** at 00:34:03–04 UTC.
+- [Graphics Play Mode](verification/publishing-dogfood/play-mode.xml): **8/8 passed** at 00:34:39–00:35:20 UTC.
+- [Built macOS player](verification/publishing-dogfood/player.xml): **8/8 passed** at 00:38:10–52 UTC, after the successful build at 00:38:07 UTC. The completed owned editor/player pair was stopped after saving the fresh local callback because the editor return connection hung.
+- [Fifteen built-player captures](verification/publishing-dogfood/contact-sheet.png) inspected: Home empty/populated/enlarged text, Account, default/hover/press/focus controls, publishing progress, and normal/compact Settings recovery. Camera imagery is simulated; no native keyboard, GPS or status-bar rendering is implied.
+- Separate ARKit preparation and final iOS export succeeded (`/private/tmp/tagtag-dogfood-prepare.log`, `/private/tmp/tagtag-dogfood-export-final.log`). Standalone-test changes to player settings were restored before the final export. The Xcode Sources phase contains `TagtagLocationAuthorization.mm`, CoreLocation is linked, and exported plist keys request visible dark status text.
+
+- Unsigned Xcode compilation and automatic development signing both passed (`/private/tmp/tagtag-dogfood-xcode-unsigned.log`, `/private/tmp/tagtag-dogfood-xcode-signed.log`). The linked UnityFramework contains `TagtagLocationAuthorizationStatus` and its IL2CPP caller. The signed app is `Build/DerivedData/Build/Products/Debug-iphoneos/tagtag.app` in the isolated publishing worktree, bundle `com.kenk.tagtag`, team `5Y6QUA9GA6`.
+- USB detection with `ios-deploy --detect --timeout 5` found no connected iPhone during the final checks. No installation or physical publication result is claimed for this combined build. The owner was asked to connect/unlock Dawg for installation. Publishing latency, Precise Location return, interruption/retry, native status-bar appearance and AR coordinate alignment remain pending hardware verification.
