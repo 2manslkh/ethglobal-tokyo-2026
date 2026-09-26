@@ -821,3 +821,17 @@ Local evidence: `/tmp/tagtag-sticker-install-prepare.log`,
 
 Installation and launch are verified. The physical editing/gesture/Save-to-library
 checks listed above still require interaction on the phone.
+
+## iPad mini installation — 2026-09-27
+
+Installed `com.kenk.tagtag` on iPad (2), iPad mini (A17 Pro), iPadOS 26.5.
+After the user enabled Developer Mode and reconnected the device, Xcode's signed
+Debug build with automatic device registration succeeded. `devicectl` installed
+the app successfully using the existing iOS export. The app currently targets
+iPhone (`UIDeviceFamily = [1]`), so this is an iPhone-compatibility installation,
+not a verified native iPad layout.
+
+Automatic launch was denied because the iPad was locked. The user was asked to
+unlock it and open tagtag. Launch, layout, authentication, and AR behavior on this
+iPad remain unverified. Local evidence: `/tmp/tagtag-ipad-xcode.log`,
+`/tmp/tagtag-ipad-install.json`, `/tmp/tagtag-ipad-launch.json`.
