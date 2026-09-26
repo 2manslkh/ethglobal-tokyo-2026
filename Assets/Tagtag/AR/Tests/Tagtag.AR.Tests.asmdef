@@ -1,1 +1,1 @@
-{"name":"Tagtag.AR.Tests","rootNamespace":"Tagtag.AR.Tests","references":["Tagtag.AR","Tagtag.Core","Unity.XR.ARFoundation","Unity.XR.ARSubsystems"],"optionalUnityReferences":["TestAssemblies"],"includePlatforms":["Editor"],"defineConstraints":["UNITY_INCLUDE_TESTS"]}
+{"name":"Tagtag.AR.Tests","rootNamespace":"Tagtag.AR.Tests","references":["Tagtag.AR","Tagtag.Core","Unity.XR.ARFoundation","Unity.XR.ARSubsystems","Unity.XR.ARKit"],"optionalUnityReferences":["TestAssemblies"],"includePlatforms":["Editor"],"defineConstraints":["UNITY_INCLUDE_TESTS"]}

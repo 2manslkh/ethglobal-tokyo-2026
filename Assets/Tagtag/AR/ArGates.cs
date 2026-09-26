@@ -1,10 +1,14 @@
 using System;
+using UnityEngine.XR.ARKit;
 using UnityEngine.XR.ARSubsystems;
 
 namespace Tagtag.AR
 {
     public static class ArGates
     {
+        public static bool CanSerializeWorldMap(ARWorldMappingStatus mappingStatus) =>
+            mappingStatus == ARWorldMappingStatus.Extending || mappingStatus == ARWorldMappingStatus.Mapped;
+
         public static bool CanPublish(bool sessionTracking, bool anchorTracking, bool mapped, bool hasPreview, bool busy)
         {
             return sessionTracking && anchorTracking && mapped && hasPreview && !busy;

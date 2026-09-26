@@ -1,5 +1,6 @@
 using NUnit.Framework;
 using UnityEngine;
+using UnityEngine.XR.ARKit;
 
 namespace Tagtag.AR.Tests
 {
@@ -12,6 +13,15 @@ namespace Tagtag.AR.Tests
             Assert.IsFalse(ArGates.CanPublish(true, false, true, true, false));
             Assert.IsFalse(ArGates.CanPublish(false, true, true, true, false));
             Assert.IsTrue(ArGates.CanPublish(true, true, true, true, false));
+        }
+
+        [Test]
+        public void ExtendingWorldMapIsSufficientToPublish()
+        {
+            Assert.IsTrue(ArGates.CanSerializeWorldMap(ARWorldMappingStatus.Extending));
+            Assert.IsTrue(ArGates.CanSerializeWorldMap(ARWorldMappingStatus.Mapped));
+            Assert.IsFalse(ArGates.CanSerializeWorldMap(ARWorldMappingStatus.Limited));
+            Assert.IsFalse(ArGates.CanSerializeWorldMap(ARWorldMappingStatus.NotAvailable));
         }
 
         [Test]
