@@ -176,9 +176,9 @@ the shared roles are not a command to replace every duration. Buttons use tonal
 press feedback with stable geometry; selection markers and switch thumbs animate
 within their controls. Sheets retain their drag, settle, and dismissal behavior.
 
-Use the source artwork-confirmation motion for a successful collection where
-applicable: a small settling response on the artwork, not a bouncing entire
-screen. Navigation and routine refreshes must preserve focus, scroll position,
+Successful publication and new collection use the sticker celebration described
+below. Animate the sticker artwork and small drawn stars; keep the screen, copy,
+and controls stable. Navigation and routine refreshes must preserve focus, scroll position,
 and ongoing input rather than replaying entrances unnecessarily.
 
 Honor reduced motion by removing spatial travel, spring, and page-turn animation;
@@ -250,7 +250,7 @@ Let the real surroundings lead once the camera is ready. Keep controls compact
 and legible without shrinking touch targets. Use deliberate high-contrast
 backings for camera controls and guidance, and paper-toned sheets for reading and
 composition. Follow the preparation and recovery rules above before revealing
-the feed. Collection gets a small confirmation after success.
+the feed. Publication and new collection open a full-screen celebration after success.
 
 Camera mode fills the screen and hides the bottom tab bar. The native iOS status
 bar stays visible, with dark text on an opaque paper backing above safe-area
@@ -281,6 +281,33 @@ Opening any sheet or losing camera readiness blocks placement and collection
 input. Surface-found guidance is not publish readiness. Rendering uses a bundled
 material/shader asset so the player retains the artwork shader and its transparent
 silhouette.
+
+### Sticker celebration
+
+After a publication finishes successfully or an AR discovery adds a new sticker,
+show an opaque paper-white reward screen. Center the actual artwork at a generous
+size, preserving its proportions and die-cut silhouette. Use the existing display
+font for “You left your mark!” or “You found it!”, followed by “Your sticker is
+ready to be discovered.” or “A little discovery, now in your book.”
+
+The artwork scales from 78% to its resting size over 480 ms using `PaperMotion`'s
+restrained spring. Six small, irregular yellow ink stars travel outward and fade
+within 700 ms. Play one native success haptic when its artwork first becomes available; keep
+the screen silent. For uncached custom artwork, retain loading/error feedback and
+Retry artwork; the reveal waits for the texture, but Continue remains available. Reduced motion uses settled artwork and static stars. Reuse the
+paper, ink, yellow, typography, and dashed action styles already in the app.
+
+Keep the reward visible until **Keep exploring** returns to the camera or **Read
+the note** opens the existing collected-sticker details. The action works from the
+first frame. Hide navigation and prevent input to the underlying camera, map, and
+sheets. Fit safe areas, keep the action at least 44 points high, and allow the
+reward content to scroll at enlarged text sizes.
+
+Only explicit operation success creates this transient reward. Preview placement,
+nearby detection, failed/cancelled operations, and already-collected stickers do
+not celebrate. Refresh, remount, retry, and background/resume must not repeat
+motion or haptics; account changes clear pending rewards. Data persistence never
+waits for an animation. The reward is independent of NFT minting.
 
 ### Explore
 

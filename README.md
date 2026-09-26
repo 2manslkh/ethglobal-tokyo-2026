@@ -45,6 +45,8 @@ New publications include a camera-only Original spot photo to help nearby finder
 
 Run graphics-enabled placement and rendering checks with `-buildTarget StandaloneOSX -testPlatform PlayMode -testFilter Tagtag`. Repeat with `-testPlatform StandaloneOSX` to verify shader inclusion in a built player. The test callback writes the complete suite to `Application.temporaryCachePath/tagtag-player-result.xml`, and the real sticker render to `tagtag-sticker-render.png`.
 
+Successful publication and new AR collection open a full-screen sticker celebration with a short artwork reveal, drawn yellow stars, and one iOS success haptic when the artwork becomes available. Tap **Keep exploring** to return to the camera or **Read the note** to open the collected sticker. Reduced motion keeps the artwork and stars still; rewards do not replay on refresh or when reopening a sticker. See [celebration verification](docs/verification/celebration/README.md).
+
 ## iPhone build
 
 Prepare ARKit in a separate invocation so its loader settings are imported before export:
