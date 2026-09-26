@@ -237,3 +237,11 @@ Device acceptance:
 7. Check VoiceOver, larger text, Reduce Motion, native sheet cancellation, and camera restoration with an existing placement/note.
 
 Verification: Unity Edit Mode **134/134**, graphics Play Mode **10/10**, backend **38 passed / 1 emulator-only skipped**, Firebase emulator integration **1/1**, and final unsigned iOS Xcode build passed. Captured UI fixtures are in `docs/verification/sticker-creation/`; they use synthetic artwork. The Firebase Storage emulator does not prove GCS conditional-write enforcement; see backend README before live deployment.
+
+### Integrated NFT and sticker build — 2026-09-26
+
+- Source: `efc715aebff5045cf169346b4d19ffbb578d7b56`, with local main and origin/main synchronized after merging NFT and custom-sticker work.
+- ARKit preparation and Unity iOS export succeeded. Automatic development signing with team `5Y6QUA9GA6` produced `Build/DerivedData/Build/Products/Debug-iphoneos/tagtag.app`; Xcode reported `BUILD SUCCEEDED`.
+- Installed over the existing app on USB device **Dawg.**, UDID `00008130-001420500E41001C`, reported model iPhone16,2 (iPhone 15 Pro Max), iOS 26.6.1. `ios-deploy` reported `InstallComplete` and exited 0. No uninstall or data reset.
+- Logs: `/tmp/tagtag-integrated-prepare.log`, `/tmp/tagtag-integrated-export.log`, `/tmp/tagtag-integrated-xcode.log`, `/tmp/tagtag-integrated-install.log`.
+- This verifies build/signing/installation only; no new on-device interaction or live-backend deployment was performed in this pass.
