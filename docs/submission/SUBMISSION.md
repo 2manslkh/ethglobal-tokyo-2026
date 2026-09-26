@@ -1,6 +1,6 @@
 # tagtag — ETHGlobal Tokyo 2026 submission
 
-Copy for the [ETHGlobal project form](https://ethglobal.com/events/tokyo2026/project). Prepared 2026-09-26 JST from the repository and the signed-in form. This is a draft: no project was created or submitted in the browser.
+Copy for the [ETHGlobal project form](https://ethglobal.com/events/tokyo2026/project). Prepared 2026-09-26 JST from the repository and the signed-in form. The **tagtag** project draft was created in ETHGlobal with the name, Gaming category, and 📍 emoji. The project has **not** been submitted for judging; the remaining fields and uploads are still incomplete.
 
 ## Create project
 
@@ -10,13 +10,13 @@ Copy for the [ETHGlobal project form](https://ethglobal.com/events/tokyo2026/pro
 | Category | **Gaming** (available in the category picker) |
 | Emoji | 📍 |
 
-The signed-in form currently shows these three required fields before **Create project**. The remaining form fields are gated behind that action. The sections below prepare the content described in [ETHGlobal's submission guide](https://ethglobal.com/events/tokyo2026/info/details) and seen on [ETHGlobal showcase projects](https://ethglobal.com/showcase/project-name-vndcz); check their exact labels and limits after creating the project.
+The created draft exposes the steps **Project details → Images → Tech stack → Select prizes → Video → Future → Final**. The sections below follow those form steps.
 
 ## Short description
 
 Leave AR stickers at real places, discover their notes, and collect the moments.
 
-80 characters, suitable for a 60–100 character one-liner.
+80 characters, under the form's 100-character maximum.
 
 ## Project description
 
@@ -40,13 +40,36 @@ The repository also contains a Solidity ERC-721 souvenir contract, Thirdweb embe
 | --- | --- |
 | Source code | https://github.com/2manslkh/ethglobal-tokyo-2026 — verify public visibility and push the final commit before submitting. |
 | Live demo | [TestFlight invitation](https://testflight.apple.com/join/cUnAbdSY) exists, but the recorded external build is **Waiting for Review** and cannot yet be joined through the public link. It also predates the latest location and AR changes. Use only after approval and a fresh build. |
-| Demo video | To be recorded. ETHGlobal calls it optional but strongly encourages a 2–4 minute video; see [DEMO_VIDEO.md](DEMO_VIDEO.md). |
-| Screenshots | Six prepared PNGs in [screenshots/](screenshots/) with provenance in [SCREENSHOTS.md](SCREENSHOTS.md). Upload only the images that accurately match the demonstrated build. |
+| Demo video | To be recorded. The Video step calls it optional, but the project-creation guidelines say it is required if applying for finalist prizes. See [DEMO_VIDEO.md](DEMO_VIDEO.md). |
+| Logo | [logo.png](logo.png), the actual 512×512 app icon. |
+| Cover image / project banner | [cover.png](cover.png), a 1672×941 promotional illustration generated for this submission with the app icon as a Taggi reference. The form recommends 16:9. |
+| Screenshots | Six prepared PNGs in [screenshots/](screenshots/) with provenance in [SCREENSHOTS.md](SCREENSHOTS.md). The form requires **at least three**. Upload only images that accurately match the demonstrated build. |
 | Figma | Add a public design link if desired and available; no verified URL was found in the current repo. |
 
-## Partner prizes
+## Form fields still to complete
 
-**No partner prize selected in this draft.** The official form allows up to three, and each requires a truthful explanation of a working partner integration. The disabled Sepolia/Thirdweb path alone does not establish eligibility for any Tokyo 2026 partner prize. Review the [event prize list](https://ethglobal.com/events/tokyo2026/prizes) against a live demo before selecting a prize.
+**Project details:** The form asks for a demonstration link, a short description (maximum 100 characters), description (minimum 280 characters), how it's made (minimum 280 characters), and at least one public GitHub repository selected through the connected GitHub account picker. The copy above meets the text limits. The TestFlight link is not yet a working public demo for the latest build.
+
+**Tech stack:** Select only values actually offered by each picker. Suggested answers from the source tree:
+
+| Question | Draft answer |
+| --- | --- |
+| Ethereum developer tools | Thirdweb embedded wallets and `viem` are present for the disabled Sepolia souvenir path; mark as staging/implemented, not a live integration. |
+| Blockchain networks | Ethereum Sepolia is the target of the disabled NFT path. The current app's core discovery journey does not interact with a chain. |
+| Programming languages | C#, JavaScript, Swift, Objective-C++, Solidity. |
+| Web frameworks | None for the iPhone client; the Node.js API uses built-in HTTP rather than a frontend framework. |
+| Databases | Firestore. |
+| Design tools | Confirm whether Figma was used before selecting it; no current share URL is documented. |
+| Other technologies | Unity, AR Foundation, ARKit, MapKit, Firebase Authentication, Cloud Storage, Google Cloud Run, Sharp. |
+| AI use (free text) | “Codex assisted with C#, native iOS, backend, contract, tests, documentation, and visual review under human direction. OpenAI imagegen created Taggi poses 5–12 from the supplied mascot reference; prompts and provenance are in `docs/mascot/TAGGI_PRESETS.md`. The original four poses and login video were supplied. The submission cover was generated with imagegen from the app icon. Source history, plans, and verification records are public in the repo.” |
+
+**Future:** The form asks whether the team is interested in continuing through grants or accelerators. This is a team preference; select after deciding.
+
+## Partner prizes and judging
+
+The Select prizes step asks for **Building from Scratch** or **Continuity Track**, then **Top 10 Finalist & Partner Prizes** or **Partner Prizes only**. The draft currently shows Building from Scratch selected by default; no submission type or partner prize is selected. The form permits up to three partners and asks which other partner technologies were used.
+
+**No partner prize selected in this draft.** Each prize requires a truthful explanation of a working partner integration. The disabled Sepolia/Thirdweb path alone does not establish eligibility for any Tokyo 2026 partner prize. Review the [event prize list](https://ethglobal.com/events/tokyo2026/prizes) against a live demo before selecting a prize. If seeking a Top 10 finalist spot, record the required video first.
 
 ## Track and provenance
 
@@ -57,12 +80,13 @@ AI tools assisted implementation, documentation, and visual review. The eight ne
 ## Submission check
 
 - [ ] Confirm the chosen track and disclose supplied/pre-existing assets.
-- [ ] Create the ETHGlobal project, then compare every revealed field with this draft.
+- [x] Create the ETHGlobal project draft and inspect all steps.
+- [ ] Complete required project details, tech stack, images, and judging stream in the form.
 - [ ] Verify GitHub is public and final commits are pushed.
-- [ ] Record and upload a 2–4 minute demo at 720p or higher, with a human voice and no sped-up footage, if time permits.
+- [ ] Record and upload a 2–4 minute demo at 720p or higher, with a human voice and no sped-up footage if seeking finalist prizes.
 - [ ] Replace simulated UI captures with real iPhone captures for claims demonstrated on hardware.
 - [ ] Confirm a working public demo link or provide clear build/run steps.
 - [ ] Select only partner prizes supported by a working integration, if any.
-- [ ] Submit by **2026-09-27 09:00 JST** and check the dashboard for confirmation.
+- [ ] Review the Final step's event-rule attestation, then submit by **2026-09-27 09:00 JST** and check the dashboard for confirmation.
 
 The deadline, video guidance, track rules, AI disclosure, and prize limit come from [ETHGlobal's Tokyo 2026 submission guide](https://ethglobal.com/events/tokyo2026/info/details). The create-project sidebar still displays a generic “start from scratch” rule, while the event guide describes continuity tracks; use the event-specific track rules when making that selection.

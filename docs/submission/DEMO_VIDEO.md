@@ -1,6 +1,6 @@
 # Demo video outline
 
-ETHGlobal encourages a 2–4 minute, 720p or higher demo with spoken narration. Do not speed up footage or use synthetic narration. [Official guidance](https://ethglobal.com/events/tokyo2026/info/details).
+The ETHGlobal Video step labels an upload optional, but the project-creation guidelines say a video is required for finalist prizes. Use a 2–4 minute `.mp4` or `.mov` at 720p or higher with clear spoken audio. Do not speed up footage or use synthetic narration. [Official guidance](https://ethglobal.com/events/tokyo2026/info/details).
 
 | Time | Visual | Spoken point |
 | --- | --- | --- |

@@ -2,6 +2,8 @@
 
 These are copied, unedited evidence images from the repo. They are ready to review and upload individually. The filenames and captions keep simulator/native test captures separate from automated UI fixtures. They do not demonstrate a completed two-phone AR collection.
 
+The form also requires a square logo and 16:9 cover. [logo.png](logo.png) is copied from the app's actual icon. [cover.png](cover.png) is a generated promotional illustration, not a product screenshot; its Taggi reference was the app icon.
+
 | Order | File | Capture source | Suggested caption |
 | --- | --- | --- | --- |
 | 1 | [Login](screenshots/01-login-simulator.png) | iPhone simulator capture from `docs/verification/login-refresh/iphone.png` | Start with Apple or Google sign-in and Taggi's animated welcome. |
