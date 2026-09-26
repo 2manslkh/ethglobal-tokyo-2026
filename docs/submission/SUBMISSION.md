@@ -1,6 +1,6 @@
 # tagtag — ETHGlobal Tokyo 2026 submission
 
-Copy for the [ETHGlobal project form](https://ethglobal.com/events/tokyo2026/project). Prepared 2026-09-26 JST from the repository and the signed-in form. The **tagtag** project draft was created in ETHGlobal with the name, Gaming category, and 📍 emoji. The project has **not** been submitted for judging; the remaining fields and uploads are still incomplete.
+Copy for the [ETHGlobal project form](https://ethglobal.com/events/tokyo2026/project). Prepared 2026-09-26 JST from the repository and the signed-in form. The **tagtag** project draft has the name, Gaming category, and 📍 emoji. Project details, images, tech stack, judging choices, and future opportunities were saved in the form. The project has **not** been submitted for judging: the finalist demo video is required and still missing.
 
 ## Create project
 
@@ -38,36 +38,36 @@ The repository also contains a Solidity ERC-721 souvenir contract, Thirdweb embe
 
 | Item | Answer / status |
 | --- | --- |
-| Source code | https://github.com/2manslkh/ethglobal-tokyo-2026 — verify public visibility and push the final commit before submitting. |
+| Source code | https://github.com/2manslkh/ethglobal-tokyo-2026 — selected in the form; the public page returned HTTP 200 on 2026-09-26. Push the final commit before submitting. |
 | Demonstration link | Use the existing [TestFlight invitation](https://testflight.apple.com/join/cUnAbdSY), per the owner's choice. The recorded external build is **Waiting for Review** and predates the latest location and AR changes; keep that limitation visible in the description. |
-| Demo video | To be recorded. The Video step calls it optional, but the project-creation guidelines say it is required if applying for finalist prizes. See [DEMO_VIDEO.md](DEMO_VIDEO.md). |
-| Logo | [logo.png](logo.png), the actual 512×512 app icon. |
-| Cover image / project banner | [cover.png](cover.png), a 1672×941 promotional illustration generated for this submission with the app icon as a Taggi reference. The form recommends 16:9. |
-| Screenshots | Six prepared PNGs in [screenshots/](screenshots/) with provenance in [SCREENSHOTS.md](SCREENSHOTS.md). The form requires **at least three**. Upload only images that accurately match the demonstrated build. |
+| Demo video | To be recorded. The finalist Video step is required and blocks final submission. See [DEMO_VIDEO.md](DEMO_VIDEO.md). |
+| Logo | [logo.png](logo.png), the actual 512×512 app icon; uploaded. |
+| Cover image / project banner | [cover.png](cover.png), a 1672×941 promotional illustration generated for this submission with the app icon as a Taggi reference; uploaded. |
+| Screenshots | [01-login-simulator.png](screenshots/01-login-simulator.png), [02-sticker-book-simulated.png](screenshots/02-sticker-book-simulated.png), and [05-confirm-spot-simulator.png](screenshots/05-confirm-spot-simulator.png) uploaded. Six prepared PNGs and their provenance are in [SCREENSHOTS.md](SCREENSHOTS.md). |
 | Figma | Add a public design link if desired and available; no verified URL was found in the current repo. |
 
-## Form fields still to complete
+## Saved form answers
 
-**Project details:** The form asks for a demonstration link, a short description (maximum 100 characters), description (minimum 280 characters), how it's made (minimum 280 characters), and at least one public GitHub repository selected through the connected GitHub account picker. The copy above meets the text limits. The TestFlight link is not yet a working public demo for the latest build.
+**Project details:** The TestFlight invitation, short description, project description, how-it's-made explanation, and GitHub repository were saved. The TestFlight link does not yet deliver the latest build.
 
-**Tech stack:** Select only values actually offered by each picker. Suggested answers from the source tree:
+**Tech stack:** These were saved in the form. The Sepolia souvenir code is disabled and was disclosed in the project description.
 
-| Question | Draft answer |
+| Question | Saved answer |
 | --- | --- |
-| Ethereum developer tools | Thirdweb embedded wallets and `viem` are present for the disabled Sepolia souvenir path; mark as staging/implemented, not a live integration. |
-| Blockchain networks | Ethereum Sepolia is the target of the disabled NFT path. The current app's core discovery journey does not interact with a chain. |
-| Programming languages | C#, JavaScript, Swift, Objective-C++, Solidity. |
-| Web frameworks | None for the iPhone client; the Node.js API uses built-in HTTP rather than a frontend framework. |
-| Databases | Firestore. |
-| Design tools | Confirm whether Figma was used before selecting it; no current share URL is documented. |
-| Other technologies | Unity, AR Foundation, ARKit, MapKit, Firebase Authentication, Cloud Storage, Google Cloud Run, Sharp. |
-| AI use (free text) | “Codex assisted with C#, native iOS, backend, contract, tests, documentation, and visual review under human direction. OpenAI imagegen created Taggi poses 5–12 from the supplied mascot reference; prompts and provenance are in `docs/mascot/TAGGI_PRESETS.md`. The original four poses and login video were supplied. The submission cover was generated with imagegen from the app icon. Source history, plans, and verification records are public in the repo.” |
+| Ethereum developer tools | None of the listed tools. Thirdweb and `viem` are present only in the disabled staging path. |
+| Blockchain networks | Ethereum (Sepolia is the target network of the disabled souvenir path). |
+| Programming languages | C#, JavaScript, Swift, Solidity, Objective-C, C++. The native bridge uses Objective-C++. |
+| Web frameworks | None. |
+| Databases | Firebase (Firestore). |
+| Design tools | None of the listed tools was verified. |
+| Other technologies | Unity, AR Foundation, ARKit, MapKit, Firebase Authentication, Google Cloud Run, Google Cloud Storage, Sharp. |
+| AI use (free text) | “Codex assisted with C#, native iOS, backend, contract, tests, documentation, and visual review under human direction. OpenAI imagegen created Taggi poses 5–12 from the supplied mascot reference; prompts and provenance are in docs/mascot/TAGGI_PRESETS.md. The original four poses and login video were supplied. The submission cover was generated with imagegen from the app icon. Source history, plans, and verification records are public in the repository.” |
 
-**Future:** Yes — interested in continuing tagtag through grants or accelerators.
+**Future:** Interested in grant programs and accelerator/incubator programs.
 
 ## Partner prizes and judging
 
-The Select prizes step asks for **Building from Scratch** or **Continuity Track**, then **Top 10 Finalist & Partner Prizes** or **Partner Prizes only**. The owner confirmed **Building from Scratch**: all project work began during the event. Choose **Top 10 Finalist & Partner Prizes** to enter main judging, and leave **all partner prizes unselected**. The form permits up to three partners and does not state a minimum. The finalist option was selected in the browser with every partner box unchecked, but the step cannot be saved until earlier required project details, images, and tech stack are complete.
+The saved choices are **Building from Scratch** and **Top 10 Finalist & Partner Prizes**. All partner prize boxes and the optional other-partner-technology picker were left empty. The form permits up to three partners and does not state a minimum.
 
 **Partner prize answer: none.** Leave the partner checkboxes and the optional “other partners' technologies” picker empty. The disabled Sepolia/Thirdweb path does not establish a live partner integration. A 2–4 minute demo video is required for the selected finalist stream.
 
@@ -81,8 +81,9 @@ AI tools assisted implementation, documentation, and visual review. The eight ne
 
 - [x] Confirm the track: Building from Scratch; disclose supplied Taggi assets and video.
 - [x] Create the ETHGlobal project draft and inspect all steps.
-- [ ] Complete required project details, tech stack, and images, then save **Top 10 Finalist & Partner Prizes** with no partner prizes selected.
-- [ ] Verify GitHub is public and final commits are pushed.
+- [x] Complete project details, tech stack, and images; save **Top 10 Finalist & Partner Prizes** with no partner prizes selected.
+- [x] Verify GitHub is public (HTTP 200 on 2026-09-26); push the final submission commit before submitting.
+- [x] Save interest in grants and accelerators.
 - [ ] Record and upload a 2–4 minute demo at 720p or higher, with a human voice and no sped-up footage if seeking finalist prizes.
 - [ ] Replace simulated UI captures with real iPhone captures for claims demonstrated on hardware.
 - [ ] Confirm a working public demo link or provide clear build/run steps.
