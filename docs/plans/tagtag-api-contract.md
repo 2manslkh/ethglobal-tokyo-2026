@@ -35,3 +35,14 @@ Defaults: location ≤30s old and accuracy ≤50m; recovery/collection within 10
 ## Ownership and coordination
 
 UI agent owns UI/Resources art. AR agent owns AR/native/Packages/Editor build. Backend agent owns backend and Firebase config. Coordinator owns Core/Services/Application and docs. Do not run Unity concurrently; coordinator performs combined Unity builds. Do not stage, commit, reset, or revert another worker's changes. Tell coordinator when ready for integration. Deliverables use tagtag branding and preserve required third-party license notices.
+
+## Custom designs
+
+- `GET /v1/designs` returns `{items}` for the signed-in creator's active designs.
+- `POST /v1/designs/prepare` accepts `{operationId,name,kind,imageBytes,width,height}` and returns `{id,uploadUrl,uploadHeaders}`. `kind` is `image`, `ai`, or `polaroid`. PUT a finished PNG using the exact returned headers.
+- `POST /v1/designs/:id/finalize` validates/decode-checks the upload and returns `{design}`. Retrying the same immutable operation cannot replace existing artwork.
+- `DELETE /v1/designs/:id` archives the library entry. Published references retain their artwork.
+- Design DTO: `{id,ownerId,name,kind,width,height,revision,createdAt,artworkUrl,thumbnailUrl}`. URLs expire; refresh the relevant list to renew them.
+- Publication prepare accepts exactly one nonempty `presetId` or `designId`. A custom design must be finalized and owned by the publisher. Dimensions come from the server's validated design.
+- Custom publication/recovery/collection summaries add `{designId,artworkWidth,artworkHeight,artworkUrl,thumbnailUrl}`. Existing preset responses retain their original fields. Removed/blocked content gets no artwork URL. Notes retain existing collection authorization.
+- Design uploads are distinct from AR world-map uploads. Limits: PNG <=5 MiB, longest edge <=1024, thumbnail <=256; 20 creations/day/account, 100 active designs/account.
