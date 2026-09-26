@@ -23,6 +23,16 @@ namespace Tagtag.UI.Tests
             Assert.IsTrue(NftPresentation.ValidRecipient("0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed", wallet));
             Assert.IsFalse(NftPresentation.ValidRecipient("0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAee", wallet));
         }
+
+        [Test]
+        public void ProfileAddressOpensOnlyAValidSepoliaEtherscanPage()
+        {
+            const string address = "0xBC5fc5e8EBd5611DdE4b56C88236F5878E85bACb";
+            Assert.AreEqual("https://sepolia.etherscan.io/address/" + address,
+                NftPresentation.WalletExplorerUrl(address));
+            Assert.IsEmpty(NftPresentation.WalletExplorerUrl("https://example.com"));
+            Assert.IsEmpty(NftPresentation.WalletExplorerUrl(""));
+        }
         [Test]
         public void OldCollectionsRemainReadableWithoutNftFields()
         {

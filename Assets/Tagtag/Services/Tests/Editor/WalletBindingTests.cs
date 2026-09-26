@@ -12,7 +12,7 @@ namespace Tagtag.Services.Tests
         public async Task BindsAnOwnedWalletWithoutPuttingItInTheGameplayBusyState()
         {
             int bindings = 0;
-            var service = new WalletBinding(_ => Task.FromResult(Address), message => Task.FromResult("signature"),
+            var service = new WalletBinding((_, __) => Task.FromResult(Address), message => Task.FromResult("signature"),
                 () => Task.CompletedTask, _ => Task.FromResult(new WalletStatus { enabled = true, chainId = 11155111 }),
                 (address, token) => Task.FromResult(new WalletChallenge { challengeId = "challenge", message = "Bind wallet" }),
                 (challenge, signature, token) => { bindings++; return Task.FromResult(new WalletStatus { enabled = true, address = Address, chainId = 11155111 }); });
@@ -28,7 +28,7 @@ namespace Tagtag.Services.Tests
         {
             var connection = new TaskCompletionSource<string>();
             int bindings = 0, disconnects = 0;
-            var service = new WalletBinding(_ => connection.Task, _ => Task.FromResult("signature"),
+            var service = new WalletBinding((_, __) => connection.Task, _ => Task.FromResult("signature"),
                 () => { disconnects++; return Task.CompletedTask; },
                 _ => Task.FromResult(new WalletStatus { enabled = true, chainId = 11155111 }),
                 (address, token) => { bindings++; return Task.FromResult(new WalletChallenge()); },
@@ -46,7 +46,7 @@ namespace Tagtag.Services.Tests
         [Test]
         public async Task ProviderFailureBecomesRetryableWalletStatus()
         {
-            var service = new WalletBinding(_ => throw new Exception("sensitive provider message"),
+            var service = new WalletBinding((_, __) => throw new Exception("sensitive provider message"),
                 _ => Task.FromResult("signature"), () => Task.CompletedTask,
                 _ => Task.FromResult(new WalletStatus { enabled = true, chainId = 11155111 }),
                 (address, token) => Task.FromResult(new WalletChallenge()),
@@ -60,13 +60,13 @@ namespace Tagtag.Services.Tests
         public async Task BoundWalletMismatchNeverOverwritesTheExistingRecipient()
         {
             int challenges = 0;
-            var service = new WalletBinding(_ => Task.FromResult(Address), _ => Task.FromResult("signature"),
+            var service = new WalletBinding((_, __) => Task.FromResult(Address), _ => Task.FromResult("signature"),
                 () => Task.CompletedTask,
                 _ => Task.FromResult(new WalletStatus { enabled = true, chainId = 11155111, address = "0x2222222222222222222222222222222222222222" }),
                 (address, token) => { challenges++; return Task.FromResult(new WalletChallenge()); },
                 (challenge, signature, token) => Task.FromResult(new WalletStatus()));
             await service.Ensure("collector", () => Task.FromResult("jwt"));
-            Assert.AreEqual("delayed", service.Status);
+            Assert.AreEqual("needsRecovery", service.Status);
             Assert.AreEqual(0, challenges);
         }
 
@@ -74,7 +74,7 @@ namespace Tagtag.Services.Tests
         public async Task DisabledServerDoesNotProvisionAWallet()
         {
             int connections = 0;
-            var service = new WalletBinding(_ => { connections++; return Task.FromResult(Address); },
+            var service = new WalletBinding((_, __) => { connections++; return Task.FromResult(Address); },
                 _ => Task.FromResult("signature"), () => Task.CompletedTask,
                 _ => Task.FromResult(new WalletStatus { enabled = false }),
                 (address, token) => Task.FromResult(new WalletChallenge()),

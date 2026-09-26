@@ -9,7 +9,7 @@ namespace Tagtag.UI
     [DisallowMultipleComponent]
     public sealed partial class TagtagAppView : MonoBehaviour
     {
-        private enum AccountScreen { Overview, SignIn, Authored, DeleteConfirmation }
+        private enum AccountScreen { Overview, SignIn, Authored, Wallet, DeleteConfirmation }
         private enum Sheet { None, Picker, Creator, HomeDesignPreview, DeleteDesign, Note, Collected, Report, Block, Withdraw, ReferencePhoto, Privacy, Terms }
 
         private static readonly Color Paper = new Color32(255, 254, 250, 255);

@@ -3,12 +3,13 @@ using System.Globalization;
 using System.Numerics;
 using System.Threading.Tasks;
 using Newtonsoft.Json.Linq;
+using Nethereum.Signer;
 using Thirdweb;
 using Thirdweb.Unity;
 
 namespace Tagtag.Blockchain
 {
-    public sealed partial class ThirdwebEmbeddedWallet
+    public sealed partial class PhoneSeedWallet
     {
         private const string Erc721TransferAbi =
             "[{\"type\":\"function\",\"name\":\"ownerOf\",\"stateMutability\":\"view\",\"inputs\":[{\"name\":\"tokenId\",\"type\":\"uint256\"}],\"outputs\":[{\"name\":\"owner\",\"type\":\"address\"}]}," +
@@ -26,9 +27,9 @@ namespace Tagtag.Blockchain
                 try
                 {
                     var connectedWallet = await RequireConnectedWallet().ConfigureAwait(false);
-                    var rpc = ThirdwebRPC.GetRpcInstance(connectedWallet.Client, WalletTransferChecks.SepoliaChainId);
+                    var rpc = ThirdwebRPC.GetRpcInstance(client, WalletTransferChecks.SepoliaChainId);
                     await RequireSepolia(rpc).ConfigureAwait(false);
-                    var contract = await ThirdwebContract.Create(connectedWallet.Client, contractAddressChecked,
+                    var contract = await ThirdwebContract.Create(client, contractAddressChecked,
                         WalletTransferChecks.SepoliaChainId, Erc721TransferAbi).ConfigureAwait(false);
                     return await ReadOwner(contract, rpc, token, "finalized").ConfigureAwait(false);
                 }
@@ -54,21 +55,17 @@ namespace Tagtag.Blockchain
             await sessionGate.WaitAsync().ConfigureAwait(false);
             try
             {
-                ThirdwebTransaction transaction;
+                string signedTransaction;
+                ThirdwebRPC rpc;
                 try
                 {
                     var connectedWallet = await RequireConnectedWallet().ConfigureAwait(false);
-                    if (connectedWallet.AccountType != ThirdwebAccountType.PrivateKeyAccount)
-                    {
-                        throw new WalletTransferException("unsupported_wallet", "An embedded EOA is required for transfers.");
-                    }
-
-                    var rpc = ThirdwebRPC.GetRpcInstance(connectedWallet.Client, WalletTransferChecks.SepoliaChainId);
+                    rpc = ThirdwebRPC.GetRpcInstance(client, WalletTransferChecks.SepoliaChainId);
                     await RequireSepolia(rpc).ConfigureAwait(false);
-                    var owner = await connectedWallet.GetAddress().ConfigureAwait(false);
+                    var owner = connectedWallet.GetPublicAddress();
                     WalletTransferChecks.ValidateRecipient(recipient, owner);
 
-                    var contract = await ThirdwebContract.Create(connectedWallet.Client, contractAddressChecked,
+                    var contract = await ThirdwebContract.Create(client, contractAddressChecked,
                         WalletTransferChecks.SepoliaChainId, Erc721TransferAbi).ConfigureAwait(false);
                     var chainOwner = await ReadOwner(contract, rpc, token, "latest").ConfigureAwait(false);
                     if (!string.Equals(chainOwner, owner, StringComparison.OrdinalIgnoreCase))
@@ -76,14 +73,15 @@ namespace Tagtag.Blockchain
                         throw new WalletTransferException("not_owner", "This wallet no longer owns the NFT.");
                     }
 
-                    transaction = await ThirdwebContract.Prepare(connectedWallet, contract, "safeTransferFrom",
-                        BigInteger.Zero, owner, recipient, token).ConfigureAwait(false);
-                    transaction = await ThirdwebTransaction.Prepare(transaction).ConfigureAwait(false);
-
-                    var gasLimit = transaction.Input.Gas?.Value ?? BigInteger.Zero;
-                    var maxFeePerGas = transaction.Input.MaxFeePerGas?.Value ??
-                        transaction.Input.GasPrice?.Value ?? BigInteger.Zero;
-                    if (gasLimit <= 0 || maxFeePerGas <= 0)
+                    string data = contract.CreateCallData("safeTransferFrom", owner, recipient, token);
+                    string gasHex = await rpc.SendRequestAsync<string>("eth_estimateGas",
+                        new { from = owner, to = contractAddressChecked, data }).ConfigureAwait(false);
+                    var gasLimit = WalletTransferChecks.ParseRpcQuantity(gasHex);
+                    // A modest buffer covers state changes between estimation and inclusion.
+                    gasLimit = gasLimit * 120 / 100;
+                    string priceHex = await rpc.SendRequestAsync<string>("eth_gasPrice").ConfigureAwait(false);
+                    var gasPrice = WalletTransferChecks.ParseRpcQuantity(priceHex);
+                    if (gasLimit <= 0 || gasPrice <= 0)
                     {
                         throw new WalletTransferException("provider_error", "Sepolia gas estimation is unavailable.");
                     }
@@ -91,14 +89,26 @@ namespace Tagtag.Blockchain
                     var balanceHex = await rpc.SendRequestAsync<string>("eth_getBalance", owner, "latest")
                         .ConfigureAwait(false);
                     var balanceWei = WalletTransferChecks.ParseRpcQuantity(balanceHex);
-                    WalletTransferChecks.RequireGas(balanceWei, gasLimit * maxFeePerGas);
+                    WalletTransferChecks.RequireGas(balanceWei, gasLimit * gasPrice);
+                    string nonceHex = await rpc.SendRequestAsync<string>("eth_getTransactionCount", owner, "pending")
+                        .ConfigureAwait(false);
+                    var nonce = WalletTransferChecks.ParseRpcQuantity(nonceHex);
+                    byte[] signingKey = connectedWallet.GetPrivateKeyAsBytes();
+                    try
+                    {
+                        signedTransaction = new LegacyTransactionSigner().SignTransaction(signingKey,
+                            WalletTransferChecks.SepoliaChainId, contractAddressChecked,
+                            BigInteger.Zero, nonce, gasPrice, gasLimit, data);
+                    }
+                    finally { Array.Clear(signingKey, 0, signingKey.Length); }
                 }
                 catch (WalletTransferException) { throw; }
                 catch (Exception error) { throw PreflightError(error); }
 
                 try
                 {
-                    var hash = await ThirdwebTransaction.Send(transaction).ConfigureAwait(false);
+                    var hash = await rpc.SendRequestAsync<string>("eth_sendRawTransaction", signedTransaction)
+                        .ConfigureAwait(false);
                     if (string.IsNullOrEmpty(hash))
                     {
                         throw new WalletTransferException("submission_unknown", "Transfer submission is uncertain. Check its status before retrying.");
@@ -138,7 +148,7 @@ namespace Tagtag.Blockchain
             {
                 // Receipt polling is read-only and remains available after
                 // wallet disconnect or Firebase account deletion.
-                var client = wallet?.Client ?? ThirdwebClient.Create(
+                var receiptClient = client ?? ThirdwebClient.Create(
                     clientId: clientId,
                     bundleId: bundleId,
                     httpClient: new CrossPlatformUnityHttpClient(),
@@ -146,7 +156,7 @@ namespace Tagtag.Blockchain
                     sdkOs: platform,
                     sdkPlatform: "unity",
                     sdkVersion: SdkVersion);
-                var rpc = ThirdwebRPC.GetRpcInstance(client, WalletTransferChecks.SepoliaChainId);
+                var rpc = ThirdwebRPC.GetRpcInstance(receiptClient, WalletTransferChecks.SepoliaChainId);
                 await RequireSepolia(rpc).ConfigureAwait(false);
                 var receipt = await rpc.SendRequestAsync<ThirdwebTransactionReceipt>(
                     "eth_getTransactionReceipt", transactionHash).ConfigureAwait(false);
@@ -186,29 +196,13 @@ namespace Tagtag.Blockchain
             }
         }
 
-        private async Task<InAppWallet> RequireConnectedWallet()
+        private Task<EthECKey> RequireConnectedWallet()
         {
             if (wallet == null)
             {
                 throw new WalletTransferException("not_connected", "Connect the wallet before using NFTs.");
             }
-
-            bool isConnected;
-            try
-            {
-                isConnected = await wallet.IsConnected().ConfigureAwait(false);
-            }
-            catch (Exception)
-            {
-                throw new WalletTransferException("provider_error", "Unable to check the wallet connection.");
-            }
-
-            if (!isConnected)
-            {
-                throw new WalletTransferException("not_connected", "Connect the wallet before using NFTs.");
-            }
-
-            return wallet;
+            return Task.FromResult(wallet);
         }
 
         private static async Task RequireSepolia(ThirdwebRPC rpc)

@@ -7,6 +7,15 @@ namespace Tagtag.UI
 {
     public sealed partial class TagtagAppView
     {
+        private void OnApplicationPause(bool paused)
+        {
+            if (!paused) return;
+            revealedWalletPhrase = null;
+            walletRecoveryInput = "";
+            if (walletPhraseLabel != null) walletPhraseLabel.text = "";
+            if (walletRecoveryField != null) walletRecoveryField.SetValueWithoutNotify("");
+            if (accountScreen == AccountScreen.Wallet) QueueRender();
+        }
         private Label accountCollectionCount;
         private Label accountAuthoredCount;
         private VisualElement authoredListHost;
@@ -17,12 +26,19 @@ namespace Tagtag.UI
         private Button deleteButton;
         private PaperField deleteField;
         private Label walletStatusLabel;
+        private Button walletAddressButton;
+        private Label walletPhraseLabel;
+        private PaperField walletRecoveryField;
+        private string revealedWalletPhrase;
+        private string walletRecoveryInput = "";
         private string transferRecipient = "";
         private VisualElement nftTransferHost;
         private readonly PresenterCache nftTransferContents = new PresenterCache();
 
         private void BuildAccount(AppState state)
         {
+            walletStatusLabel = null;
+            walletAddressButton = null;
             VisualElement heading = Row(screenHost);
             heading.style.height = 62f;
             heading.style.paddingLeft = 16f;
@@ -37,11 +53,13 @@ namespace Tagtag.UI
                 }
                 else
                 {
+                    revealedWalletPhrase = null;
+                    walletRecoveryInput = "";
                     accountScreen = AccountScreen.Overview;
                     QueueRender();
                 }
             }, false);
-            Text(heading, accountScreen == AccountScreen.SignIn ? "Sign in" : accountScreen == AccountScreen.Authored ? "Your stickers" : accountScreen == AccountScreen.DeleteConfirmation ? "Delete account" : "Account", 21, true);
+            Text(heading, accountScreen == AccountScreen.SignIn ? "Sign in" : accountScreen == AccountScreen.Authored ? "Your stickers" : accountScreen == AccountScreen.Wallet ? "Your wallet" : accountScreen == AccountScreen.DeleteConfirmation ? "Delete account" : "Account", 21, true);
 
             ScrollView scroll = PaperScroll(screenHost);
             scroll.name = "Account scroll";
@@ -50,6 +68,7 @@ namespace Tagtag.UI
             VisualElement content = scroll.contentContainer;
 
             if (accountScreen == AccountScreen.Authored) BuildAuthored(content, state);
+            else if (accountScreen == AccountScreen.Wallet) BuildWallet(content, state);
             else if (accountScreen == AccountScreen.DeleteConfirmation) BuildDeleteConfirmation(content, state);
             else BuildAccountOverview(content, state);
             AddStatus(content, state);
@@ -58,7 +77,19 @@ namespace Tagtag.UI
 
         private void RefreshAccount(AppState state)
         {
-            if (walletStatusLabel != null) walletStatusLabel.text = NftPresentation.WalletStatus(state);
+            if (walletStatusLabel != null)
+            {
+                walletStatusLabel.text = NftPresentation.WalletStatus(state);
+                walletStatusLabel.style.display = walletAddressButton != null && state.walletStatus == "ready"
+                    ? DisplayStyle.None : DisplayStyle.Flex;
+            }
+            if (walletAddressButton != null)
+            {
+                walletAddressButton.text = state.walletAddress;
+                walletAddressButton.style.display = state.walletStatus == "ready" &&
+                    !string.IsNullOrEmpty(NftPresentation.WalletExplorerUrl(state.walletAddress))
+                    ? DisplayStyle.Flex : DisplayStyle.None;
+            }
             RefreshNftTransferRows(state);
             if (accountCollectionCount != null) accountCollectionCount.text = CollectionPresentation.OrderedDistinct(state.collection).Count.ToString();
             if (accountAuthoredCount != null) accountAuthoredCount.text = state.authored.Count.ToString();
@@ -77,9 +108,15 @@ namespace Tagtag.UI
             {
                 Divider(content);
                 Text(content, "Your souvenir wallet · Sepolia testnet", 17, true);
-                walletStatusLabel = Text(content, NftPresentation.WalletStatus(state), 13, false, Muted);
-                walletStatusLabel.style.marginTop = 6f;
+                BuildWalletAddress(content, state, 13);
                 Text(content, "New discoveries become transferable NFTs. Tagtag covers minting; private notes stay in your book.", 14, false, Muted).style.marginTop = 6f;
+                Action(content, "Back up or restore wallet", () =>
+                {
+                    accountScreen = AccountScreen.Wallet;
+                    QueueRender();
+                }, false).style.marginTop = 10f;
+                if (state.walletStatus == "ready")
+                    Text(content, "Write down your recovery words before changing phones or deleting this account.", 13, false, Muted).style.marginTop = 6f;
             }
             Divider(content);
             VisualElement collection = Row(content);
@@ -108,6 +145,8 @@ namespace Tagtag.UI
             Divider(content);
             Action(content, "Sign out", () =>
             {
+                revealedWalletPhrase = null;
+                walletRecoveryInput = "";
                 controller.SignOut();
                 accountScreen = AccountScreen.SignIn;
             }, false).style.alignSelf = Align.FlexStart;
@@ -119,6 +158,74 @@ namespace Tagtag.UI
                 accountScreen = AccountScreen.DeleteConfirmation;
                 QueueRender();
             }, false).style.marginTop = 9f;
+        }
+
+        private void BuildWalletAddress(VisualElement content, AppState state, int fontSize)
+        {
+            walletStatusLabel = Text(content, NftPresentation.WalletStatus(state), fontSize, false, Muted);
+            walletStatusLabel.style.marginTop = 6f;
+            walletAddressButton = Action(content, state.walletAddress, () =>
+            {
+                string url = NftPresentation.WalletExplorerUrl(controller.State.walletAddress);
+                if (!string.IsNullOrEmpty(url)) Application.OpenURL(url);
+            }, false);
+            walletAddressButton.name = "Wallet Etherscan address";
+            walletAddressButton.tooltip = "View this address on Sepolia Etherscan";
+            walletAddressButton.userData = fontSize;
+            walletAddressButton.style.fontSize = Mathf.RoundToInt(fontSize * textScale);
+            walletAddressButton.style.whiteSpace = WhiteSpace.Normal;
+            walletAddressButton.style.unityTextAlign = TextAnchor.MiddleLeft;
+            walletAddressButton.style.alignSelf = Align.Stretch;
+            walletAddressButton.style.flexShrink = 1f;
+            walletAddressButton.style.paddingLeft = 10f;
+            walletAddressButton.style.marginTop = 6f;
+        }
+
+        private void BuildWallet(VisualElement content, AppState state)
+        {
+            Text(content, "Your souvenir wallet", 27, true).style.marginTop = 22f;
+            Text(content, "Sepolia testnet · NFTs are delivered to this address.", 14, false, Muted).style.marginTop = 5f;
+            BuildWalletAddress(content, state, 14);
+            if (state.walletStatus == "ready")
+            {
+                Text(content, "Your 12 recovery words are the only way to restore this wallet on another phone. Write them down privately and never share them. Anyone with the words can transfer your NFTs.", 15).style.marginTop = 18f;
+                if (revealedWalletPhrase == null)
+                {
+                    Action(content, "Show recovery words", () =>
+                    {
+                        try { revealedWalletPhrase = (controller as IPhoneWalletController)?.RevealWalletPhrase(); }
+                        catch { revealedWalletPhrase = null; }
+                        QueueRender();
+                    }, false).style.marginTop = 14f;
+                }
+                else
+                {
+                    walletPhraseLabel = Text(content, revealedWalletPhrase, 18, true);
+                    walletPhraseLabel.style.marginTop = 14f;
+                    Action(content, "Hide recovery words", () =>
+                    {
+                        revealedWalletPhrase = null;
+                        QueueRender();
+                    }, false).style.marginTop = 12f;
+                }
+            }
+            if (state.walletStatus == "needsRecovery" || state.walletStatus == "delayed")
+            {
+                Text(content, "If you used this account on another phone, enter its 12 recovery words to receive NFTs at the same address. An existing NFT address cannot be replaced.", 15).style.marginTop = 18f;
+                var field = new PaperField("Recovery words", walletRecoveryInput, 256, false,
+                    "Enter all 12 words in order, separated by spaces");
+                walletRecoveryField = field;
+                field.name = "Wallet recovery words";
+                field.isPasswordField = true;
+                field.RegisterValueChangedCallback(evt => walletRecoveryInput = evt.newValue);
+                content.Add(field);
+                Action(content, "Restore wallet", () =>
+                {
+                    (controller as IPhoneWalletController)?.RestoreWalletPhrase(walletRecoveryInput);
+                    walletRecoveryInput = "";
+                    QueueRender();
+                }).style.marginTop = 12f;
+            }
         }
 
         private void BuildAuthored(VisualElement content, AppState state)
