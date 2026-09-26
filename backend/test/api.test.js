@@ -295,6 +295,7 @@ test('discovery requires proximity, valid session and gives one collection acros
         assert.equal((await f.call('POST', `/v1/stickers/${id}/collect`, { discoveryId: recovery.data.discoveryId, location: fix(1_000_000, 35.69) }, 'bob')).status, 403);
         const responses = await Promise.all(Array.from({ length: 5 }, () => f.call('POST', `/v1/stickers/${id}/collect`, { discoveryId: recovery.data.discoveryId, location: fix() }, 'bob')));
         assert.deepEqual(responses.map(x => x.status), [200, 200, 200, 200, 200]);
+        assert.equal(responses.filter(x => x.data.isNew).length, 1);
         assert.equal(responses[0].data.sticker.note, 'The secret note');
         assert.equal((await f.call('GET', '/v1/collection', undefined, 'bob')).data.items.length, 1);
         assert.equal((await f.call('POST', '/v1/nearby', { location: fix() }, null)).data.items.length, 1);
@@ -506,22 +507,23 @@ test('per-instance limiter bounds recovery and reports per user', async () => {
 });
 
 
-test('browsing and recovery accept approximate fixes without relaxing collection or publishing', async () => {
+test('browsing recovery and collection accept measured uncertainty without relaxing publishing', async () => {
     const f = await fixture();
     try {
-        const id = await f.publish();
         for (const accuracyMeters of [75, 500, 2000, 2000.149, 5000]) {
+            const id = await f.publish('alice', `approx-${Math.round(accuracyMeters * 1000)}`);
             const approximate = { ...fix(), accuracyMeters };
             const nearby = await f.call('POST', '/v1/nearby', { location: approximate }, null);
             assert.equal(nearby.status, 200, `Browse with ${accuracyMeters} metre accuracy`);
-            assert.equal(nearby.data.items.length, 1);
+            assert.ok(nearby.data.items.length >= 1);
             assert.equal(nearby.data.items[0].note, undefined);
             const recovery = await f.call('POST', `/v1/stickers/${id}/recover`, { location: approximate }, 'bob');
             assert.equal(recovery.status, 200);
             assert.equal(recovery.data.sticker.note, undefined);
             assert.ok(recovery.data.mapUrl);
-            assert.equal((await f.call('POST', `/v1/stickers/${id}/collect`, { location: approximate, discoveryId: recovery.data.discoveryId }, 'bob')).status, 400);
-            assert.equal((await f.call('POST', `/v1/stickers/${id}/collect`, { location: approximate, discoveryId: 'unused' }, 'bob')).status, 400);
+            assert.equal((await f.call('POST', `/v1/stickers/${id}/collect`, { location: approximate, discoveryId: 'unused' }, 'bob')).status, 403);
+            assert.equal((await f.call('POST', `/v1/stickers/${id}/collect`, { location: approximate, discoveryId: recovery.data.discoveryId }, 'bob')).status, 200);
+            assert.equal((await f.call('POST', `/v1/stickers/${id}/collect`, { location: { ...fix(), accuracyMeters: 5001 }, discoveryId: 'unused' }, 'bob')).status, 400);
         }
         assert.equal((await f.call('POST', '/v1/nearby', { location: { ...fix(), accuracyMeters: 5001 } }, null)).status, 400);
         assert.equal((await f.call('POST', '/v1/nearby', { location: { ...fix(999_969), accuracyMeters: 500 } }, null)).status, 400);
@@ -530,7 +532,7 @@ test('browsing and recovery accept approximate fixes without relaxing collection
 });
 
 
-test('recovery uses measured uncertainty while collection retains precise proximity', async () => {
+test('recovery and collection use measured uncertainty while rejecting false precision', async () => {
     const f = await fixture();
     try {
         const id = await f.publish();
@@ -545,11 +547,10 @@ test('recovery uses measured uncertainty while collection retains precise proxim
         const recovered = await f.call('POST', `/v1/stickers/${id}/recover`, { location: drifted }, 'bob');
         assert.equal(recovered.status, 200);
         const discoveryId = recovered.data.discoveryId;
-        assert.equal((await f.call('POST', `/v1/stickers/${id}/collect`, { discoveryId, location: drifted }, 'bob')).status, 400);
         assert.equal((await f.call('POST', `/v1/stickers/${id}/collect`, {
             discoveryId, location: { ...drifted, accuracyMeters: 8 }
         }, 'bob')).status, 403);
-        assert.equal((await f.call('POST', `/v1/stickers/${id}/collect`, { discoveryId, location: fix() }, 'bob')).status, 200);
+        assert.equal((await f.call('POST', `/v1/stickers/${id}/collect`, { discoveryId, location: drifted }, 'bob')).status, 200);
     } finally { await f.close(); }
 });
 

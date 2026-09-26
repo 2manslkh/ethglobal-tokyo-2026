@@ -472,21 +472,21 @@ export function createApi({ adapter, now = () => Math.floor(Date.now() / 1000), 
 
             if (method === 'POST' && segments[1] === 'stickers' && segments[3] === 'collect' && segments.length === 4) {
                 const data = await bodyJson(request);
-                const point = location(data.location);
+                const point = location(data.location, RECOVERY_MAX_ACCURACY_METERS);
                 const discoveryId = text(data.discoveryId, 128, 'discoveryId');
                 const id = segments[2];
                 const collectionId = digest(`${user.uid}\0${id}`);
-                const collectedAt = await adapter.transaction(async tx => {
+                const outcome = await adapter.transaction(async tx => {
                     if ((await tx.get('accounts', user.uid))?.deleted) denied();
                     const sticker = await tx.get('stickers', id);
                     if (!sticker) missing();
                     if (await tx.get('blocks', digest(`${user.uid}\0${sticker.authorId}`))) denied();
                     const existing = await tx.get('collections', collectionId);
-                    if (existing) return existing.collectedAt;
+                    if (existing) return { collectedAt: existing.collectedAt, isNew: false };
                     if (sticker.status !== 'published') missing();
                     const discovery = await tx.get('discoveries', discoveryId);
                     if (!discovery || discovery.userId !== user.uid || discovery.stickerId !== id || discovery.expiresAt < now()) denied();
-                    if (distanceMeters(point, sticker) > 100) denied();
+                    if (distanceMeters(point, sticker) > data.location.accuracyMeters + 100) denied();
                     const timestamp = now();
                     const wallet = nft.enabled ? await tx.get('wallets', user.uid) : null;
                     await tx.set('collections', collectionId, { id: collectionId, userId: user.uid, stickerId: id, collectedAt: timestamp });
@@ -502,9 +502,9 @@ export function createApi({ adapter, now = () => Math.floor(Date.now() / 1000), 
                             recipient: wallet?.address || '', state: wallet ? 'queued' : 'waiting',
                             createdAt: timestamp, nextAttemptAt: timestamp, attempts: 0, transactionHash: '' });
                     }
-                    return timestamp;
+                    return { collectedAt: timestamp, isNew: true };
                 });
-                return send(response, 200, { sticker: await collected(user.uid, id, collectedAt) });
+                return send(response, 200, { sticker: await collected(user.uid, id, outcome.collectedAt), isNew: outcome.isNew });
             }
 
             if (method === 'GET' && path === '/v1/collection') {
