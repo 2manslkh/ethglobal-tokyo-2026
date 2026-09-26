@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<test-run id="2" testcasecount="1" result="Passed" total="1" passed="1" failed="0" inconclusive="0" skipped="0" asserts="0" engine-version="3.5.0.0" clr-version="4.0.30319.42000" start-time="2026-09-26 03:57:09Z" end-time="2026-09-26 03:57:14Z" duration="4.9791707">
+  <test-suite type="TestSuite" id="1038" name="tagtag" fullname="tagtag" runstate="Runnable" testcasecount="22" result="Passed" start-time="2026-09-26 03:57:09Z" end-time="2026-09-26 03:57:14Z" duration="4.979171" total="1" passed="1" failed="0" inconclusive="0" skipped="0" asserts="0">
+    <properties>
+      <property name="platform" value="PlayMode" />
+    </properties>
+    <test-suite type="Assembly" id="1033" name="Tagtag.Startup.Tests.dll" fullname="/Users/kenk/Desktop/ethglobal-tokyo-2026/Library/ScriptAssemblies/Tagtag.Startup.Tests.dll" runstate="Runnable" testcasecount="17" result="Passed" start-time="2026-09-26 03:57:09Z" end-time="2026-09-26 03:57:14Z" duration="4.974389" total="1" passed="1" failed="0" inconclusive="0" skipped="0" asserts="0">
+      <properties>
+        <property name="_PID" value="73125" />
+        <property name="_APPDOMAIN" value="Unity Child Domain" />
+        <property name="platform" value="PlayMode" />
+        <property name="EditorOnly" value="False" />
+      </properties>
+      <test-suite type="TestSuite" id="1034" name="Tagtag" fullname="Tagtag" runstate="Runnable" testcasecount="17" result="Passed" start-time="2026-09-26 03:57:09Z" end-time="2026-09-26 03:57:14Z" duration="4.973835" total="1" passed="1" failed="0" inconclusive="0" skipped="0" asserts="0">
+        <properties />
+        <test-suite type="TestSuite" id="1035" name="Tests" fullname="Tagtag.Tests" runstate="Runnable" testcasecount="17" result="Passed" start-time="2026-09-26 03:57:09Z" end-time="2026-09-26 03:57:14Z" duration="4.973427" total="1" passed="1" failed="0" inconclusive="0" skipped="0" asserts="0">
+          <properties />
+          <test-suite type="TestFixture" id="1023" name="PaperVisualTests" fullname="Tagtag.Tests.PaperVisualTests" classname="Tagtag.Tests.PaperVisualTests" runstate="Runnable" testcasecount="7" result="Passed" start-time="2026-09-26 03:57:09Z" end-time="2026-09-26 03:57:14Z" duration="4.972338" total="1" passed="1" failed="0" inconclusive="0" skipped="0" asserts="0">
+            <properties />
+            <test-case id="1030" name="MyStickersShowsSourcesAndSavedArtwork" fullname="Tagtag.Tests.PaperVisualTests.MyStickersShowsSourcesAndSavedArtwork" methodname="MyStickersShowsSourcesAndSavedArtwork" classname="Tagtag.Tests.PaperVisualTests" runstate="Runnable" seed="301441992" result="Passed" start-time="2026-09-26 03:57:09Z" end-time="2026-09-26 03:57:14Z" duration="4.962835" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+              <output><![CDATA[Paper UI capture: /var/folders/_r/65qcktj96mgb6y7948nn9g9m0000gn/T/tagtag/tagtag/tagtag-paper-review/my-stickers-sources.png
+Paper UI capture: /var/folders/_r/65qcktj96mgb6y7948nn9g9m0000gn/T/tagtag/tagtag/tagtag-paper-review/my-stickers-save-error.png
+Paper UI capture: /var/folders/_r/65qcktj96mgb6y7948nn9g9m0000gn/T/tagtag/tagtag/tagtag-paper-review/my-stickers-pending-save.png
+Saving results to: /tmp/tagtag-creator-save.xml
+]]></output>
+            </test-case>
+          </test-suite>
+        </test-suite>
+      </test-suite>
+    </test-suite>
+  </test-suite>
+</test-run>

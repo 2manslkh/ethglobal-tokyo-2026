@@ -12,3 +12,9 @@ Approved: illustrated Upload/Photo/Imagine creator tiles; conditional messages; 
 ## Acceptance
 
 Short creation labels below artwork; readable at compact/large text; pending-save recovery preserved; My designs closes creation and navigates to Home designs; native return remains creator. Four-stage state-driven indicator uses real tracking/anchor/map data without synthetic percentage. Stable plane-local translucent yellow pencil hatching, proper boundary clipping and lifecycle. Library/save errors do not leak into Write note. Verify affected Unity/backend suites, deployed authenticated design flow, then fresh signed install and focused device guide.
+
+## Integration evidence
+
+Coordinator executed cloud changes to avoid agent sandbox approval delays. API revision `tagtag-api-00003-75l` serves all traffic; both design indexes are ready and the cleanup job uses the identical image. NFT minting remains disabled. Synthetic authenticated verification stopped at IAM signing HTTP 403 before account creation; no IAM change was made. Production authenticated creation remains a device/manual check.
+
+Initial combined verification: 174/174 Edit Mode, 21/21 graphics Play Mode, backend 68 passed/1 emulator-only skipped. A follow-up compact creator capture and complete PaperVisual suite passed 7/7. Captures and XML are in `docs/verification/creator-scan/`. Coordinator reviewed the creator, compact enlarged text, scan indicator, and hatch rendering captures.

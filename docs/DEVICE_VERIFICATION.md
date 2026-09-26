@@ -251,3 +251,19 @@ Verification: Unity Edit Mode **134/134**, graphics Play Mode **10/10**, backend
 Unity graphics-enabled Play Mode verification covers the Collected/My designs switch, sorted private designs, preview/placement/removal, failed operations, account changes, artwork recovery, and session scroll/page continuity. Standard and compact/large-text layouts were inspected; [Home screenshots](screenshots/home-library/home-collected-empty.png) use deterministic test content.
 
 Physical-device verification for this update is **pending**. On an iPhone, check Home at normal and larger text sizes, create/save a design, open it from My designs, place it in AR, return to the same gallery, then cancel and confirm design removal. Verify saved copies remain in collections and sign-out clears private designs. Do not treat editor tests as proof of native creation or AR handoff.
+
+## Creator and scan update — 2026-09-26
+
+Source through `5fb423a` adds illustrated Upload/Photo/Imagine choices, Home My designs navigation, save confirmation, design-specific errors, four real AR scan stages, and translucent yellow pencil-hatched surface polygons. The existing Photo/Polaroid editor remains.
+
+- [Edit Mode](verification/creator-scan/tagtag-creator-edit.xml): **174/174 passed**.
+- [Graphics Play Mode](verification/creator-scan/tagtag-creator-play.xml): **21/21 passed**, including hatch rendering and Home/Paper UI suites.
+- [Compact creator follow-up](verification/creator-scan/tagtag-creator-compact.xml): **7/7 PaperVisual tests passed**; [320-pixel enlarged-text capture](verification/creator-scan/creator-compact-largest.png) inspected for tile bounds and labels.
+- [Save confirmation regression](verification/creator-scan/tagtag-creator-save.xml): **1/1 passed** after the final UI fix.
+- Backend `npm test`: **68 passed, 1 emulator-only skipped**, no failures. Log: `/tmp/tagtag-creator-backend.log`.
+- [Hatch capture](verification/creator-scan/tagtag-plane-hatch-render.png) verifies clipping to a concave polygon, transparency and stroke variation in the editor. [Scan indicator capture](verification/creator-scan/camera-surface-ready.png) uses simulated camera state.
+- Production API revision `tagtag-api-00003-75l` now serves 100% of traffic. Both design indexes are ready; cleanup uses the matching image. NFT minting remains disabled. Synthetic authenticated smoke could not proceed because IAM signing returned HTTP 403; no synthetic account was created. Authenticated creation and publication remain pending device checks.
+- Final separate ARKit preparation, Unity iOS export, and automatically signed Xcode Debug build succeeded. The exported player includes the hatch shader/material and all three creator illustrations. Logs: `/tmp/tagtag-creator-final-prepare.log`, `/tmp/tagtag-creator-final-export.log`, `/tmp/tagtag-creator-final-xcode.log`.
+- Installed over the existing app on **Dawg., iPhone 15 Pro Max**, UDID `00008130-001420500E41001C`, using CoreDevice; installation and launch of `com.kenk.tagtag` both exited 0. No uninstall or data reset. Logs: `/tmp/tagtag-creator-final-install.log`, `/tmp/tagtag-creator-final-launch.log`. This establishes installation and launch, not interactive device acceptance.
+
+Follow the [device test guide](CREATOR_SCAN_TEST_GUIDE.md). Native creation, Apple Intelligence, real AR tracking, and end-to-end publication are **not yet verified** for this revision.
