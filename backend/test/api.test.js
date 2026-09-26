@@ -326,17 +326,28 @@ test('blocks, withdrawal, moderation and deletion revoke appropriate access', as
     } finally { await f.close(); }
 });
 
-test('blocked author is hidden from nearby and recovery; daily publication quota allows 100', async () => {
+test('blocked author is hidden from nearby and recovery', async () => {
     const f = await fixture();
     try {
         const id = await f.publish();
         await f.call('POST', '/v1/blocks', { authorId: 'alice' }, 'bob');
         assert.equal((await f.call('POST', '/v1/nearby', { location: fix() }, 'bob')).data.items.length, 0);
         assert.equal((await f.call('POST', `/v1/stickers/${id}/recover`, { location: fix() }, 'bob')).status, 403);
-        const [quota] = await f.adapter.query('quotas');
-        await f.adapter.set('quotas', quota.id, { ...quota, count: 99 });
-        assert.equal((await f.call('POST', '/v1/publications/prepare', draft('op-one-hundred'))).status, 200);
-        assert.equal((await f.call('POST', '/v1/publications/prepare', draft('op-one-hundred-one'))).status, 429);
+
+    } finally { await f.close(); }
+});
+
+test('daily publication quota allows 100 new preparations and retries but rejects 101', async () => {
+    const f = await fixture();
+    try {
+        for (let n = 1; n <= 100; n++) {
+            assert.equal((await f.call('POST', '/v1/publications/prepare', draft(`op-${n}`))).status, 200, `Publication ${n}`);
+        }
+        assert.equal((await f.call('POST', '/v1/publications/prepare', draft('op-100'))).status, 200);
+        const rejected = await f.call('POST', '/v1/publications/prepare', draft('op-101'));
+        assert.equal(rejected.status, 429);
+        assert.equal(rejected.data.error.code, 'quota_exceeded');
+        assert.equal((await f.call('POST', '/v1/publications/prepare', draft('op-1'), 'bob')).status, 200);
     } finally { await f.close(); }
 });
 
