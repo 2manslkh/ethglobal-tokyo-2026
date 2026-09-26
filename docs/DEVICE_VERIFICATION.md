@@ -438,3 +438,23 @@ finalization 927 ms. No location timeout occurred in this attempt. This verifies
 one physical publication; it does not establish performance across environments
 or verify two-device recovery/collection. The filtered stage log is
 [publication stages](verification/location-confirmation/device-publish.log).
+
+## Sticker celebration — 2026-09-26
+
+Added the artwork-led reward after completed publication and new AR collection.
+The action immediately returns to the camera or opens the collected note.
+
+- Unity Edit Mode: **214/214 passed**.
+- Graphics-enabled app Play Mode: **30/30 passed**, including seven celebration
+  tests for input blocking, refresh, account changes, enlarged text, interruption,
+  remount, and custom-artwork recovery.
+- iOS haptic bridge: Objective-C++ syntax check passed against the iPhoneOS SDK.
+- Independent code and visual review accepted the fixes; six actual Unity
+  captures and XML results are in [celebration verification](verification/celebration/README.md).
+
+These captures use simulated controller/AR state. No physical iPhone checks or
+full iOS app build were performed for this feature. Native haptic feel, real AR
+transitions, network artwork recovery, and the added collection membership read
+remain device checks. The existing API cannot distinguish a simultaneous first
+collection on another device between the membership read and collect request;
+that race remains an explicit limitation without a backend wire change.

@@ -1,0 +1,339 @@
+<?xml version="1.0" encoding="utf-8"?>
+<test-run id="2" testcasecount="30" result="Passed" total="30" passed="30" failed="0" inconclusive="0" skipped="0" asserts="0" engine-version="3.5.0.0" clr-version="4.0.30319.42000" start-time="2026-09-26 06:56:21Z" end-time="2026-09-26 06:57:51Z" duration="90.1217279">
+  <test-suite type="TestSuite" id="1052" name="tagtag" fullname="tagtag" runstate="Runnable" testcasecount="35" result="Passed" start-time="2026-09-26 06:56:21Z" end-time="2026-09-26 06:57:51Z" duration="90.121728" total="30" passed="30" failed="0" inconclusive="0" skipped="0" asserts="0">
+    <properties>
+      <property name="platform" value="PlayMode" />
+    </properties>
+    <test-suite type="Assembly" id="1047" name="Tagtag.Startup.Tests.dll" fullname="/private/tmp/tagtag-celebration/Library/ScriptAssemblies/Tagtag.Startup.Tests.dll" runstate="Runnable" testcasecount="30" result="Passed" start-time="2026-09-26 06:56:21Z" end-time="2026-09-26 06:57:51Z" duration="90.115333" total="30" passed="30" failed="0" inconclusive="0" skipped="0" asserts="0">
+      <properties>
+        <property name="_PID" value="56207" />
+        <property name="_APPDOMAIN" value="Unity Child Domain" />
+        <property name="platform" value="PlayMode" />
+        <property name="EditorOnly" value="False" />
+      </properties>
+      <test-suite type="TestSuite" id="1048" name="Tagtag" fullname="Tagtag" runstate="Runnable" testcasecount="30" result="Passed" start-time="2026-09-26 06:56:21Z" end-time="2026-09-26 06:57:51Z" duration="90.114956" total="30" passed="30" failed="0" inconclusive="0" skipped="0" asserts="0">
+        <properties />
+        <test-suite type="TestSuite" id="1049" name="Tests" fullname="Tagtag.Tests" runstate="Runnable" testcasecount="30" result="Passed" start-time="2026-09-26 06:56:21Z" end-time="2026-09-26 06:57:51Z" duration="90.114619" total="30" passed="30" failed="0" inconclusive="0" skipped="0" asserts="0">
+          <properties />
+          <test-suite type="TestFixture" id="1013" name="CelebrationVisualTests" fullname="Tagtag.Tests.CelebrationVisualTests" classname="Tagtag.Tests.CelebrationVisualTests" runstate="Runnable" testcasecount="7" result="Passed" start-time="2026-09-26 06:56:21Z" end-time="2026-09-26 06:56:32Z" duration="10.428739" total="7" passed="7" failed="0" inconclusive="0" skipped="0" asserts="0">
+            <properties />
+            <test-case id="1017" name="AccountChangeRemovesRewardAndFailureDoesNotCreateOne" fullname="Tagtag.Tests.CelebrationVisualTests.AccountChangeRemovesRewardAndFailureDoesNotCreateOne" methodname="AccountChangeRemovesRewardAndFailureDoesNotCreateOne" classname="Tagtag.Tests.CelebrationVisualTests" runstate="Runnable" seed="459516912" result="Passed" start-time="2026-09-26 06:56:21Z" end-time="2026-09-26 06:56:22Z" duration="1.123545" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1016" name="CompactEnlargedRewardsKeepActionVisibleAndReducedArtworkSettled" fullname="Tagtag.Tests.CelebrationVisualTests.CompactEnlargedRewardsKeepActionVisibleAndReducedArtworkSettled" methodname="CompactEnlargedRewardsKeepActionVisibleAndReducedArtworkSettled" classname="Tagtag.Tests.CelebrationVisualTests" runstate="Runnable" seed="539951443" result="Passed" start-time="2026-09-26 06:56:22Z" end-time="2026-09-26 06:56:25Z" duration="2.134956" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1019" name="CustomArtworkRevealsOnlyWhenAvailableAndNeverBlocksContinue" fullname="Tagtag.Tests.CelebrationVisualTests.CustomArtworkRevealsOnlyWhenAvailableAndNeverBlocksContinue" methodname="CustomArtworkRevealsOnlyWhenAvailableAndNeverBlocksContinue" classname="Tagtag.Tests.CelebrationVisualTests" runstate="Runnable" seed="895599630" result="Passed" start-time="2026-09-26 06:56:25Z" end-time="2026-09-26 06:56:26Z" duration="1.776830" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1014" name="FoundRewardWaitsForUserThenOpensNoteWithoutReplay" fullname="Tagtag.Tests.CelebrationVisualTests.FoundRewardWaitsForUserThenOpensNoteWithoutReplay" methodname="FoundRewardWaitsForUserThenOpensNoteWithoutReplay" classname="Tagtag.Tests.CelebrationVisualTests" runstate="Runnable" seed="557816605" result="Passed" start-time="2026-09-26 06:56:26Z" end-time="2026-09-26 06:56:28Z" duration="1.763776" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1020" name="InterruptionSettlesMotionWithoutDismissingOrReplaying" fullname="Tagtag.Tests.CelebrationVisualTests.InterruptionSettlesMotionWithoutDismissingOrReplaying" methodname="InterruptionSettlesMotionWithoutDismissingOrReplaying" classname="Tagtag.Tests.CelebrationVisualTests" runstate="Runnable" seed="1339762182" result="Passed" start-time="2026-09-26 06:56:28Z" end-time="2026-09-26 06:56:29Z" duration="1.053520" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1015" name="PlacedRewardBlocksCameraAndReturnsToItOnContinue" fullname="Tagtag.Tests.CelebrationVisualTests.PlacedRewardBlocksCameraAndReturnsToItOnContinue" methodname="PlacedRewardBlocksCameraAndReturnsToItOnContinue" classname="Tagtag.Tests.CelebrationVisualTests" runstate="Runnable" seed="160037452" result="Passed" start-time="2026-09-26 06:56:29Z" end-time="2026-09-26 06:56:30Z" duration="1.061712" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1018" name="RemountedRewardKeepsNormalMotionStarsFinished" fullname="Tagtag.Tests.CelebrationVisualTests.RemountedRewardKeepsNormalMotionStarsFinished" methodname="RemountedRewardKeepsNormalMotionStarsFinished" classname="Tagtag.Tests.CelebrationVisualTests" runstate="Runnable" seed="28819316" result="Passed" start-time="2026-09-26 06:56:30Z" end-time="2026-09-26 06:56:32Z" duration="1.507364" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+          </test-suite>
+          <test-suite type="TestFixture" id="1021" name="HomeLibraryVisualTests" fullname="Tagtag.Tests.HomeLibraryVisualTests" classname="Tagtag.Tests.HomeLibraryVisualTests" runstate="Runnable" testcasecount="13" result="Passed" start-time="2026-09-26 06:56:32Z" end-time="2026-09-26 06:57:03Z" duration="31.698310" total="13" passed="13" failed="0" inconclusive="0" skipped="0" asserts="0">
+            <properties />
+            <test-case id="1029" name="AccountChangeClearsPrivatePreviewAndSignedOutDesigns" fullname="Tagtag.Tests.HomeLibraryVisualTests.AccountChangeClearsPrivatePreviewAndSignedOutDesigns" methodname="AccountChangeClearsPrivatePreviewAndSignedOutDesigns" classname="Tagtag.Tests.HomeLibraryVisualTests" runstate="Runnable" seed="1223288684" result="Passed" start-time="2026-09-26 06:56:32Z" end-time="2026-09-26 06:56:34Z" duration="2.120552" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1031" name="BookPageAndDesignScrollSurviveSwitchingAndNavigation" fullname="Tagtag.Tests.HomeLibraryVisualTests.BookPageAndDesignScrollSurviveSwitchingAndNavigation" methodname="BookPageAndDesignScrollSurviveSwitchingAndNavigation" classname="Tagtag.Tests.HomeLibraryVisualTests" runstate="Runnable" seed="412188470" result="Passed" start-time="2026-09-26 06:56:34Z" end-time="2026-09-26 06:56:39Z" duration="4.930877" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1030" name="CompactLargeTextKeepsHeaderAndGalleryWithinScreen" fullname="Tagtag.Tests.HomeLibraryVisualTests.CompactLargeTextKeepsHeaderAndGalleryWithinScreen" methodname="CompactLargeTextKeepsHeaderAndGalleryWithinScreen" classname="Tagtag.Tests.HomeLibraryVisualTests" runstate="Runnable" seed="1226031861" result="Passed" start-time="2026-09-26 06:56:39Z" end-time="2026-09-26 06:56:40Z" duration="1.418502" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1022" name="EmptyBookKeepsIllustratedActionInDesignsAndChangesOnCollection" fullname="Tagtag.Tests.HomeLibraryVisualTests.EmptyBookKeepsIllustratedActionInDesignsAndChangesOnCollection" methodname="EmptyBookKeepsIllustratedActionInDesignsAndChangesOnCollection" classname="Tagtag.Tests.HomeLibraryVisualTests" runstate="Runnable" seed="15981197" result="Passed" start-time="2026-09-26 06:56:40Z" end-time="2026-09-26 06:56:42Z" duration="1.764514" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1032" name="FailedRemovalKeepsDesignAndAllowsRetry" fullname="Tagtag.Tests.HomeLibraryVisualTests.FailedRemovalKeepsDesignAndAllowsRetry" methodname="FailedRemovalKeepsDesignAndAllowsRetry" classname="Tagtag.Tests.HomeLibraryVisualTests" runstate="Runnable" seed="918014981" result="Passed" start-time="2026-09-26 06:56:42Z" end-time="2026-09-26 06:56:45Z" duration="2.809037" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1033" name="GalleryArtworkNoticesStillUpdateAfterPreviewCloses" fullname="Tagtag.Tests.HomeLibraryVisualTests.GalleryArtworkNoticesStillUpdateAfterPreviewCloses" methodname="GalleryArtworkNoticesStillUpdateAfterPreviewCloses" classname="Tagtag.Tests.HomeLibraryVisualTests" runstate="Runnable" seed="293484733" result="Passed" start-time="2026-09-26 06:56:45Z" end-time="2026-09-26 06:56:47Z" duration="2.109117" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1023" name="OwnSavedDesignsAreSortedAndRemainVisibleDuringRefresh" fullname="Tagtag.Tests.HomeLibraryVisualTests.OwnSavedDesignsAreSortedAndRemainVisibleDuringRefresh" methodname="OwnSavedDesignsAreSortedAndRemainVisibleDuringRefresh" classname="Tagtag.Tests.HomeLibraryVisualTests" runstate="Runnable" seed="2088989855" result="Passed" start-time="2026-09-26 06:56:47Z" end-time="2026-09-26 06:56:49Z" duration="2.477240" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1034" name="PendingPlacementKeepsPreviewUntilSuccessOrRetry" fullname="Tagtag.Tests.HomeLibraryVisualTests.PendingPlacementKeepsPreviewUntilSuccessOrRetry" methodname="PendingPlacementKeepsPreviewUntilSuccessOrRetry" classname="Tagtag.Tests.HomeLibraryVisualTests" runstate="Runnable" seed="1094218822" result="Passed" start-time="2026-09-26 06:56:49Z" end-time="2026-09-26 06:56:52Z" duration="2.457669" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1026" name="PlacedTabLoadsNextPageNearScrollEndOnlyOncePerCursor" fullname="Tagtag.Tests.HomeLibraryVisualTests.PlacedTabLoadsNextPageNearScrollEndOnlyOncePerCursor" methodname="PlacedTabLoadsNextPageNearScrollEndOnlyOncePerCursor" classname="Tagtag.Tests.HomeLibraryVisualTests" runstate="Runnable" seed="180182327" result="Passed" start-time="2026-09-26 06:56:52Z" end-time="2026-09-26 06:56:55Z" duration="3.155364" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1024" name="PlacedTabShowsActiveLocationsNewestFirstAndOpensExplore" fullname="Tagtag.Tests.HomeLibraryVisualTests.PlacedTabShowsActiveLocationsNewestFirstAndOpensExplore" methodname="PlacedTabShowsActiveLocationsNewestFirstAndOpensExplore" classname="Tagtag.Tests.HomeLibraryVisualTests" runstate="Runnable" seed="632844398" result="Passed" start-time="2026-09-26 06:56:55Z" end-time="2026-09-26 06:56:56Z" duration="1.413070" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1025" name="PlacedTabShowsLoadingRetryAndLoginAfterSessionLoss" fullname="Tagtag.Tests.HomeLibraryVisualTests.PlacedTabShowsLoadingRetryAndLoginAfterSessionLoss" methodname="PlacedTabShowsLoadingRetryAndLoginAfterSessionLoss" classname="Tagtag.Tests.HomeLibraryVisualTests" runstate="Runnable" seed="428891217" result="Passed" start-time="2026-09-26 06:56:56Z" end-time="2026-09-26 06:56:58Z" duration="1.755282" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1028" name="PreviewPrecedesPlacementAndRemovalReturnsToGallery" fullname="Tagtag.Tests.HomeLibraryVisualTests.PreviewPrecedesPlacementAndRemovalReturnsToGallery" methodname="PreviewPrecedesPlacementAndRemovalReturnsToGallery" classname="Tagtag.Tests.HomeLibraryVisualTests" runstate="Runnable" seed="1396330156" result="Passed" start-time="2026-09-26 06:56:58Z" end-time="2026-09-26 06:57:02Z" duration="3.868858" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1027" name="SelectedCameraArtworkSitsAboveDockAndOpensPicker" fullname="Tagtag.Tests.HomeLibraryVisualTests.SelectedCameraArtworkSitsAboveDockAndOpensPicker" methodname="SelectedCameraArtworkSitsAboveDockAndOpensPicker" classname="Tagtag.Tests.HomeLibraryVisualTests" runstate="Runnable" seed="1664082882" result="Passed" start-time="2026-09-26 06:57:02Z" end-time="2026-09-26 06:57:03Z" duration="1.415252" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+          </test-suite>
+          <test-suite type="TestFixture" id="1035" name="PaperVisualTests" fullname="Tagtag.Tests.PaperVisualTests" classname="Tagtag.Tests.PaperVisualTests" runstate="Runnable" testcasecount="9" result="Passed" start-time="2026-09-26 06:57:03Z" end-time="2026-09-26 06:57:51Z" duration="47.620584" total="9" passed="9" failed="0" inconclusive="0" skipped="0" asserts="0">
+            <properties />
+            <test-case id="1038" name="ButtonPointerStatesKeepBordersAndContentsStationary" fullname="Tagtag.Tests.PaperVisualTests.ButtonPointerStatesKeepBordersAndContentsStationary" methodname="ButtonPointerStatesKeepBordersAndContentsStationary" classname="Tagtag.Tests.PaperVisualTests" runstate="Runnable" seed="1426451505" result="Passed" start-time="2026-09-26 06:57:03Z" end-time="2026-09-26 06:57:09Z" duration="5.264770" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+              <output><![CDATA[Paper UI capture: /var/folders/_r/65qcktj96mgb6y7948nn9g9m0000gn/T/tagtag/tagtag/tagtag-paper-review/buttons-default.png
+Paper UI capture: /var/folders/_r/65qcktj96mgb6y7948nn9g9m0000gn/T/tagtag/tagtag/tagtag-paper-review/buttons-hover.png
+Paper UI capture: /var/folders/_r/65qcktj96mgb6y7948nn9g9m0000gn/T/tagtag/tagtag/tagtag-paper-review/buttons-pressed.png
+Paper UI capture: /var/folders/_r/65qcktj96mgb6y7948nn9g9m0000gn/T/tagtag/tagtag/tagtag-paper-review/buttons-focused.png
+]]></output>
+            </test-case>
+            <test-case id="1039" name="CameraInventoryFlowUsesFullScreenAndExplicitPlacement" fullname="Tagtag.Tests.PaperVisualTests.CameraInventoryFlowUsesFullScreenAndExplicitPlacement" methodname="CameraInventoryFlowUsesFullScreenAndExplicitPlacement" classname="Tagtag.Tests.PaperVisualTests" runstate="Runnable" seed="674022738" result="Passed" start-time="2026-09-26 06:57:09Z" end-time="2026-09-26 06:57:15Z" duration="6.509256" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+              <output><![CDATA[Paper UI capture: /var/folders/_r/65qcktj96mgb6y7948nn9g9m0000gn/T/tagtag/tagtag/tagtag-paper-review/camera-fullscreen-preparing.png
+Paper UI capture: /var/folders/_r/65qcktj96mgb6y7948nn9g9m0000gn/T/tagtag/tagtag/tagtag-paper-review/camera-fullscreen-idle.png
+Paper UI capture: /var/folders/_r/65qcktj96mgb6y7948nn9g9m0000gn/T/tagtag/tagtag/tagtag-paper-review/camera-inventory.png
+Paper UI capture: /var/folders/_r/65qcktj96mgb6y7948nn9g9m0000gn/T/tagtag/tagtag/tagtag-paper-review/camera-create-sticker.png
+Paper UI capture: /var/folders/_r/65qcktj96mgb6y7948nn9g9m0000gn/T/tagtag/tagtag/tagtag-paper-review/camera-inventory-return.png
+Paper UI capture: /var/folders/_r/65qcktj96mgb6y7948nn9g9m0000gn/T/tagtag/tagtag/tagtag-paper-review/camera-finding-surface.png
+Paper UI capture: /var/folders/_r/65qcktj96mgb6y7948nn9g9m0000gn/T/tagtag/tagtag/tagtag-paper-review/camera-surface-ready.png
+Paper UI capture: /var/folders/_r/65qcktj96mgb6y7948nn9g9m0000gn/T/tagtag/tagtag/tagtag-paper-review/camera-adjusting-preview.png
+Paper UI capture: /var/folders/_r/65qcktj96mgb6y7948nn9g9m0000gn/T/tagtag/tagtag/tagtag-paper-review/camera-note-after-placement.png
+]]></output>
+            </test-case>
+            <test-case id="1040" name="CapturesPaperScreensAndRecoveryStates" fullname="Tagtag.Tests.PaperVisualTests.CapturesPaperScreensAndRecoveryStates" methodname="CapturesPaperScreensAndRecoveryStates" classname="Tagtag.Tests.PaperVisualTests" runstate="Runnable" seed="526216838" result="Passed" start-time="2026-09-26 06:57:15Z" end-time="2026-09-26 06:57:38Z" duration="22.893587" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+              <output><![CDATA[Paper UI capture: /var/folders/_r/65qcktj96mgb6y7948nn9g9m0000gn/T/tagtag/tagtag/tagtag-paper-review/home-empty.png
+Paper UI capture: /var/folders/_r/65qcktj96mgb6y7948nn9g9m0000gn/T/tagtag/tagtag/tagtag-paper-review/home-populated.png
+Paper UI capture: /var/folders/_r/65qcktj96mgb6y7948nn9g9m0000gn/T/tagtag/tagtag/tagtag-paper-review/collected-long-note.png
+Paper UI capture: /var/folders/_r/65qcktj96mgb6y7948nn9g9m0000gn/T/tagtag/tagtag/tagtag-paper-review/collected-revoked-after-sync.png
+Paper UI capture: /var/folders/_r/65qcktj96mgb6y7948nn9g9m0000gn/T/tagtag/tagtag/tagtag-paper-review/account.png
+Paper UI capture: /var/folders/_r/65qcktj96mgb6y7948nn9g9m0000gn/T/tagtag/tagtag/tagtag-paper-review/authored-empty.png
+Paper UI capture: /var/folders/_r/65qcktj96mgb6y7948nn9g9m0000gn/T/tagtag/tagtag/tagtag-paper-review/authored-populated.png
+Paper UI capture: /var/folders/_r/65qcktj96mgb6y7948nn9g9m0000gn/T/tagtag/tagtag/tagtag-paper-review/withdraw-confirmation.png
+Paper UI capture: /var/folders/_r/65qcktj96mgb6y7948nn9g9m0000gn/T/tagtag/tagtag/tagtag-paper-review/delete-disabled.png
+Paper UI capture: /var/folders/_r/65qcktj96mgb6y7948nn9g9m0000gn/T/tagtag/tagtag/tagtag-paper-review/delete-error-focused.png
+Paper UI capture: /var/folders/_r/65qcktj96mgb6y7948nn9g9m0000gn/T/tagtag/tagtag/tagtag-paper-review/sign-in.png
+Paper UI capture: /var/folders/_r/65qcktj96mgb6y7948nn9g9m0000gn/T/tagtag/tagtag/tagtag-paper-review/camera-preparing.png
+Paper UI capture: /var/folders/_r/65qcktj96mgb6y7948nn9g9m0000gn/T/tagtag/tagtag/tagtag-paper-review/camera-denied.png
+Paper UI capture: /var/folders/_r/65qcktj96mgb6y7948nn9g9m0000gn/T/tagtag/tagtag/tagtag-paper-review/camera-interrupted.png
+Paper UI capture: /var/folders/_r/65qcktj96mgb6y7948nn9g9m0000gn/T/tagtag/tagtag/tagtag-paper-review/camera-unavailable.png
+Paper UI capture: /var/folders/_r/65qcktj96mgb6y7948nn9g9m0000gn/T/tagtag/tagtag/tagtag-paper-review/camera-live-guidance.png
+Paper UI capture: /var/folders/_r/65qcktj96mgb6y7948nn9g9m0000gn/T/tagtag/tagtag/tagtag-paper-review/camera-discovery.png
+Paper UI capture: /var/folders/_r/65qcktj96mgb6y7948nn9g9m0000gn/T/tagtag/tagtag/tagtag-paper-review/pose-picker.png
+Paper UI capture: /var/folders/_r/65qcktj96mgb6y7948nn9g9m0000gn/T/tagtag/tagtag/tagtag-paper-review/note-empty-disabled.png
+Paper UI capture: /var/folders/_r/65qcktj96mgb6y7948nn9g9m0000gn/T/tagtag/tagtag/tagtag-paper-review/note-long-focused.png
+Paper UI capture: /var/folders/_r/65qcktj96mgb6y7948nn9g9m0000gn/T/tagtag/tagtag/tagtag-paper-review/note-busy-error.png
+Paper UI capture: /var/folders/_r/65qcktj96mgb6y7948nn9g9m0000gn/T/tagtag/tagtag/tagtag-paper-review/publish-readiness-map-blocked.png
+Paper UI capture: /var/folders/_r/65qcktj96mgb6y7948nn9g9m0000gn/T/tagtag/tagtag/tagtag-paper-review/sign-out-login.png
+Paper UI capture: /var/folders/_r/65qcktj96mgb6y7948nn9g9m0000gn/T/tagtag/tagtag/tagtag-paper-review/explore-empty.png
+Paper UI capture: /var/folders/_r/65qcktj96mgb6y7948nn9g9m0000gn/T/tagtag/tagtag/tagtag-paper-review/explore-location-loading.png
+Paper UI capture: /var/folders/_r/65qcktj96mgb6y7948nn9g9m0000gn/T/tagtag/tagtag/tagtag-paper-review/explore-teaser.png
+Paper UI capture: /var/folders/_r/65qcktj96mgb6y7948nn9g9m0000gn/T/tagtag/tagtag/tagtag-paper-review/explore-error.png
+Paper UI capture: /var/folders/_r/65qcktj96mgb6y7948nn9g9m0000gn/T/tagtag/tagtag/tagtag-paper-review/home-compact-largest-reduced-motion.png
+Paper UI capture: /var/folders/_r/65qcktj96mgb6y7948nn9g9m0000gn/T/tagtag/tagtag/tagtag-paper-review/account-compact-largest-reduced-motion.png
+Paper UI capture: /var/folders/_r/65qcktj96mgb6y7948nn9g9m0000gn/T/tagtag/tagtag/tagtag-paper-review/explore-compact-largest-long-clue.png
+Compact geometry Compact paper visual review-container unity-ui-document__root,paper-app,reduced-motion bounds=(x:0.00, y:0.00, width:390.00, height:692.25)
+Compact geometry   bounds=(x:0.00, y:0.00, width:390.00, height:692.25)
+Compact geometry   bounds=(x:0.00, y:0.00, width:390.00, height:594.75)
+Compact geometry   bounds=(x:0.00, y:594.75, width:390.00, height:97.50)
+Compact geometry   bounds=(x:0.00, y:0.00, width:390.00, height:594.75)
+Compact geometry Native MapKit region  bounds=(x:0.00, y:103.59, width:390.00, height:241.31)
+Compact geometry Explore teaser scroll unity-scroll-view,unity-scroll-view--scroll,unity-scroll-view--vertical,paper-scroll bounds=(x:0.00, y:344.91, width:390.00, height:249.84)
+Compact geometry  paper-nav bounds=(x:0.00, y:594.75, width:390.00, height:97.50)
+Compact geometry Tab Explore unity-text-element,unity-button,paper-button,quiet,paper-nav-item,nav-selected bounds=(x:258.38, y:600.84, width:112.13, height:84.09)
+Paper UI capture: /var/folders/_r/65qcktj96mgb6y7948nn9g9m0000gn/T/tagtag/tagtag/tagtag-paper-review/note-compact-largest-reduced-motion.png
+Paper UI capture: /var/folders/_r/65qcktj96mgb6y7948nn9g9m0000gn/T/tagtag/tagtag/tagtag-paper-review/camera-compact-largest-reduced-motion.png
+Paper UI capture: /var/folders/_r/65qcktj96mgb6y7948nn9g9m0000gn/T/tagtag/tagtag/tagtag-paper-review/inventory-compact-largest-reduced-motion.png
+Paper UI capture: /var/folders/_r/65qcktj96mgb6y7948nn9g9m0000gn/T/tagtag/tagtag/tagtag-paper-review/publish-settings-compact-largest.png
+Paper UI capture: /var/folders/_r/65qcktj96mgb6y7948nn9g9m0000gn/T/tagtag/tagtag/tagtag-paper-review/publish-settings-compact-scrolled.png
+Paper UI capture: /var/folders/_r/65qcktj96mgb6y7948nn9g9m0000gn/T/tagtag/tagtag/tagtag-paper-review/camera-discovery-compact-largest.png
+Paper UI capture: /var/folders/_r/65qcktj96mgb6y7948nn9g9m0000gn/T/tagtag/tagtag/tagtag-paper-review/camera-recovery-compact-Preparing.png
+Paper UI capture: /var/folders/_r/65qcktj96mgb6y7948nn9g9m0000gn/T/tagtag/tagtag/tagtag-paper-review/camera-recovery-compact-PermissionDenied.png
+Paper UI capture: /var/folders/_r/65qcktj96mgb6y7948nn9g9m0000gn/T/tagtag/tagtag/tagtag-paper-review/camera-recovery-compact-PermissionDenied-action.png
+Paper UI capture: /var/folders/_r/65qcktj96mgb6y7948nn9g9m0000gn/T/tagtag/tagtag/tagtag-paper-review/camera-recovery-compact-Interrupted.png
+Paper UI capture: /var/folders/_r/65qcktj96mgb6y7948nn9g9m0000gn/T/tagtag/tagtag/tagtag-paper-review/camera-recovery-compact-Interrupted-action.png
+Paper UI capture: /var/folders/_r/65qcktj96mgb6y7948nn9g9m0000gn/T/tagtag/tagtag/tagtag-paper-review/camera-recovery-compact-Unavailable.png
+]]></output>
+            </test-case>
+            <test-case id="1041" name="CompactLargeTextCreatorTilesKeepLabelsAndArtworkInsideTheirBounds" fullname="Tagtag.Tests.PaperVisualTests.CompactLargeTextCreatorTilesKeepLabelsAndArtworkInsideTheirBounds" methodname="CompactLargeTextCreatorTilesKeepLabelsAndArtworkInsideTheirBounds" classname="Tagtag.Tests.PaperVisualTests" runstate="Runnable" seed="919293179" result="Passed" start-time="2026-09-26 06:57:38Z" end-time="2026-09-26 06:57:39Z" duration="0.809073" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+              <output><![CDATA[Paper UI capture: /var/folders/_r/65qcktj96mgb6y7948nn9g9m0000gn/T/tagtag/tagtag/tagtag-paper-review/creator-compact-largest.png
+]]></output>
+            </test-case>
+            <test-case id="1037" name="LocationSettingsRecoveryPreservesTheNoteAndShowsPublishProgress" fullname="Tagtag.Tests.PaperVisualTests.LocationSettingsRecoveryPreservesTheNoteAndShowsPublishProgress" methodname="LocationSettingsRecoveryPreservesTheNoteAndShowsPublishProgress" classname="Tagtag.Tests.PaperVisualTests" runstate="Runnable" seed="1656490594" result="Passed" start-time="2026-09-26 06:57:39Z" end-time="2026-09-26 06:57:41Z" duration="1.625533" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+              <output><![CDATA[Paper UI capture: /var/folders/_r/65qcktj96mgb6y7948nn9g9m0000gn/T/tagtag/tagtag/tagtag-paper-review/publish-precise-location-settings.png
+Paper UI capture: /var/folders/_r/65qcktj96mgb6y7948nn9g9m0000gn/T/tagtag/tagtag/tagtag-paper-review/publish-upload-progress.png
+]]></output>
+            </test-case>
+            <test-case id="1043" name="LoginSupportsRetryCompactTextAndReducedMotion" fullname="Tagtag.Tests.PaperVisualTests.LoginSupportsRetryCompactTextAndReducedMotion" methodname="LoginSupportsRetryCompactTextAndReducedMotion" classname="Tagtag.Tests.PaperVisualTests" runstate="Runnable" seed="1357967546" result="Passed" start-time="2026-09-26 06:57:41Z" end-time="2026-09-26 06:57:42Z" duration="1.653600" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+              <output><![CDATA[Paper UI capture: /var/folders/_r/65qcktj96mgb6y7948nn9g9m0000gn/T/tagtag/tagtag/tagtag-paper-review/login-compact-large-text.png
+Paper UI capture: /var/folders/_r/65qcktj96mgb6y7948nn9g9m0000gn/T/tagtag/tagtag/tagtag-paper-review/login-privacy.png
+Paper UI capture: /var/folders/_r/65qcktj96mgb6y7948nn9g9m0000gn/T/tagtag/tagtag/tagtag-paper-review/login-terms.png
+Paper UI capture: /var/folders/_r/65qcktj96mgb6y7948nn9g9m0000gn/T/tagtag/tagtag/tagtag-paper-review/login-retry.png
+]]></output>
+            </test-case>
+            <test-case id="1044" name="LoginVideoLoopsPausesFallsBackAndReleasesResources" fullname="Tagtag.Tests.PaperVisualTests.LoginVideoLoopsPausesFallsBackAndReleasesResources" methodname="LoginVideoLoopsPausesFallsBackAndReleasesResources" classname="Tagtag.Tests.PaperVisualTests" runstate="Runnable" seed="1088740284" result="Passed" start-time="2026-09-26 06:57:42Z" end-time="2026-09-26 06:57:43Z" duration="0.744756" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+              <output><![CDATA[Paper UI capture: /var/folders/_r/65qcktj96mgb6y7948nn9g9m0000gn/T/tagtag/tagtag/tagtag-paper-review/login-video.png
+Login background unavailable; using poster. Simulated decoder failure
+]]></output>
+            </test-case>
+            <test-case id="1042" name="MyStickersShowsSourcesAndSavedArtwork" fullname="Tagtag.Tests.PaperVisualTests.MyStickersShowsSourcesAndSavedArtwork" methodname="MyStickersShowsSourcesAndSavedArtwork" classname="Tagtag.Tests.PaperVisualTests" runstate="Runnable" seed="1844502129" result="Passed" start-time="2026-09-26 06:57:43Z" end-time="2026-09-26 06:57:48Z" duration="4.835987" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+              <output><![CDATA[Paper UI capture: /var/folders/_r/65qcktj96mgb6y7948nn9g9m0000gn/T/tagtag/tagtag/tagtag-paper-review/my-stickers-sources.png
+Paper UI capture: /var/folders/_r/65qcktj96mgb6y7948nn9g9m0000gn/T/tagtag/tagtag/tagtag-paper-review/my-stickers-save-error.png
+Paper UI capture: /var/folders/_r/65qcktj96mgb6y7948nn9g9m0000gn/T/tagtag/tagtag/tagtag-paper-review/my-stickers-pending-save.png
+]]></output>
+            </test-case>
+            <test-case id="1036" name="NftStatusUpdatesWithoutReplacingPrivateNotes" fullname="Tagtag.Tests.PaperVisualTests.NftStatusUpdatesWithoutReplacingPrivateNotes" methodname="NftStatusUpdatesWithoutReplacingPrivateNotes" classname="Tagtag.Tests.PaperVisualTests" runstate="Runnable" seed="1058740272" result="Passed" start-time="2026-09-26 06:57:48Z" end-time="2026-09-26 06:57:51Z" duration="3.271856" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+              <output><![CDATA[Paper UI capture: /var/folders/_r/65qcktj96mgb6y7948nn9g9m0000gn/T/tagtag/tagtag/tagtag-paper-review/nft-home.png
+Paper UI capture: /var/folders/_r/65qcktj96mgb6y7948nn9g9m0000gn/T/tagtag/tagtag/tagtag-paper-review/nft-pending.png
+Paper UI capture: /var/folders/_r/65qcktj96mgb6y7948nn9g9m0000gn/T/tagtag/tagtag/tagtag-paper-review/nft-confirmed.png
+Paper UI capture: /var/folders/_r/65qcktj96mgb6y7948nn9g9m0000gn/T/tagtag/tagtag/tagtag-paper-review/nft-wallet.png
+Paper UI capture: /var/folders/_r/65qcktj96mgb6y7948nn9g9m0000gn/T/tagtag/tagtag/tagtag-paper-review/nft-transfer-out.png
+Paper UI capture: /var/folders/_r/65qcktj96mgb6y7948nn9g9m0000gn/T/tagtag/tagtag/tagtag-paper-review/nft-transfer-pending.png
+Paper UI capture: /var/folders/_r/65qcktj96mgb6y7948nn9g9m0000gn/T/tagtag/tagtag/tagtag-paper-review/nft-deletion-fallback.png
+]]></output>
+            </test-case>
+          </test-suite>
+          <test-suite type="TestFixture" id="1045" name="StartupTests" fullname="Tagtag.Tests.StartupTests" classname="Tagtag.Tests.StartupTests" runstate="Runnable" testcasecount="1" result="Passed" start-time="2026-09-26 06:57:51Z" end-time="2026-09-26 06:57:51Z" duration="0.365805" total="1" passed="1" failed="0" inconclusive="0" skipped="0" asserts="0">
+            <properties />
+            <test-case id="1046" name="EntrySceneRendersLoginOnFirstLaunch" fullname="Tagtag.Tests.StartupTests.EntrySceneRendersLoginOnFirstLaunch" methodname="EntrySceneRendersLoginOnFirstLaunch" classname="Tagtag.Tests.StartupTests" runstate="Runnable" seed="688106110" result="Passed" start-time="2026-09-26 06:57:51Z" end-time="2026-09-26 06:57:51Z" duration="0.364595" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+              <output><![CDATA[tagtag startup screenshot: /var/folders/_r/65qcktj96mgb6y7948nn9g9m0000gn/T/tagtag/tagtag/tagtag-startup.png
+Saving results to: /tmp/tagtag-celebration-play-final.xml
+]]></output>
+            </test-case>
+          </test-suite>
+        </test-suite>
+      </test-suite>
+    </test-suite>
+  </test-suite>
+</test-run>
