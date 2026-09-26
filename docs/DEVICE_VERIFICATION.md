@@ -539,3 +539,17 @@ transitions, network artwork recovery, and the added collection membership read
 remain device checks. The existing API cannot distinguish a simultaneous first
 collection on another device between the membership read and collect request;
 that race remains an explicit limitation without a backend wire change.
+
+## Stick Camera controls — 2026-09-26
+
+Built source `27bdb15` with Unity 6000.5.5f1 after a separate ARKit preparation
+invocation. The iOS export and automatically signed Debug Xcode build succeeded;
+`codesign --verify --deep --strict` passed. Logs are
+`/tmp/tagtag-stick-device-prepare.log`, `/tmp/tagtag-stick-device-export.log`, and
+`/tmp/tagtag-stick-device-xcode.log`.
+
+Installed `com.kenk.tagtag` on Dawg. (iPhone 15 Pro Max, iOS 26.6.1) through
+`devicectl`, then launched it successfully. This verifies build, installation,
+and launch only. Physical checks of the centered STICK control, stage ring, and
+real AR placement remain pending. Automated UI evidence and screenshots are in
+[Stick Camera verification](verification/stick-camera/README.md).
