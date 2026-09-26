@@ -10,7 +10,7 @@ namespace Tagtag.UI
     public sealed partial class TagtagAppView : MonoBehaviour
     {
         private enum AccountScreen { Overview, SignIn, Authored, DeleteConfirmation }
-        private enum Sheet { None, Picker, Creator, HomeDesignPreview, DeleteDesign, Note, Collected, Report, Block, Withdraw, ReferencePhoto }
+        private enum Sheet { None, Picker, Creator, HomeDesignPreview, DeleteDesign, Note, Collected, Report, Block, Withdraw, ReferencePhoto, Privacy, Terms }
 
         private static readonly Color Paper = new Color32(255, 254, 250, 255);
         private static readonly Color Ink = new Color32(32, 32, 30, 255);
@@ -334,12 +334,14 @@ namespace Tagtag.UI
 
             AppState state = controller.State;
             bool loginRequired = !SignedIn(state);
+            statusBarBacking.style.display = loginRequired ? DisplayStyle.None : DisplayStyle.Flex;
             if (loginRequired)
             {
-                sheet = Sheet.None;
+                if (!IsLegalSheet) sheet = Sheet.None;
                 AbandonSignInReturn();
                 controller.Map?.Hide();
             }
+            if (!loginRequired && IsLegalSheet) sheet = Sheet.None;
             SyncHomeIdentity(state);
             SyncDeleteDesign(state);
             SyncHomePlacement(state);
@@ -456,7 +458,7 @@ namespace Tagtag.UI
             {
                 overlayHost.Clear();
                 artworkNotices.RemoveAll(notice => notice.status.panel == null);
-                bool hideCreationSheet = loginRequired || state.accountOpen &&
+                bool hideCreationSheet = loginRequired && !IsLegalSheet || state.accountOpen &&
                     (sheet == Sheet.Picker || sheet == Sheet.Creator || sheet == Sheet.DeleteDesign);
                 if (sheet != Sheet.None && !hideCreationSheet) BuildSheet(state);
                 else

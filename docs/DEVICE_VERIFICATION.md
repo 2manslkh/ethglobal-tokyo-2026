@@ -1,5 +1,32 @@
 # Device verification
 
+## Login refresh — 2026-09-26
+
+Replaced the login background with the supplied `loading-screen-sticker.mp4`,
+removed the header backing, footer fade and explanatory copy, and added the
+existing tagline. Privacy Policy and Terms & Conditions links open in-app sheets
+with copy drafted from the current app behavior. Login no longer has a scroll
+view; only the modal content scrolls.
+
+- The compact-layout regression failed before the fix because login contained a
+  ScrollView (`/tmp/tagtag-login-refresh-red.xml`).
+- Edit Mode: **208/208 passed**, `/tmp/tagtag-login-refresh-edit.xml`.
+- Paper UI Play Mode: **9/9 passed**, `/tmp/tagtag-login-refresh-full-play.xml`.
+  Coverage includes compact enlarged text, transparent sections, visible controls,
+  opening and closing both legal sheets while signed out, retry, reduced motion,
+  silent video looping, interruption and decoder fallback.
+- Native simulator export and unsigned Xcode build: **BUILD SUCCEEDED**.
+  Build logs: `/private/tmp/tagtag-login-refresh-review/`.
+- Inspected native [iPhone](verification/login-refresh/iphone.png) and
+  [compact iPhone](verification/login-refresh/compact.png) captures. Unity captures
+  show [enlarged text](verification/login-refresh/login-compact-large-text.png),
+  [Privacy Policy](verification/login-refresh/login-privacy.png),
+  [Terms & Conditions](verification/login-refresh/login-terms.png), and
+  [retry](verification/login-refresh/login-retry.png).
+
+No physical iPhone installation or provider authentication was performed for this
+refresh. Legal copy is an initial product draft, not a claim of legal review.
+
 ## Find in AR camera startup — 2026-09-26
 
 The controller now opens the camera before acquiring discovery-grade GPS and

@@ -87,13 +87,11 @@
 
 /* Login owns its provider styling independently of the paper action buttons. */
 .login-backdrop { position:absolute; left:0; right:0; top:0; bottom:0; background-size:cover; background-position:center; }
-.login-header { min-height:62px; flex-shrink:0; align-items:center; justify-content:center; background-color:rgba(255,254,250,0.94); }
-.login-scroll { flex-grow:1; }
-.login-content { justify-content:flex-end; }
-.login-actions { flex-shrink:0; padding:24px 24px 20px; }
-.login-fade { position:absolute; left:0; right:0; top:-100px; bottom:-50px; }
-.login-title { margin:0 0 8px; }
-.login-explanation { margin:0 0 24px; }
+.login-header { flex-shrink:0; align-items:center; justify-content:center; padding:16px 24px 0; background-color:transparent; }
+.login-header .unity-label { -unity-text-align:middle-center; margin:0; }
+.login-tagline { margin-top:8px; }
+.login-space { flex-grow:1; flex-shrink:1; min-height:0; }
+.login-actions { flex-shrink:0; padding:12px 24px 12px; background-color:transparent; }
 .login-provider { min-height:52px; margin:0; padding:12px 16px; border-width:1px; border-radius:8px; flex-direction:row; align-items:center; justify-content:center; flex-shrink:0; }
 .login-provider.auth-provider-apple { background-color:#000000; border-color:#000000; color:#ffffff; margin-bottom:12px; }
 .login-provider.auth-provider-google { background-color:#ffffff; border-color:#747775; color:#1f1f1f; }
@@ -106,3 +104,8 @@
 .auth-provider-google .login-provider-logo { height:20px; }
 .login-provider-label { margin:0; padding:0; white-space:normal; flex-shrink:1; -unity-text-align:middle-center; -unity-font-style:normal; }
 .login-status { margin:12px 0 0; white-space:normal; }
+
+.login-legal { flex-direction:row; flex-wrap:wrap; justify-content:center; margin-top:8px; flex-shrink:0; }
+.login-legal-link { background-color:transparent; border-width:0; border-radius:4px; color:#20201e; min-height:44px; margin:0; padding:8px; white-space:normal; -unity-text-align:middle-center; }
+.login-legal-link:hover,.login-legal-link:focus { background-color:rgba(32,32,30,0.08); }
+.login-legal-link:active { background-color:rgba(32,32,30,0.16); }

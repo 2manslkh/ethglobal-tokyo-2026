@@ -887,7 +887,34 @@ namespace Tagtag.Tests
             Assert.That(root.Q<Button>("Action Back"), Is.Null);
             Assert.That(root.Q<Button>("Tab Home"), Is.Null);
             Assert.That(root.Q(className: "paper-notice"), Is.Null);
-            Assert.That(root.Q("Login header").Query<Label>().ToList().Single().text, Is.EqualTo("Tagtag"));
+            Assert.That(root.Query<ScrollView>().ToList(), Is.Empty, "Sign-in must fit without scrolling.");
+            Assert.That(root.Q("Login header").Query<Label>().ToList().Any(label => label.text == "Tagtag"), Is.True);
+            Assert.That(root.Q<Label>("Login tagline").text, Is.EqualTo("Find your places,\nCollect your moments"));
+            Assert.That(root.Q("Login header").resolvedStyle.backgroundColor.a, Is.Zero);
+            Assert.That(root.Q("Login actions").resolvedStyle.backgroundColor.a, Is.Zero);
+            Assert.That(root.Q(className: "login-fade"), Is.Null);
+            foreach (var button in root.Query<Button>().ToList())
+            {
+                Assert.That(button.worldBound.yMin, Is.GreaterThanOrEqualTo(root.worldBound.yMin));
+                Assert.That(button.worldBound.yMax, Is.LessThanOrEqualTo(root.worldBound.yMax));
+            }
+            foreach (string title in new[] { "Privacy Policy", "Terms & Conditions" })
+            {
+                var link = root.Q<Button>("Login " + title);
+                Assert.That(link, Is.Not.Null);
+                Assert.That(link.worldBound.yMin, Is.GreaterThanOrEqualTo(google.worldBound.yMax));
+                Submit("Login " + title);
+                yield return null; yield return null;
+                var legalSheet = root.Q<PaperSheet>();
+                Assert.That(legalSheet, Is.Not.Null, "Legal information must open before sign-in.");
+                Assert.That(legalSheet.Q<Label>(className: "sheet-title").text, Is.EqualTo(title));
+                Assert.That(legalSheet.Scroll.Query<Label>().ToList().Count, Is.GreaterThan(5));
+                yield return Capture(title == "Privacy Policy" ? "login-privacy" : "login-terms");
+                Submit("Close");
+                yield return null; yield return null;
+                Assert.That(root.Q<PaperSheet>(), Is.Null);
+                Assert.That(root.Query<ScrollView>().ToList(), Is.Empty);
+            }
             Assert.That(host.GetComponent<UnityEngine.Video.VideoPlayer>(), Is.Null, "Reduced motion must not decode video.");
             Assert.That(apple.worldBound.width, Is.EqualTo(google.worldBound.width).Within(1f));
             Assert.That(apple.resolvedStyle.height, Is.GreaterThanOrEqualTo(52));

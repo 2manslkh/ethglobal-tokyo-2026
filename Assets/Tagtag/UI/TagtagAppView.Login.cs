@@ -18,34 +18,69 @@ namespace Tagtag.UI
             loginPlayback = gameObject.AddComponent<LoginBackdrop>();
             loginPlayback.Mount(loginBackdrop, reducedMotion);
 
-            var header = Row(screenHost);
+            var header = Column(screenHost);
             header.name = "Login header";
             header.AddToClassList("login-header");
             Text(header, "Tagtag", 29, true);
 
-            var scroll = PaperScroll(screenHost);
-            scroll.name = "Login scroll";
-            scroll.AddToClassList("login-scroll");
-            scroll.contentContainer.AddToClassList("login-content");
-            // A viewport minimum makes short content bottom-aligned, while large text can scroll.
-            scroll.contentViewport.RegisterCallback<GeometryChangedEvent>(evt =>
-                scroll.contentContainer.style.minHeight = evt.newRect.height);
-            var footer = Column(scroll.contentContainer);
+            var tagline = Text(header, "Find your places,\nCollect your moments", 18);
+            tagline.name = "Login tagline";
+            tagline.AddToClassList("login-tagline");
+
+            var space = new VisualElement { pickingMode = PickingMode.Ignore };
+            space.AddToClassList("login-space");
+            screenHost.Add(space);
+            var footer = Column(screenHost);
             footer.name = "Login actions";
             footer.AddToClassList("login-actions");
-            var fade = new VisualElement { pickingMode = PickingMode.Ignore };
-            fade.AddToClassList("login-fade");
-            fade.generateVisualContent += context => DrawLoginFade(context, fade.contentRect);
-            footer.Add(fade);
-            Text(footer, "Keep the stickers you find", 29, true).AddToClassList("login-title");
-            Text(footer, "Sign in to leave a sticker or add one to your book. Your collection follows this account.", 16)
-                .AddToClassList("login-explanation");
             appleSignInButton = LoginProvider(footer, "apple", "Continue with Apple");
             googleSignInButton = LoginProvider(footer, "google", "Continue with Google");
+            var legal = Row(footer);
+            legal.name = "Login legal links";
+            legal.AddToClassList("login-legal");
+            LoginLegalLink(legal, "Privacy Policy", Sheet.Privacy);
+            LoginLegalLink(legal, "Terms & Conditions", Sheet.Terms);
             loginMessage = Text(footer, "", 14);
             loginMessage.name = "Login status";
             loginMessage.AddToClassList("login-status");
             RefreshLogin(state);
+        }
+
+        private bool IsLegalSheet => sheet == Sheet.Privacy || sheet == Sheet.Terms;
+
+        private void LoginLegalLink(VisualElement parent, string caption, Sheet destination)
+        {
+            var button = new Button(() => { sheet = destination; Render(); })
+                { name = "Login " + caption, text = caption, tooltip = caption, userData = 12 };
+            button.AddToClassList("login-legal-link");
+            parent.Add(button);
+        }
+
+        private void BuildLegalContent(VisualElement parent)
+        {
+            Text(parent, "Last updated 26 September 2026", 13, color: Muted);
+            if (sheet == Sheet.Privacy)
+            {
+                LegalSection(parent, "Your account", "tagtag uses Apple or Google sign-in and Firebase Authentication to identify your account and keep your sticker collection associated with it.");
+                LegalSection(parent, "Location and camera", "Your location is sent to the service to find nearby stickers and check placement and collection requests. Published stickers have a location visible to other users. Camera access supports AR placement and discovery. Publishing uploads a saved AR map and a still photo of the spot so others can find it.");
+                LegalSection(parent, "What you share", "Sticker artwork, place names and teasers are visible to other users. A sticker’s note is revealed to users who complete discovery and collect it. Do not publish sensitive information or images of people without permission. Photo imports upload the finished sticker artwork, rather than the original source photo.");
+                LegalSection(parent, "Storage and service providers", "Account records, stickers, notes, saved maps, artwork and collections are processed using Google Firebase and Google Cloud services. Collections and unfinished drafts may also be cached on your device. Reports and block preferences support moderation.");
+                LegalSection(parent, "Your choices", "You can manage camera and location permissions in iOS Settings. Account controls let you withdraw published stickers and delete your account. Withdrawal leaves existing collected copies available; account deletion removes your account’s content through the service’s deletion process.");
+            }
+            else
+            {
+                LegalSection(parent, "Using tagtag", "Use tagtag responsibly to leave and discover stickers in places you are allowed to visit. Stay aware of your surroundings while using the camera. Never trespass, enter restricted areas or put yourself or others at risk to reach a sticker.");
+                LegalSection(parent, "Your content", "Only share content you own or have permission to use. You allow tagtag to store and display the content you publish so the app can provide placement, discovery and collection. Do not publish unlawful, abusive, harassing or misleading content, or someone else’s private information.");
+                LegalSection(parent, "Sharing and moderation", "Published artwork, locations and teasers can be seen by other users, and collected notes can be read by their collectors. Withdrawing a sticker does not remove existing collected copies. Content can be reported, and reported content may be removed through moderation.");
+                LegalSection(parent, "Availability", "Location accuracy, camera tracking, network access and recognizable surroundings affect discovery. Sticker visibility and successful recovery are not guaranteed. Features may change as the app develops.");
+                LegalSection(parent, "Your account", "Keep access to your sign-in account secure. You can stop using tagtag at any time and request account deletion from the account controls.");
+            }
+        }
+
+        private void LegalSection(VisualElement parent, string title, string body)
+        {
+            Text(parent, title, 18, true).style.marginTop = 18f;
+            Text(parent, body, 15).style.marginTop = 6f;
         }
 
         private Button LoginProvider(VisualElement parent, string provider, string caption)
@@ -90,18 +125,5 @@ namespace Tagtag.UI
             loginMessage = null;
         }
 
-        private static void DrawLoginFade(MeshGenerationContext context, Rect rect)
-        {
-            if (rect.width <= 0 || rect.height <= 0) return;
-            var mesh = context.Allocate(6, 12);
-            for (int row = 0; row < 3; row++)
-            {
-                float y = row == 0 ? 0 : row == 1 ? 100 : rect.height;
-                Color32 tint = new Color(1f, 254f / 255f, 250f / 255f, row == 0 ? 0 : .97f);
-                mesh.SetNextVertex(new Vertex { position = new Vector3(0, y, Vertex.nearZ), tint = tint });
-                mesh.SetNextVertex(new Vertex { position = new Vector3(rect.width, y, Vertex.nearZ), tint = tint });
-            }
-            foreach (ushort index in new ushort[] { 0, 1, 2, 1, 3, 2, 2, 3, 4, 3, 5, 4 }) mesh.SetNextIndex(index);
-        }
     }
 }

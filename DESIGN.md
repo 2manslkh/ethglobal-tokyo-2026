@@ -213,12 +213,18 @@ sticker, reveal the full note, and collect a copy.
 ### Login
 
 Sign-in is required before entering Home, STICK, or Explore. Login has a centered
-“Tagtag” header and the supplied portrait video playing silently behind the screen.
-Use a still frame for reduced motion, video preparation, and decoder failure.
-A light paper fade supports the bottom-aligned headline, explanation, and equally
-prominent provider controls: black Apple, white outlined Google, with official logos
-and provider typography. No Back, guest continuation, tab bar, or idle status card.
-Errors and progress appear inline. Respect safe areas and scroll enlarged content.
+“Tagtag” header and the tagline “Find your places, Collect your moments” over the
+supplied white-background Taggi video, playing silently. Use a matching still frame
+for reduced motion, video preparation, and decoder failure. Header, footer, and
+status-bar backing are transparent on this screen; no paper fade covers the video.
+
+Anchor the equally prominent provider controls near the bottom: black Apple,
+white outlined Google, with official logos and provider typography. Privacy Policy
+and Terms & Conditions links below the buttons open in-app sheets with Close
+controls. Only the policy sheet content scrolls; the login screen itself has no
+scroll view. Fit compact screens and enlarged text within safe areas. No Back,
+guest continuation, tab bar, extra sign-in explanation, or idle status card.
+Errors and progress appear inline.
 
 ### Home
 

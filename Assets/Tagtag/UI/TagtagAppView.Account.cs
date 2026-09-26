@@ -364,14 +364,14 @@ namespace Tagtag.UI
             scrim.AddToClassList("sheet-scrim");
             scrim.RegisterCallback<PointerDownEvent>(_ => RequestCloseSheet());
             overlayHost.Add(scrim);
-            string title = sheet == Sheet.ReferencePhoto ? "Original spot" : sheet == Sheet.Picker ? "My Stickers" : sheet == Sheet.Creator ? "Add Sticker" :
+            string title = sheet == Sheet.Privacy ? "Privacy Policy" : sheet == Sheet.Terms ? "Terms & Conditions" : sheet == Sheet.ReferencePhoto ? "Original spot" : sheet == Sheet.Picker ? "My Stickers" : sheet == Sheet.Creator ? "Add Sticker" :
                 sheet == Sheet.HomeDesignPreview ? "Your design" : sheet == Sheet.DeleteDesign ? "Remove design" : sheet == Sheet.Note ? "Write note" :
                 sheet == Sheet.Collected ? "Collected sticker" : sheet == Sheet.Report ? "Report sticker" :
                 sheet == Sheet.Withdraw ? "Withdraw sticker" : "Block author";
             Sheet openedSheet = sheet;
             string collectedId = sheetStickerId;
             string designId = sheetDesignId;
-            Action returnFocus = openedSheet == Sheet.ReferencePhoto ? () => FocusSheetTrigger(openedSheet) :
+            Action returnFocus = IsLegalSheet ? () => FocusSheetTrigger(openedSheet) : openedSheet == Sheet.ReferencePhoto ? () => FocusSheetTrigger(openedSheet) :
                 openedSheet == Sheet.HomeDesignPreview ? () => FocusHomeDesign(designId) :
                 openedSheet == Sheet.Note || openedSheet == Sheet.Picker || openedSheet == Sheet.Creator ?
                 () => FocusSheetTrigger(openedSheet) : openedSheet == Sheet.Collected ?
@@ -379,7 +379,7 @@ namespace Tagtag.UI
             Func<bool> dismissalGuard = sheet == Sheet.HomeDesignPreview || sheet == Sheet.DeleteDesign ?
                 CanDismissSheet : null;
             sheetView = new PaperSheet(title, CloseSheet, reducedMotion, returnFocus, "Close", dismissalGuard);
-            if (sheet == Sheet.Picker || sheet == Sheet.Creator)
+            if (sheet == Sheet.Picker || sheet == Sheet.Creator || IsLegalSheet)
             {
                 sheetView.style.flexDirection = FlexDirection.Column;
                 sheetView.Grip.style.flexShrink = 0f;
@@ -408,7 +408,8 @@ namespace Tagtag.UI
             homeDesignActionError = null;
             creationImportNotice = creationCameraNotice = creationAiNotice = null;
             creationSaveNotice = creationDesignError = null;
-            if (sheet == Sheet.ReferencePhoto) BuildReferencePhotoSheet(content);
+            if (IsLegalSheet) BuildLegalContent(content);
+            else if (sheet == Sheet.ReferencePhoto) BuildReferencePhotoSheet(content);
             else if (sheet == Sheet.Picker) BuildPickerSheet(content, state);
             else if (sheet == Sheet.Creator) BuildCreatorSheet(content, state);
             else if (sheet == Sheet.HomeDesignPreview) BuildHomeDesignPreview(content, state);
@@ -422,7 +423,7 @@ namespace Tagtag.UI
             else if (sheet == Sheet.Report) BuildReportSheet(content, state);
             else if (sheet == Sheet.Withdraw) BuildWithdrawSheet(content, state);
             else BuildBlockSheet(content, state);
-            if (sheet != Sheet.Creator && sheet != Sheet.ReferencePhoto) AddStatus(content, state);
+            if (sheet != Sheet.Creator && sheet != Sheet.ReferencePhoto && !IsLegalSheet) AddStatus(content, state);
             sheetView.BindGestures();
             RefreshSheet(state);
             if (!string.IsNullOrEmpty(returnFieldName) && sheet == Sheet.Note)
@@ -443,7 +444,7 @@ namespace Tagtag.UI
 
         private void FocusSheetTrigger(Sheet closed)
         {
-            string name = closed == Sheet.ReferencePhoto ? "Original spot preview" : closed == Sheet.Note ? "STICK Write note" :
+            string name = closed == Sheet.Privacy ? "Login Privacy Policy" : closed == Sheet.Terms ? "Login Terms & Conditions" : closed == Sheet.ReferencePhoto ? "Original spot preview" : closed == Sheet.Note ? "STICK Write note" :
                 closed == Sheet.Picker || closed == Sheet.Creator ?
                     controller.State.page == AppPage.Home ? "Home Make sticker" : "STICK Inventory" : null;
             if (name == null) return;

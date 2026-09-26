@@ -29,7 +29,7 @@ Run behavior tests from the repository root:
 
 Backend commands are documented in [backend/README.md](backend/README.md). Live infrastructure and maintenance are recorded in [deployment](docs/DEPLOYMENT.md).
 
-Login uses a bundled, silent looping video with a poster fallback for reduced motion, loading, and playback failure. Provider cancellation and errors remain on the login screen for retry.
+Login uses the supplied Taggi video as a silent looping background, with a matching poster for reduced motion, loading, and playback failure. The transparent header and footer show the tagline, sign-in buttons, and in-app Privacy Policy and Terms & Conditions sheets. Login fits without scrolling; policy content scrolls inside its sheet. Provider cancellation and errors remain on the login screen for retry.
 
 The startup regression lives in `Assets/Tagtag/Application/PlayModeTests/`. Use `-testPlatform PlayMode -testFilter Tagtag.Tests.StartupTests` with the Unity test command to check the real entry scene and rendered login pixels. For a macOS player check, use `-buildTarget StandaloneOSX -testPlatform StandaloneOSX`; its test-only callback also writes `tagtag-startup-result.xml` beside the screenshot in `Application.temporaryCachePath` if the player cannot return results to the editor. Editor rendering alone does not verify that player builds contain the required UI text resources.
 
