@@ -23,7 +23,7 @@ Behavior tests for ownership, immutable retries, image validation/quotas/cleanup
 ## Progress
 
 - Native editor: 86de8c9, 5552aa5, 9d208b1. Objective-C++ syntax/static analyzer and Swift iOS 15 typecheck passed.
-- UI: ca6ffdb, 1d72e50. Captured and corrected long-sheet overflow and selection label layout.
+- UI: ca6ffdb, 1d72e50 plus startup geometry fix. Captured and corrected long-sheet overflow, initial NaN layout dimensions, and selection label layout. The sheet header and bottom bounds are asserted in the mounted graphics test.
 - Backend: e34945a, c159d5d. Coordinator rerun: 38 tests pass, 1 emulator-only skipped. Agent Firebase emulator run: 1/1 pass. Storage emulator cannot prove GCS conditional-write enforcement; production adapter uses generation preconditions.
 - Client integration: custom artwork, account-scoped library/upload drafts (including queued guest claims), URL renewal/cache invalidation, native suspension, AR aspect ratio and map thumbnails implemented.
 - Review fixes: expired uploads restart only on design_expired; restored authorized artwork clears local revocation; replacement drafts save before prior publication retry is cleared; inactive camera creation does not retain resume state; thumbnail fallback does not overwrite full image cache.

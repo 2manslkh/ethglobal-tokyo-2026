@@ -345,6 +345,7 @@ namespace Tagtag.UI
             sheetView.style.bottom = SheetBottom();
             ApplySheetHeight();
             overlayHost.Add(sheetView);
+            sheetView.RegisterCallback<GeometryChangedEvent>(_ => ApplySheetHeight());
             VisualElement content = sheetView.Scroll.contentContainer;
             content.style.paddingBottom = 18f;
             reportChoices.Clear();
@@ -711,7 +712,7 @@ namespace Tagtag.UI
         private void ApplySheetHeight()
         {
             if (sheetView == null || root == null) return;
-            if (root.layout.height <= 0f || Screen.height <= 0)
+            if (float.IsNaN(root.layout.height) || float.IsInfinity(root.layout.height) || root.layout.height <= 0f || Screen.height <= 0)
             {
                 sheetView.style.maxHeight = Length.Percent(82f);
                 if (sheet == Sheet.Picker)

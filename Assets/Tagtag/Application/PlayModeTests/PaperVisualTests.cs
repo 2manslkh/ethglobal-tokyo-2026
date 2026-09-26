@@ -671,6 +671,8 @@ namespace Tagtag.Tests
                 " scroll=" + creationSheet.Scroll.worldBound + " screen=" + Screen.width + "x" + Screen.height +
                 " enum=" + typeof(TagtagAppView).GetField("sheet", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic).GetValue(host.GetComponent<TagtagAppView>()) +
                 " same=" + ReferenceEquals(creationSheet, typeof(TagtagAppView).GetField("sheetView", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic).GetValue(host.GetComponent<TagtagAppView>())));
+            Assert.That(creationSheet.worldBound.yMax, Is.LessThanOrEqualTo(document.rootVisualElement.worldBound.yMax + 1f),
+                "The complete sheet must stay within the viewport so every design is reachable by scrolling.");
             creationSheet.Scroll.scrollOffset = Vector2.zero;
             yield return Capture("my-stickers-sources");
             Assert.That(document.rootVisualElement.Query<Button>().ToList().Any(button => button.text == "Make a Polaroid"), Is.True);
