@@ -851,11 +851,6 @@ namespace Tagtag.UI
             }
             Image artwork = Art(content, sticker, 140f, false);
             AddArtworkNotice(content, artwork, sticker.designId, false);
-            if (pendingCollectionCommitId == sticker.id)
-            {
-                pendingCollectionCommitId = null;
-                artwork.schedule.Execute(() => { if (artwork.panel != null) PaperMotion.Commit(artwork); });
-            }
             Text(content, Safe(sticker.place, "A place you visited"), 25, true).style.marginTop = 8f;
             Text(content, "Left by " + Safe(sticker.authorName, "someone nearby"), 14, false, Muted).style.marginTop = 4f;
             Text(content, "Collected " + Date(sticker.collectedAt), 13, false, Muted).style.marginTop = 2f;

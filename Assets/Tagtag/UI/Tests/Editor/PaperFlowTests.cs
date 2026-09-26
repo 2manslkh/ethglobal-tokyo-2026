@@ -118,15 +118,15 @@ namespace Tagtag.UI.Tests
         }
 
         [Test]
-        public void ArtworkCommitRunsOnlyForANewCollectionFromStick()
+        public void CollectionDetailOpensOnlyAfterReturningFromStick()
         {
             AppState state = new AppState { page = AppPage.Home,
                 detail = new CollectedSticker { id = "river" } };
-            Assert.IsTrue(PaperFlow.ShouldAnimateCollection(AppPage.Stick, state, null));
-            Assert.IsFalse(PaperFlow.ShouldAnimateCollection(AppPage.Home, state, null));
-            Assert.IsFalse(PaperFlow.ShouldAnimateCollection(AppPage.Stick, state, "river"));
+            Assert.IsTrue(PaperFlow.ShouldOpenCollectedDetail(AppPage.Stick, state, null));
+            Assert.IsFalse(PaperFlow.ShouldOpenCollectedDetail(AppPage.Home, state, null));
+            Assert.IsFalse(PaperFlow.ShouldOpenCollectedDetail(AppPage.Stick, state, "river"));
             state.detail = null;
-            Assert.IsFalse(PaperFlow.ShouldAnimateCollection(AppPage.Stick, state, null));
+            Assert.IsFalse(PaperFlow.ShouldOpenCollectedDetail(AppPage.Stick, state, null));
         }
 
         [Test]

@@ -106,6 +106,7 @@ namespace Tagtag
     public sealed class AppState
     {
         public AppPage page;
+        public readonly StickerCelebrations celebrations = new StickerCelebrations();
         public List<StickerDesign> designs = new List<StickerDesign>();
         public bool creationOpen, designsLoading, hasPendingDesign;
         public int creationCapabilities;

@@ -197,7 +197,7 @@ namespace Tagtag.UI
                 string.IsNullOrEmpty(state.draftNote);
         }
 
-        public static bool ShouldAnimateCollection(AppPage previousPage, AppState state, string lastPresentedId)
+        public static bool ShouldOpenCollectedDetail(AppPage previousPage, AppState state, string lastPresentedId)
         {
             return previousPage == AppPage.Stick && state != null && state.page == AppPage.Home &&
                 !string.IsNullOrEmpty(state.detail?.id) && state.detail.id != lastPresentedId;

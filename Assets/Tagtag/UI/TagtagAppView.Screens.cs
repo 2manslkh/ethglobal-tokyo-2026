@@ -144,7 +144,7 @@ namespace Tagtag.UI
         {
             mapDirty = false;
             if (controller?.Map == null || !MapPresentation.ShouldShow(controller.State,
-                    sheet != Sheet.None || controller.State.creationOpen) ||
+                    sheet != Sheet.None || controller.State.creationOpen || CelebrationActive) ||
                 mapRegion == null || root == null || root.layout.width <= 0f || root.layout.height <= 0f) return;
             Rect bounds = mapRegion.worldBound;
             float x = bounds.xMin / root.layout.width * Screen.width;
