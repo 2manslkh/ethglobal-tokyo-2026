@@ -15,7 +15,7 @@ namespace Tagtag.UI
         private bool CameraInputReady(IArExperience ar)
         {
             if (ar == null || controller == null) return false;
-            return !PaperFlow.BlockCameraInteraction(controller.State, sheet != Sheet.None,
+            return !PaperFlow.BlockCameraInteraction(controller.State, sheet != Sheet.None || controller.State.creationOpen,
                        ar.CameraPresentation, ar.IsTracking) && !ar.PlacementBusy && cameraSurface != null &&
                    cameraSurface.worldBound.width > 0f && cameraSurface.worldBound.height > 0f;
         }
@@ -23,7 +23,7 @@ namespace Tagtag.UI
         private bool CanAdjustCamera(IArExperience ar)
         {
             return CameraInputReady(ar) && ar.IsTracking && ar.HasPlacementPreview &&
-                !string.IsNullOrEmpty(controller.State.selectedPreset);
+                PaperFlow.HasPlacementSelection(controller.State);
         }
 
         private void UpdateCameraInteraction()
@@ -49,7 +49,7 @@ namespace Tagtag.UI
             }
             else
             {
-                if (string.IsNullOrEmpty(controller.State.selectedPreset)) return;
+                if (!PaperFlow.HasPlacementSelection(controller.State)) return;
                 placementTap.Begin(evt.pointerId, evt.position, Time.unscaledTime);
                 if (!ar.HasPlacementSurface) placementTap.Cancel();
             }
@@ -89,7 +89,7 @@ namespace Tagtag.UI
             else if (adjusted) evt.StopPropagation();
             IArExperience ar = controller?.Ar;
             if (!tapped || !CameraInputReady(ar) || !ar.IsTracking || !ar.HasPlacementSurface ||
-                ar.HasPlacementPreview || string.IsNullOrEmpty(controller.State.selectedPreset) ||
+                ar.HasPlacementPreview || !PaperFlow.HasPlacementSelection(controller.State) ||
                 !cameraSurface.worldBound.Contains(evt.position)) return;
             ar.Place(PaperCameraBounds.ToScreenPoint(evt.position, root.worldBound,
                 Screen.width, Screen.height));
