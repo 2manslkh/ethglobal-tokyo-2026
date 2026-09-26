@@ -147,6 +147,8 @@ namespace Tagtag.UI
         private VisualElement stickScanProgress;
         private readonly List<VisualElement> stickScanStages = new List<VisualElement>();
         private Label stickScanRecovery;
+        private Label noteScanGuidance;
+        private Button noteContinueScanning;
         private readonly PaperSurfaceTap placementTap = new PaperSurfaceTap();
         private readonly PaperSurfaceGesture placementGesture = new PaperSurfaceGesture();
         private Label cameraTitleLabel;
@@ -347,7 +349,9 @@ namespace Tagtag.UI
                 (ar.CameraPresentation == CameraPresentationState.Interrupted ||
                  ar.CameraPresentation == CameraPresentationState.Live && !ar.IsTracking);
             stickScanRecovery.text = trackingPaused ? "Tracking paused. Move slowly to resume." : "";
-            stickScanRecovery.style.display = trackingPaused ? DisplayStyle.Flex : DisplayStyle.None;
+            if (!trackingPaused && selected && ar?.ScanState == PlacementScanState.Placed)
+                stickScanRecovery.text = "Move slowly around your sticker. Scan the surface from several angles until Scan ready.";
+            stickScanRecovery.style.display = string.IsNullOrEmpty(stickScanRecovery.text) ? DisplayStyle.None : DisplayStyle.Flex;
             if (selected)
             {
                 int current = PaperScan.StageIndex(ar?.ScanState ?? PlacementScanState.FindingSurface);
@@ -390,6 +394,12 @@ namespace Tagtag.UI
 
         private void RefreshPublish(AppState state)
         {
+            bool needsScan = !state.busy && !state.hasPendingPublication &&
+                controller?.Ar?.HasPlacementPreview == true && controller.Ar.ScanState != PlacementScanState.Ready;
+            if (noteScanGuidance != null && noteScanGuidance.panel != null)
+                noteScanGuidance.style.display = needsScan ? DisplayStyle.Flex : DisplayStyle.None;
+            if (noteContinueScanning != null && noteContinueScanning.panel != null)
+                noteContinueScanning.style.display = needsScan ? DisplayStyle.Flex : DisplayStyle.None;
             if (publishButton != null)
             {
                 publishButton.text = state.busy ? (publicationRequested ? "Publishing…" : "Please wait") :

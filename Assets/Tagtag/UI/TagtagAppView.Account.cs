@@ -715,7 +715,13 @@ namespace Tagtag.UI
 
         private void BuildNoteSheet(VisualElement content, AppState state)
         {
+            noteScanGuidance = Text(content, "Scan from more angles before publishing. Move slowly around the sticker until Scan ready.", 15, true);
+            noteScanGuidance.name = "Note scan guidance";
+            noteContinueScanning = Action(content, "Continue scanning", RequestCloseSheet, false);
+            noteContinueScanning.name = "Continue scanning";
+            noteContinueScanning.style.marginBottom = 12f;
             Text(content, "Leave a clue, then the whole story.", 16, false, Muted);
+            Text(content, "A photo of this spot will help others find your sticker.", 13, false, Muted);
             DraftField(content, "Place", draftPlace, 80, false, value => draftPlace = value,
                 "Name the place you are standing at.");
             DraftField(content, "Clue", draftTeaser, 180, false, value => draftTeaser = value,
