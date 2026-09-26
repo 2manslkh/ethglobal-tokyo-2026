@@ -87,6 +87,14 @@ passed again at the public app URL. The backend suite passed 79 tests with
 one emulator-only test skipped; the quota test accepts ten publications and
 rejects the eleventh. Existing app builds receive this server-side change.
 
+On 2026-09-26, commit `3fff59f` raised the per-user daily publication quota
+from ten to 100. The backend suite passed 84 tests with one emulator-only
+test skipped. Revision `tagtag-api-00024-dub` passed zero-traffic health (200)
+and unauthenticated collection (401) checks, then was promoted to 100% of
+API traffic. Both checks passed again at the public URL. Existing app builds
+receive this server-side change; no production publications were created
+for verification.
+
 ## Twelve Taggi presets rollout
 
 On 2026-09-26, backend commit `4437920` was deployed from an immutable source
