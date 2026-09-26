@@ -588,6 +588,7 @@ namespace Tagtag.UI
             creationCameraNotice = Text(content, "", 13, false, Muted);
             creationAiNotice = Text(content, "", 13, false, Muted);
             creationSaveNotice = Text(content, "", 14, false, Muted);
+            creationSaveNotice.name = "Creator save notice";
             creationSaveNotice.style.marginTop = 12f;
             creationDesignError = Text(content, "", 14, false, new Color32(125, 39, 31, 255));
             creationDesignError.name = "Creator design error";
@@ -653,11 +654,13 @@ namespace Tagtag.UI
             creationAiNotice.text = (available & 4) == 0 ? "Image Playground is unavailable on this device." : "";
             foreach (Label notice in new[] { creationImportNotice, creationCameraNotice, creationAiNotice })
                 notice.style.display = string.IsNullOrEmpty(notice.text) ? DisplayStyle.None : DisplayStyle.Flex;
+            bool saved = !state.busy && !state.hasPendingDesign && string.IsNullOrEmpty(state.designError) &&
+                state.status != null && state.status.StartsWith("Saved to My Stickers.", StringComparison.Ordinal);
             creationSaveNotice.text = state.busy && state.hasPendingDesign ? "Saving your sticker…" :
                 state.hasPendingDesign && !SignedIn(state) ?
                     "Your sticker is on this device. Sign in to save it before making another." :
                 state.hasPendingDesign ? "Your sticker is on this device. Retry saving it before making another." :
-                "";
+                saved ? "Saved to My designs." : "";
             creationSaveNotice.style.display = string.IsNullOrEmpty(creationSaveNotice.text) ? DisplayStyle.None : DisplayStyle.Flex;
             creationDesignError.text = state.designError ?? "";
             creationDesignError.style.display = string.IsNullOrEmpty(creationDesignError.text) ? DisplayStyle.None : DisplayStyle.Flex;

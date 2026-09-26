@@ -848,6 +848,21 @@ namespace Tagtag.Tests
             yield return Capture("my-stickers-pending-save");
             Assert.That(document.rootVisualElement.Query<Button>().ToList().Any(button => button.text == "Retry saving sticker"), Is.True);
             controller.State.designError = ""; controller.Notify();
+            controller.State.busy = true;
+            controller.State.status = "Saving your sticker…";
+            controller.Notify();
+            yield return new WaitForSecondsRealtime(.4f);
+            controller.State.busy = false;
+            controller.State.hasPendingDesign = false;
+            controller.State.status = "Saved to My Stickers. Choose it whenever you're ready to place.";
+            controller.Notify();
+            yield return new WaitForSecondsRealtime(.4f);
+            Assert.That(creationSheet.Q<Label>("Creator save notice").text, Is.EqualTo("Saved to My designs."));
+            controller.State.status = "Nearby stickers updated";
+            controller.Notify();
+            yield return new WaitForSecondsRealtime(.4f);
+            Assert.That(creationSheet.Q<Label>("Creator save notice").text, Is.Empty,
+                "Unrelated status must not appear in the creator notice.");
             Submit("Creator My designs");
             yield return new WaitForSecondsRealtime(.4f);
             Assert.That(controller.State.page, Is.EqualTo(AppPage.Home));
