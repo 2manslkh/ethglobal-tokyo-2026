@@ -14,7 +14,11 @@ Apple accepted the upload with non-blocking warnings about ARKit preventing Visi
 
 ## Distribution status
 
-The app record and internal `tagtag Team` group exist. The upload is processing; external beta review and the public invitation link are not yet complete. Do not share the App Store Connect administration URL as an installation link.
+The app record, internal `tagtag Team` group, and external `tagtag Public Beta` group exist. Build 0.1.0 (1) finished processing, its encryption declaration was completed, and it was submitted for external beta review on 2026-09-26. App Store Connect reports **Waiting for Review**. Reviewer instructions explain free Apple/Google sign-in and physical-device AR testing; no separate password login is claimed.
+
+Public invitation link: **https://testflight.apple.com/join/cUnAbdSY**.
+
+The link is created and open to anyone, but App Store Connect currently states: "Testers cannot join public link until this group has an approved build." Apple review is the remaining gate. The same link should be used after approval; the App Store Connect administration URL is not an installation link.
 
 ## Backend readiness
 
