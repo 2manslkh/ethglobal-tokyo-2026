@@ -1,5 +1,51 @@
 # Device verification
 
+## STICK capture and note — 2026-09-26
+
+Built integrated source `e850185`, including the STICK simplification and fresh
+approximate-location recovery, plus the existing uncommitted Home styling changes
+in `Paper.uss` and `TagtagAppView.Home.cs`. Those edits, `TODO.md`, and the generated
+`SceneTemplateSettings.json` were preserved unchanged.
+
+- Integrated iOS-target Edit Mode: **253/253 passed**,
+  `/tmp/tagtag-latest-integrated-edit.xml`.
+- STICK graphics PaperVisualTests: **12/12 passed**,
+  `/tmp/tagtag-stick-note-final-play.xml`; normal and compact note layouts were
+  visually inspected. [Screenshots](verification/stick-note/README.md).
+- Backend: **84 passed, 1 emulator test skipped**, `/tmp/tagtag-latest-backend.log`.
+- Separate ARKit preparation, Unity iOS export, and automatically signed Xcode
+  Debug/iphoneos build succeeded, using team `5Y6QUA9GA6`.
+- CoreDevice installed over the existing app on **Dawg., iPhone 15 Pro Max**,
+  `00008130-001420500E41001C`, and launched `com.kenk.tagtag`. Both commands exited
+  **0**. No uninstall or data reset was performed.
+- Recovery backend revision `tagtag-api-00012-l95` was verified live before client
+  installation; its deployment is documented in the recovery entry below.
+
+Build/device logs: `/tmp/tagtag-latest-prepare.log`,
+`/tmp/tagtag-latest-export.log`, `/tmp/tagtag-latest-signed.log`,
+`/tmp/tagtag-latest-install.log`, `/tmp/tagtag-latest-launch.log`.
+
+Physical camera/photo capture and ARKit recovery remain pending; successful
+build, installation, launch and simulated UI checks do not establish them.
+
+Manual acceptance:
+
+1. Open STICK, choose a sticker, and attach it to a surface. Confirm the separate
+   Your Note and Cancel placement buttons are absent and STICK is disabled until
+   Scan ready.
+2. Once ready, tap STICK. Confirm one capture completes before Your Note opens;
+   the form contains only the multiline note input and Close/Publish controls.
+3. Write a note, close the sheet, and reopen it with STICK. Confirm the text stays
+   intact and the existing captured spot is reused. Move, rotate, or resize the
+   sticker and confirm the next STICK action captures the changed placement.
+4. Interrupt tracking or leave during capture. Confirm capture failure stays in
+   the camera with retry guidance, and late results never reopen a closed camera.
+5. Publish and recover the sticker on a second phone. Confirm the Original spot
+   photo matches the capture, the public preview uses “Sticker spot” and
+   “Find this sticker to read its note”, and the note remains private until
+   collection. Exercise location confirmation and a failed-publication retry.
+
+
 ## Merged main rebuild — 2026-09-26
 
 Rebuilt merged main `571f11f` at the owner’s request. Separate ARKit preparation,
