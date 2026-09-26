@@ -95,6 +95,16 @@ API traffic. Both checks passed again at the public URL. Existing app builds
 receive this server-side change; no production publications were created
 for verification.
 
+On 2026-09-27, publication requests from the NFT candidate app were still
+reaching revision `tagtag-api-00023-yoq` through its tagged URL, bypassing the
+default 100% traffic assignment. Cloud Run logs showed 429 responses on
+`/v1/publications/prepare` for that revision. The `nft-candidate` tag was
+moved to `tagtag-api-00024-dub`, which has the same runtime environment and
+the 100-publication quota. The tagged URL passed health (200) and anonymous
+wallet (401) checks afterward. No app update is needed for clients already
+using that tagged URL; an authenticated publication retry remains the final
+user-level check.
+
 ## Twelve Taggi presets rollout
 
 On 2026-09-26, backend commit `4437920` was deployed from an immutable source
