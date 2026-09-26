@@ -148,12 +148,19 @@ namespace Tagtag.UI.Tests
         public void NearbyReadStateDrivesExploreMessagesAndRetryWithoutBlockingDiscovery()
         {
             AppState state = new AppState { page = AppPage.Explore, nearbyLoading = true,
+                nearbyFindingLocation = true,
                 servicesConfigured = true };
             NearbyStatus loading = PaperFlow.Nearby(state, true);
-            Assert.AreEqual("Looking for nearby stickers", loading.EmptyTitle);
+            Assert.AreEqual("Finding your location", loading.EmptyTitle);
             Assert.AreEqual("Finding your location…", loading.MapMessage);
             Assert.AreEqual("", loading.LocationNotice);
             Assert.IsFalse(loading.CanRefresh);
+
+            state.nearbyFindingLocation = false;
+            NearbyStatus fetching = PaperFlow.Nearby(state, true);
+            Assert.AreEqual("Loading nearby stickers", fetching.EmptyTitle);
+            Assert.AreEqual("Location is unavailable.", fetching.MapMessage);
+            Assert.IsFalse(fetching.CanRefresh);
 
             state.nearbyLoading = false;
             state.busy = true;

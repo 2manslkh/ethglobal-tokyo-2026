@@ -14,6 +14,7 @@ namespace Tagtag.UI
 
         public PaperDottedOutline(bool circular, float cornerRadius, float spacing = 5f)
         {
+            name = "Paper die-cut outline";
             this.circular = circular;
             this.cornerRadius = cornerRadius;
             this.spacing = Mathf.Max(3f, spacing);
@@ -25,10 +26,24 @@ namespace Tagtag.UI
 
         private void Draw(MeshGenerationContext context)
         {
-            float width = contentRect.width, height = contentRect.height;
+            DrawOn(context, parent, circular, cornerRadius, spacing,
+                new Rect(0f, 0f, contentRect.width, contentRect.height));
+        }
+
+        public static void DrawOn(MeshGenerationContext context, VisualElement element,
+            bool circular, float cornerRadius, float spacing)
+        {
+            DrawOn(context, element, circular, cornerRadius, spacing,
+                new Rect(0f, 0f, element.layout.width, element.layout.height));
+        }
+
+        private static void DrawOn(MeshGenerationContext context, VisualElement element,
+            bool circular, float cornerRadius, float spacing, Rect bounds)
+        {
+            float width = bounds.width, height = bounds.height;
             if (width <= 12f || height <= 12f) return;
             Painter2D painter = context.painter2D;
-            Vector2 center = new Vector2(width, height) * .5f;
+            Vector2 center = bounds.center;
             float radius = Mathf.Min(width, height) * .5f;
             if (circular)
             {
@@ -36,26 +51,41 @@ namespace Tagtag.UI
                 for (int layer = 4; layer >= 1; layer--)
                     Dot(painter, center + new Vector2(0f, 2f), radius + layer * .6f,
                         new Color(0f, 0f, 0f, .025f));
-                Dot(painter, center, radius, parent.resolvedStyle.backgroundColor);
+                Dot(painter, center, radius, element.resolvedStyle.backgroundColor);
             }
 
-            Color ink = new Color32(32, 32, 30, 255);
+            Color ink = element.resolvedStyle.color;
+            ink.a = element.enabledInHierarchy ? .72f : .52f;
             const float inset = 6f;
             float horizontal = width - inset * 2f, vertical = height - inset * 2f;
             float corner = Mathf.Clamp(cornerRadius - inset, 0f, Mathf.Min(horizontal, vertical) * .5f);
             float perimeter = circular ? 2f * Mathf.PI * (radius - inset) : 2f * (horizontal + vertical - 4f * corner) + 2f * Mathf.PI * corner;
-            int count = Mathf.Max(4, Mathf.RoundToInt(perimeter / spacing));
+            int count = Mathf.Max(4, Mathf.RoundToInt(perimeter / (spacing + 5f)));
+            float step = perimeter / count;
+            painter.strokeColor = ink;
+            painter.lineWidth = 1.7f;
+            painter.lineCap = LineCap.Round;
             for (int index = 0; index < count; index++)
             {
-                float distance = perimeter * index / count;
-                Vector2 point;
+                float start = step * index;
+                float end = start + Mathf.Min(5f, step * .62f);
+                painter.BeginPath();
                 if (circular)
                 {
-                    float angle = distance / (radius - inset);
-                    point = center + new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) * (radius - inset);
+                    float from = start / perimeter * 360f;
+                    float to = end / perimeter * 360f;
+                    painter.Arc(center, radius - inset, from, to);
                 }
-                else point = RoundedPoint(distance, horizontal, vertical, corner) + new Vector2(inset, inset);
-                Dot(painter, point, .85f, ink);
+                else
+                {
+                    painter.MoveTo(RoundedPoint(start, horizontal, vertical, corner) +
+                        new Vector2(bounds.xMin + inset, bounds.yMin + inset));
+                    const int segments = 3;
+                    for (int sample = 1; sample <= segments; sample++)
+                        painter.LineTo(RoundedPoint(Mathf.Min(perimeter, Mathf.Lerp(start, end, sample / (float)segments)),
+                            horizontal, vertical, corner) + new Vector2(bounds.xMin + inset, bounds.yMin + inset));
+                }
+                painter.Stroke();
             }
         }
 
@@ -91,7 +121,11 @@ namespace Tagtag.UI
 
         public static void Decorate(VisualElement element, bool capsule = false, bool container = false)
         {
-            element.AddToClassList("paper-die-cut");
+            if (element is PaperButton button)
+            {
+                button.SetDieCut(false, capsule, container ? 7f : 5f);
+                return;
+            }
             if (capsule)
             {
                 element.RegisterCallback<GeometryChangedEvent>(_ =>
@@ -102,7 +136,28 @@ namespace Tagtag.UI
                     element.style.borderBottomLeftRadius = element.style.borderBottomRightRadius = radius;
                 });
             }
+            for (int index = 0; index < element.childCount; index++)
+                if (element[index] is PaperDottedOutline previous)
+                {
+                    if (!capsule && !container) return;
+                    previous.RemoveFromHierarchy();
+                    break;
+                }
+            element.AddToClassList("paper-die-cut");
             element.Insert(0, new PaperDottedOutline(false, capsule ? 1000f : 14f, container ? 7f : 5f));
+        }
+
+        public static void DecorateCircular(VisualElement element)
+        {
+            if (element is PaperButton button)
+            {
+                button.SetDieCut(true, false, 5f);
+                return;
+            }
+            for (int index = element.childCount - 1; index >= 0; index--)
+                if (element[index] is PaperDottedOutline outline) outline.RemoveFromHierarchy();
+            element.AddToClassList("paper-die-cut");
+            element.Insert(0, new PaperDottedOutline(true));
         }
 
         private static void Dot(Painter2D painter, Vector2 center, float radius, Color color)

@@ -1,4 +1,5 @@
 using NUnit.Framework;
+using System.Linq;
 using UnityEngine;
 using UnityEngine.UIElements;
 
@@ -6,6 +7,17 @@ namespace Tagtag.UI.Tests
 {
     public sealed class PaperPrimitiveTests
     {
+        [Test]
+        public void ActionButtonsKeepOneDieCutOutlineIncludingCircularOverride()
+        {
+            PaperButton primary = new PaperButton("Explore nearby", null, PaperButtonKind.Primary);
+            PaperButton secondary = new PaperButton("Previous", null, PaperButtonKind.Secondary);
+            Assert.AreEqual(0, primary.Children().OfType<PaperDottedOutline>().Count());
+            Assert.AreEqual(0, secondary.Children().OfType<PaperDottedOutline>().Count());
+            PaperDottedOutline.DecorateCircular(primary);
+            Assert.AreEqual(0, primary.Children().OfType<PaperDottedOutline>().Count());
+            Assert.IsTrue(primary.ClassListContains("paper-die-cut"));
+        }
         [Test]
         public void FieldCountsDraftCharactersAndExposesValidationWithoutLosingItsValue()
         {

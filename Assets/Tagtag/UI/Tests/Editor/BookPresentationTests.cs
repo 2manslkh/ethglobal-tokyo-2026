@@ -65,7 +65,7 @@ namespace Tagtag.UI.Tests
             Assert.IsFalse(MapPresentation.ShouldShow(state, false));
             state.page = AppPage.Explore;
             state.location = null;
-            Assert.IsFalse(MapPresentation.ShouldShow(state, false));
+            Assert.IsTrue(MapPresentation.ShouldShow(state, false));
         }
 
         [Test]

@@ -30,12 +30,12 @@ namespace Tagtag.UI
         {
             this.closed=closed;this.reducedMotion=reducedMotion;this.returnFocus=returnFocus;this.canDismiss=canDismiss;
             AddToClassList("drawer");AddToClassList("paper-sheet");name="tagtag-bottom-sheet";
+            PaperDottedOutline.Decorate(this, container: true);
             Grip=new VisualElement{name="sheet-grip"};Grip.AddToClassList("sheet-grip");Add(Grip);
             var handle=new VisualElement{pickingMode=PickingMode.Ignore};handle.AddToClassList("drawer-handle");Grip.Add(handle);
             var heading = new VisualElement(); heading.AddToClassList("sheet-heading"); Add(heading);
             if (title == "My Stickers" || title == "Your stickers")
             {
-                PaperDottedOutline.Decorate(heading, container: true);
                 heading.AddToClassList("sticker-sheet-heading");
             }
             var titleLabel = new Label(title); titleLabel.AddToClassList("sheet-title"); heading.Add(titleLabel);

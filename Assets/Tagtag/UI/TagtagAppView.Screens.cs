@@ -9,6 +9,8 @@ namespace Tagtag.UI
     {
         private VisualElement explorePreview;
         private Label exploreLocationNotice;
+        private Label exploreNativeMapNotice;
+        private Button exploreNativeMapRetry;
         private Label exploreMapMessage;
         private Button exploreFindButton;
         private Button exploreRefreshButton;
@@ -41,6 +43,17 @@ namespace Tagtag.UI
             exploreLocationNotice.style.marginLeft = 24f;
             exploreLocationNotice.style.marginRight = 24f;
             exploreLocationNotice.style.marginBottom = 8f;
+            VisualElement nativeMapStatus = Row(page);
+            nativeMapStatus.name = "Explore native map status";
+            nativeMapStatus.style.alignItems = Align.Center;
+            nativeMapStatus.style.marginLeft = 24f;
+            nativeMapStatus.style.marginRight = 24f;
+            exploreNativeMapNotice = Text(nativeMapStatus, "", 14, false, Muted);
+            exploreNativeMapNotice.name = "Explore native map notice";
+            exploreNativeMapNotice.style.flexGrow = 1f;
+            exploreNativeMapRetry = Action(nativeMapStatus, "Retry map", () =>
+                (controller.Map as IMapLoadingExperience)?.Retry(), false);
+            exploreNativeMapRetry.name = "Explore retry map";
             mapRegion = new VisualElement();
             mapRegion.name = "Native MapKit region";
             mapRegion.style.flexGrow = 1f;
@@ -73,6 +86,13 @@ namespace Tagtag.UI
             NearbyStatus nearbyStatus = PaperFlow.Nearby(state, controller.Map != null);
             exploreLocationNotice.text = nearbyStatus.LocationNotice;
             exploreLocationNotice.style.display = string.IsNullOrEmpty(exploreLocationNotice.text) ? DisplayStyle.None : DisplayStyle.Flex;
+            IMapLoadingExperience mapLoading = controller.Map as IMapLoadingExperience;
+            string mapError = mapLoading?.Error;
+            exploreNativeMapNotice.text = !string.IsNullOrEmpty(mapError) ? mapError :
+                mapLoading?.IsLoading == true ? "Loading map…" : "";
+            exploreNativeMapNotice.style.color = string.IsNullOrEmpty(mapError) ? Muted : (Color)new Color32(125, 39, 31, 255);
+            exploreNativeMapNotice.style.display = string.IsNullOrEmpty(exploreNativeMapNotice.text) ? DisplayStyle.None : DisplayStyle.Flex;
+            exploreNativeMapRetry.style.display = string.IsNullOrEmpty(mapError) ? DisplayStyle.None : DisplayStyle.Flex;
             exploreMapMessage.text = nearbyStatus.MapMessage;
             exploreMapMessage.style.display = string.IsNullOrEmpty(exploreMapMessage.text) ? DisplayStyle.None : DisplayStyle.Flex;
             StickerSummary selected = state.selected;
@@ -107,8 +127,8 @@ namespace Tagtag.UI
                     exploreFindButton.style.marginTop = 10f;
                     VisualElement secondary = Row(explorePreview);
                     secondary.style.justifyContent = Justify.SpaceBetween;
-                    Action(secondary, "Report", () => OpenReport(selected.id), false);
-                    if (!string.IsNullOrEmpty(selected.authorId)) Action(secondary, "Block author", () => OpenBlock(selected.authorId), false);
+                    Action(secondary, "Report", () => OpenReport(selected.id), false, true);
+                    if (!string.IsNullOrEmpty(selected.authorId)) Action(secondary, "Block author", () => OpenBlock(selected.authorId), false, true);
                 }
             }
             if (exploreFindButton != null) SetDisabled(exploreFindButton, state.busy);
@@ -125,7 +145,7 @@ namespace Tagtag.UI
             mapDirty = false;
             if (controller?.Map == null || !MapPresentation.ShouldShow(controller.State,
                     sheet != Sheet.None || controller.State.creationOpen) ||
-                controller.State.location == null || mapRegion == null || root == null || root.layout.width <= 0f || root.layout.height <= 0f) return;
+                mapRegion == null || root == null || root.layout.width <= 0f || root.layout.height <= 0f) return;
             Rect bounds = mapRegion.worldBound;
             float x = bounds.xMin / root.layout.width * Screen.width;
             float width = bounds.width / root.layout.width * Screen.width;
@@ -133,7 +153,8 @@ namespace Tagtag.UI
             float y = Screen.height - bounds.yMax / root.layout.height * Screen.height;
             Rect screenRect = new Rect(x, y, width, height);
             if (screenRect.width < 80f || screenRect.height < 80f) return;
-            controller.Map.Show(screenRect, controller.State.location, controller.State.nearby);
+            controller.Map.Show(screenRect, controller.State.location, MapPresentation.Pins(controller.State));
+            MapPresentation.SyncTarget(controller.State, controller.Map);
         }
 
         private VisualElement stickActions;
@@ -144,6 +165,9 @@ namespace Tagtag.UI
         private Button stickCloseButton;
         private Button stickCancelButton;
         private Button stickRetryButton;
+        private Button stickSelectedArtworkButton;
+        private string stickSelectedArtworkKey;
+        private bool stickSelectedArtworkPointerHeld;
         private VisualElement stickScanProgress;
         private readonly List<VisualElement> stickScanStages = new List<VisualElement>();
         private Label stickScanRecovery;
@@ -226,7 +250,7 @@ namespace Tagtag.UI
             top.Add(stickCloseButton);
             stickCloseButton.name = "STICK Close";
             stickCloseButton.AddToClassList("camera-close");
-            stickCloseButton.Insert(0, new PaperDottedOutline(true));
+            PaperDottedOutline.DecorateCircular(stickCloseButton);
             VisualElement topContent = Column(top);
             topContent.style.flexGrow = 1f;
             topContent.style.minWidth = 0f;
@@ -251,6 +275,7 @@ namespace Tagtag.UI
             dock.style.borderTopRightRadius = 20f;
             dock.style.borderBottomLeftRadius = 20f;
             dock.style.borderBottomRightRadius = 20f;
+            PaperDottedOutline.Decorate(dock, container: true);
             // Keep recovery content scrollable between the independently sized overlays.
             void LayoutRecovery()
             {
@@ -296,7 +321,7 @@ namespace Tagtag.UI
             stickInventoryButton.name = "STICK Inventory";
             stickInventoryButton.text = "";
             stickInventoryButton.AddToClassList("camera-book-button");
-            stickInventoryButton.Insert(0, new PaperDottedOutline(true));
+            PaperDottedOutline.DecorateCircular(stickInventoryButton);
             var bookArt = new Image
             {
                 image = Resources.Load<Texture2D>("Tagtag/Navigation/stick-book"),
@@ -332,6 +357,52 @@ namespace Tagtag.UI
             stickRetryButton.name = "STICK Retry AR search";
             stickCancelButton = Action(actions, "Cancel placement", controller.CancelPlacement, false);
             BuildRecoveryPreview(page, dock);
+            stickSelectedArtworkButton = Action(page, "", () =>
+            {
+                if (controller.State.busy || controller.Ar?.PlacementBusy == true) return;
+                controller.OpenCreation();
+                if (!controller.State.creationOpen) return;
+                sheet = Sheet.Picker;
+                QueueRender();
+            }, false);
+            stickSelectedArtworkButton.name = "STICK selected artwork";
+            stickSelectedArtworkButton.tooltip = "Choose a different sticker";
+            stickSelectedArtworkButton.style.position = Position.Absolute;
+            stickSelectedArtworkButton.style.right = 16f;
+            stickSelectedArtworkButton.style.width = 84f;
+            stickSelectedArtworkButton.style.height = 84f;
+            stickSelectedArtworkButton.style.minWidth = 84f;
+            stickSelectedArtworkButton.style.minHeight = 84f;
+            stickSelectedArtworkButton.style.paddingLeft = 4f;
+            stickSelectedArtworkButton.style.paddingRight = 4f;
+            stickSelectedArtworkButton.style.paddingTop = 4f;
+            stickSelectedArtworkButton.style.paddingBottom = 4f;
+            stickSelectedArtworkButton.style.backgroundColor = Paper;
+            stickSelectedArtworkButton.RegisterCallback<PointerDownEvent>(_ =>
+            {
+                stickSelectedArtworkPointerHeld = true;
+                CancelCameraPointers();
+                UpdateCameraInteraction();
+            });
+            stickSelectedArtworkButton.RegisterCallback<PointerUpEvent>(_ =>
+            {
+                stickSelectedArtworkPointerHeld = false;
+                UpdateCameraInteraction();
+            });
+            stickSelectedArtworkButton.RegisterCallback<PointerCancelEvent>(_ =>
+            {
+                stickSelectedArtworkPointerHeld = false;
+                UpdateCameraInteraction();
+            });
+            var selectedArtworkButton = stickSelectedArtworkButton;
+            void PositionSelectedArtwork()
+            {
+                if (selectedArtworkButton.panel == null) return;
+                selectedArtworkButton.style.bottom = Mathf.Max(12f, page.layout.height - dock.layout.yMin + 12f);
+            }
+            page.RegisterCallback<GeometryChangedEvent>(_ => PositionSelectedArtwork());
+            dock.RegisterCallback<GeometryChangedEvent>(_ => PositionSelectedArtwork());
+            selectedArtworkButton.schedule.Execute(PositionSelectedArtwork);
             RefreshStick(state);
             RefreshCamera(state);
         }
@@ -342,6 +413,7 @@ namespace Tagtag.UI
             IArExperience ar = controller?.Ar;
             bool selected = PaperFlow.HasPlacementSelection(state);
             RefreshRecoveryPreview(state);
+            RefreshSelectedArtwork(state);
             PaperStickState placement = PaperFlow.StickPlacement(state, ar?.IsTracking ?? false,
                 ar?.HasPlacementSurface ?? false, ar?.HasPlacementPreview ?? false,
                 ar?.PlacementBusy ?? false);
@@ -376,6 +448,30 @@ namespace Tagtag.UI
             SetDisabled(stickInventoryButton, state.busy || (ar?.PlacementBusy ?? false));
             SetDisabled(stickCloseButton, state.busy);
             UpdateCameraInteraction();
+        }
+
+        private void RefreshSelectedArtwork(AppState state)
+        {
+            if (stickSelectedArtworkButton == null) return;
+            bool selected = PaperFlow.HasPlacementSelection(state);
+            bool visible = selected && state.page == AppPage.Stick && !state.accountOpen &&
+                sheet == Sheet.None && !state.creationOpen &&
+                controller.Ar?.CameraPresentation == CameraPresentationState.Live;
+            stickSelectedArtworkButton.style.display = visible ? DisplayStyle.Flex : DisplayStyle.None;
+            SetDisabled(stickSelectedArtworkButton, state.busy || controller.Ar?.PlacementBusy == true);
+            string key = !string.IsNullOrEmpty(state.selectedDesign) ? "design:" + state.selectedDesign : "preset:" + state.selectedPreset;
+            if (key == stickSelectedArtworkKey) return;
+            stickSelectedArtworkKey = key;
+            stickSelectedArtworkButton.Clear();
+            PaperDottedOutline.Decorate(stickSelectedArtworkButton);
+            if (!selected) return;
+            Image artwork;
+            StickerDesign design = state.designs?.Find(item => item != null && item.id == state.selectedDesign);
+            if (design != null) artwork = Art(stickSelectedArtworkButton, design, 72f);
+            else artwork = Art(stickSelectedArtworkButton, state.selectedPreset, state.selectedDesign,
+                null, null, 72f, true, 0, 0);
+            artwork.name = "STICK selected artwork image";
+            artwork.pickingMode = PickingMode.Ignore;
         }
 
         private void RefreshCamera(AppState state)

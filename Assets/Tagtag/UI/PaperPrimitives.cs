@@ -28,6 +28,10 @@ namespace Tagtag.UI
     public class PaperButton : Button
     {
         private readonly PaperActivation activation = new PaperActivation();
+        private bool dieCutRegistered;
+        private bool dieCutCircular;
+        private bool dieCutCapsule;
+        private float dieCutSpacing;
         public PaperButton(string label, Action activate, PaperButtonKind kind = PaperButtonKind.Secondary)
         {
             text = label;
@@ -36,12 +40,39 @@ namespace Tagtag.UI
             AddToClassList("paper-button");
             AddToClassList(kind == PaperButtonKind.Primary ? "primary" :
                 kind == PaperButtonKind.Destructive ? "danger" : kind == PaperButtonKind.Quiet ? "quiet" : "secondary");
+            if (kind == PaperButtonKind.Primary || kind == PaperButtonKind.Secondary)
+                PaperDottedOutline.Decorate(this);
             if (activate != null) clicked += () =>
             {
                 if (!enabledInHierarchy || !activation.TryBegin()) return;
                 try { activate(); }
                 finally { schedule.Execute(activation.End); }
             };
+        }
+
+        internal void SetDieCut(bool circular, bool capsule, float spacing)
+        {
+            dieCutCircular = circular;
+            dieCutSpacing = spacing;
+            if (capsule && !dieCutCapsule)
+            {
+                dieCutCapsule = true;
+                RegisterCallback<GeometryChangedEvent>(_ =>
+                {
+                    float radius = Mathf.Min(layout.width, layout.height) * .5f;
+                    if (float.IsNaN(radius) || float.IsInfinity(radius)) return;
+                    style.borderTopLeftRadius = style.borderTopRightRadius = radius;
+                    style.borderBottomLeftRadius = style.borderBottomRightRadius = radius;
+                });
+            }
+            if (!dieCutRegistered)
+            {
+                dieCutRegistered = true;
+                generateVisualContent += context => PaperDottedOutline.DrawOn(context, this,
+                    dieCutCircular, dieCutCapsule ? 1000f : 14f, dieCutSpacing);
+            }
+            AddToClassList("paper-die-cut");
+            MarkDirtyRepaint();
         }
     }
 

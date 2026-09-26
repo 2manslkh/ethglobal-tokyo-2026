@@ -15,7 +15,8 @@ namespace Tagtag.UI
         private bool CameraInputReady(IArExperience ar)
         {
             if (ar == null || controller == null) return false;
-            return !PaperFlow.BlockCameraInteraction(controller.State, sheet != Sheet.None || controller.State.creationOpen,
+            return !stickSelectedArtworkPointerHeld &&
+                   !PaperFlow.BlockCameraInteraction(controller.State, sheet != Sheet.None || controller.State.creationOpen,
                        ar.CameraPresentation, ar.IsTracking) && !ar.PlacementBusy && cameraSurface != null &&
                    cameraSurface.worldBound.width > 0f && cameraSurface.worldBound.height > 0f;
         }
