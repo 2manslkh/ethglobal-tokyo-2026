@@ -97,8 +97,8 @@ test('stale, inaccurate and malformed input is rejected', async () => {
     const f = await fixture();
     try {
         assert.equal((await f.call('POST', '/v1/nearby', { location: fix(999_969) }, null)).status, 400);
-        assert.equal((await f.call('POST', '/v1/nearby', { location: { ...fix(), accuracyMeters: 51 } }, null)).status, 400);
-        assert.equal((await f.call('POST', '/v1/nearby', { location: { ...fix(), accuracyMeters: 75 } }, null)).status, 400);
+        assert.equal((await f.call('POST', '/v1/nearby', { location: { ...fix(), accuracyMeters: 5001 } }, null)).status, 400);
+        assert.equal((await f.call('POST', '/v1/nearby', { location: { ...fix(), accuracyMeters: -1 } }, null)).status, 400);
         assert.equal((await f.call('POST', '/v1/publications/prepare', { ...draft('op-75m'), location: { ...fix(), accuracyMeters: 75 } })).status, 200);
         assert.equal((await f.call('POST', '/v1/publications/prepare', { ...draft(), note: 'x'.repeat(2001) })).status, 400);
         assert.equal((await f.call('POST', '/v1/publications/prepare', { ...draft(), mapBytes: 16 * 1024 * 1024 + 1 })).status, 400);
@@ -252,5 +252,25 @@ test('per-instance limiter bounds recovery and reports per user', async () => {
         assert.equal(recoveries.filter(item => item.status === 429).length, 1);
         const reports = await Promise.all(Array.from({ length: 11 }, () => f.call('POST', `/v1/stickers/${id}/report`, { reason: 'unsafe' }, 'bob')));
         assert.equal(reports.filter(item => item.status === 429).length, 1);
+    } finally { await f.close(); }
+});
+
+
+test('nearby browsing accepts approximate fixes without relaxing discovery or publishing', async () => {
+    const f = await fixture();
+    try {
+        const id = await f.publish();
+        for (const accuracyMeters of [75, 500, 2000, 2000.149, 5000]) {
+            const approximate = { ...fix(), accuracyMeters };
+            const nearby = await f.call('POST', '/v1/nearby', { location: approximate }, null);
+            assert.equal(nearby.status, 200, `Browse with ${accuracyMeters} metre accuracy`);
+            assert.equal(nearby.data.items.length, 1);
+            assert.equal(nearby.data.items[0].note, undefined);
+            assert.equal((await f.call('POST', `/v1/stickers/${id}/recover`, { location: approximate }, 'bob')).status, 400);
+            assert.equal((await f.call('POST', `/v1/stickers/${id}/collect`, { location: approximate, discoveryId: 'unused' }, 'bob')).status, 400);
+        }
+        assert.equal((await f.call('POST', '/v1/nearby', { location: { ...fix(), accuracyMeters: 5001 } }, null)).status, 400);
+        assert.equal((await f.call('POST', '/v1/nearby', { location: { ...fix(999_969), accuracyMeters: 500 } }, null)).status, 400);
+        assert.equal((await f.call('POST', '/v1/publications/prepare', { ...draft('approximate'), location: { ...fix(), accuracyMeters: 500 } })).status, 400);
     } finally { await f.close(); }
 });

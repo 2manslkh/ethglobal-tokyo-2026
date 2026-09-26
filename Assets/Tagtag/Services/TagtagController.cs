@@ -77,7 +77,9 @@ namespace Tagtag.Services
             transferStore = new NftTransferStore(System.IO.Path.Combine(Application.persistentDataPath, "nft-transfers"));
             if (nftOwner != null && transferNft != null && transferStatus != null)
                 transfers = new NftTransfers(transferStore.Save, nftOwner, transferNft, transferStatus);
-            this.locateNearby = locateNearby ?? (token => location.Current(token));
+            // Map browsing does not prove presence. Match the API's 5 km accuracy allowance;
+            // discovery and collection still use the default 50 m location check.
+            this.locateNearby = locateNearby ?? (token => location.Current(token, maxAccuracyMeters: 5000));
             this.loadNearby = loadNearby ?? (async fix =>
                 (await api.Call<SummaryList>("POST", "/v1/nearby", new LocationRequest { location = fix }, await session.Token(false))).items);
             cache = new LocalCollection(System.IO.Path.Combine(Application.persistentDataPath, "collections"));

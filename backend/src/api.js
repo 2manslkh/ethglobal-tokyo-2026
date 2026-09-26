@@ -9,6 +9,7 @@ const PRESETS = new Set(['taggi-1', 'taggi-2', 'taggi-3', 'taggi-4']);
 const MAX_BODY = 32768;
 const DISCOVERY_SECONDS = 300;
 const NEARBY_METERS = 2000;
+const BROWSE_MAX_ACCURACY_METERS = 5000;
 const DESIGN_KINDS = new Set(['image', 'ai', 'polaroid']);
 
 class ApiError extends Error {
@@ -181,7 +182,8 @@ export function createApi({ adapter, now = () => Math.floor(Date.now() / 1000), 
             if (method === 'POST' && path === '/v1/nearby') {
                 rateLimit('nearby', ip, 30, 60);
                 const user = await auth(request, true);
-                const point = location((await bodyJson(request)).location);
+                // Browsing public clues is independent of the stricter presence checks below.
+                const point = location((await bodyJson(request)).location, BROWSE_MAX_ACCURACY_METERS);
                 const blocks = user ? await adapter.query('blocks', [['userId', '==', user.uid]], 1000) : [];
                 const excluded = new Set(blocks.map(item => item.authorId));
                 const candidates = await adapter.query('stickers', [['geoCell', 'in', neighboringCells(point.latitude, point.longitude)], ['status', '==', 'published']], 500);
