@@ -580,3 +580,31 @@ launched successfully. Installation and launch results are recorded locally in
 This verifies build, signing, installation, and launch; it does not verify a
 complete AR, authentication, or NFT journey. NFT staging deployment remains
 pending.
+
+## Approximate AR recovery — 2026-09-26
+
+Verified in isolated branch `fix/approximate-ar-recovery`, based on `faba765`:
+84 backend tests passed (one Firebase emulator test skipped), and all 242 Unity
+Edit Mode tests passed. Before the fix, three backend tests rejected valid
+approximate recovery and four client cases reproduced the low-accuracy or
+Precise Location error. Separate ARKit preparation, iOS export, and unsigned
+Debug Xcode compilation passed with Unity 6000.5.5f1. Local evidence:
+`/tmp/tagtag-recovery-backend-green.log`, `/tmp/tagtag-recovery-green.xml`,
+`/tmp/tagtag-recovery-prepare.log`, `/tmp/tagtag-recovery-export.log`, and
+`/tmp/tagtag-recovery-xcode.log`.
+
+Physical-device verification is **pending**, coordinated with the STICK build
+and installation thread. No recovery build was installed by this task. After
+backend rollout and installation, test a previously published indoor sticker:
+
+1. With a fresh approximate fix (including reduced-accuracy permission), open
+   **Find in AR** and confirm the map loads when distance is within the measured
+   accuracy plus 100 m. Scan the original surroundings until its anchor matches.
+2. Confirm collection still refuses inaccurate location; with Precise Location
+   and a fresh fix within 50 m accuracy and 100 m of the sticker, tap its tracked
+   anchor within 3 m and confirm collection succeeds.
+3. Close during location acquisition and map download; confirm a late result
+   cannot reopen the camera. Denied, stale, and over-5-km fixes must not load maps.
+
+Record the device, OS, installed commit, API revision, and observed results here
+when those checks are performed. Deploy the backend before the updated client.

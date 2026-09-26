@@ -325,12 +325,58 @@ namespace Tagtag.Services.Tests
             Assert.That(runtime.StopCount, Is.EqualTo(1));
         }
 
+        [TestCase(75f, LocationAuthorization.FullAccuracy)]
+        [TestCase(500f, LocationAuthorization.FullAccuracy)]
+        [TestCase(2000.149f, LocationAuthorization.FullAccuracy)]
+        [TestCase(5000f, LocationAuthorization.ReducedAccuracy)]
+        public void DiscoveryRecoversImmediatelyWithFreshApproximateLocation(float accuracy, LocationAuthorization authorization)
+        {
+            controller.Dispose();
+            var runtime = new BrowsingLocationRuntime { Accuracy = accuracy, Authorization = authorization };
+            var camera = new Camera();
+            LocationFix requested = null;
+            var recovered = new RecoveryData { sticker = new StickerSummary { id = "find-me" } };
+            controller = new TagtagController(new ServiceConfiguration(), camera, new Map(),
+                new Identity { StoredSession = ValidSession }, deviceLocation: new DeviceLocation(runtime),
+                loadRecovery: (id, fix, token) => { requested = fix; return Task.FromResult(recovered); });
+            controller.State.selected = recovered.sticker;
+
+            controller.StartDiscovery();
+
+            Assert.That(controller.State.error, Is.Empty);
+            Assert.That(camera.LastRecovery, Is.SameAs(recovered));
+            Assert.That(requested.accuracyMeters, Is.EqualTo(accuracy));
+            Assert.That(runtime.DelayCount, Is.Zero);
+            Assert.That(controller.State.discoveryLoading, Is.False);
+        }
+
+        [TestCase(5001f, 100)]
+        [TestCase(500f, 0)]
+        public void DiscoveryRejectsUnusableLocationBeforeMapLoading(float accuracy, long measuredAt)
+        {
+            controller.Dispose();
+            var runtime = new BrowsingLocationRuntime { Accuracy = accuracy, MeasuredAt = measuredAt };
+            var camera = new Camera();
+            bool loaded = false;
+            controller = new TagtagController(new ServiceConfiguration(), camera, new Map(),
+                new Identity { StoredSession = ValidSession }, deviceLocation: new DeviceLocation(runtime),
+                loadRecovery: (id, fix, token) => { loaded = true; return Task.FromResult<RecoveryData>(null); });
+            controller.State.selected = new StickerSummary { id = "find-me" };
+
+            controller.StartDiscovery();
+
+            Assert.That(loaded, Is.False);
+            Assert.That(camera.LastRecovery, Is.Null);
+            Assert.That(controller.State.error, Is.Not.Empty);
+            Assert.That(controller.State.discoveryLoading, Is.False);
+        }
+
         [Test]
         public async Task DiscoveryOpensCameraBeforeLocationCompletesAndKeepsRetryOnFailure()
         {
             controller.Dispose();
             var delay = new TaskCompletionSource<bool>();
-            var runtime = new BrowsingLocationRuntime { Accuracy = 500, PendingDelay = delay.Task };
+            var runtime = new BrowsingLocationRuntime { Accuracy = 5001, PendingDelay = delay.Task };
             var camera = new Camera();
             controller = new TagtagController(new ServiceConfiguration(), camera, new Map(),
                 new Identity { StoredSession = ValidSession },
@@ -366,7 +412,7 @@ namespace Tagtag.Services.Tests
         {
             controller.Dispose();
             var delay = new TaskCompletionSource<bool>();
-            var runtime = new BrowsingLocationRuntime { Accuracy = 500, PendingDelay = delay.Task };
+            var runtime = new BrowsingLocationRuntime { Accuracy = 5001, PendingDelay = delay.Task };
             controller = new TagtagController(new ServiceConfiguration(), new Camera(), new Map(),
                 new Identity { StoredSession = ValidSession }, deviceLocation: new DeviceLocation(runtime));
             controller.State.page = AppPage.Explore;
@@ -450,7 +496,7 @@ namespace Tagtag.Services.Tests
             public long MeasuredAt = 100;
             public int DelayCount, StopCount;
             public Task PendingDelay;
-            public LocationAuthorization Authorization => LocationAuthorization.FullAccuracy;
+            public LocationAuthorization Authorization { get; set; } = LocationAuthorization.FullAccuracy;
             public bool ServicesEnabled => true;
             public LocationServiceStatus Status { get; private set; } = LocationServiceStatus.Stopped;
             public LocationFix LastFix => new LocationFix { latitude = 35.68, longitude = 139.76,

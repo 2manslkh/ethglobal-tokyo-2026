@@ -409,7 +409,8 @@ namespace Tagtag.Services
                 State.status = "Checking your location to find this sticker…";
                 Ar.Enter();
                 Notify();
-                var fix = await location.Current(request.Token);
+                // Map recovery tolerates approximate GPS; collection still requires a precise fix.
+                var fix = await location.Current(request.Token, maxAccuracyMeters: 5000);
                 if (!CurrentDiscovery(request, generation)) return;
                 State.location = fix;
                 State.status = "Loading this sticker’s saved spot…";
