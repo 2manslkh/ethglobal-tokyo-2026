@@ -12,12 +12,12 @@ discovery error and Settings notice, overlapping-map selection, and celebrations
   (`/tmp/tagtag-photo-edit.xml`).
 - Separate ARKit preparation, iOS export, and signed Debug build succeeded.
   Logs: `/tmp/tagtag-photo-{prepare,export,signed}.log`.
-- Installation is **pending**: Dawg. became unavailable before installation.
-  CoreDevice returned error 4016, and USB-only ios-deploy detection found no
-  device. No app was uninstalled or data reset. Log:
-  `/tmp/tagtag-photo-install.log`.
-- Reconnect/unlock the iPhone, install the prepared app, and verify discovery
-  with Precise Location enabled. Physical photo recovery is not yet verified.
+- After the owner reconnected and unlocked Dawg. (iPhone 15 Pro Max), the
+  prepared app installed over the existing app and launched successfully.
+  CoreDevice installation and launch both exited 0. No uninstall or data reset
+  was performed. Logs: `/tmp/tagtag-photo-{install,launch}.log`.
+- Verify discovery with Precise Location enabled. Physical photo recovery is
+  not yet verified; successful installation and launch do not establish it.
 
 See [reference photo diagnosis](verification/reference-photo.md) for the saved
 photo and location evidence.

@@ -55,6 +55,7 @@ Final full mounted UI suite: 11/11 passed (`/tmp/tagtag-photo-final-play.xml`).
 ## iPhone build
 
 Source `2329063` passed separate ARKit preparation, iOS export, and signed
-Debug build. Installation is pending reconnection of Dawg.; CoreDevice reported
-4016/unavailable and USB-only detection found no device. See
-[device verification](../DEVICE_VERIFICATION.md) for the handoff.
+Debug build. After the owner reconnected Dawg. (iPhone 15 Pro Max), installation
+and launch both succeeded with exit 0. Real discovery and photo recovery still
+require an on-device check with Precise Location enabled. See
+[device verification](../DEVICE_VERIFICATION.md) for the evidence.
