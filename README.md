@@ -96,6 +96,14 @@ Automated tests cover book pagination, swipe/tap distinctions, collection orderi
 
 An AR tap plus a server discovery session is a gameplay gate, not cryptographic proof of presence. World-map recovery depends on recognizable surroundings. The server never includes full notes in nearby summaries.
 
+## Home library
+
+Home keeps the collected total beside an illustrated **Make a sticker** button. Switch between **Collected** and **My designs**: the book holds discovered stickers, while My designs shows your saved artwork newest first. An empty book shows Taggi hugging their knees and crying, with **Explore nearby** below.
+
+Tap one of your designs for a larger preview, then **Place sticker** to open the camera or **Remove design** to confirm removal from your library. Published and collected copies keep their artwork. The selected Home view, book page, and each view's scroll position survive navigation during the session; changing accounts clears the private design presentation. Refresh keeps cached cards visible, and signed-out users can sign in to see their designs.
+
+Run the Home UI checks with Unity `-buildTarget StandaloneOSX -testPlatform PlayMode -testFilter Tagtag.Tests.HomeLibraryVisualTests` (graphics enabled). Captures are written under `Application.temporaryCachePath/tagtag-home-review`. Native creation, sign-in, and AR handoff still require an iPhone.
+
 ## Create stickers
 
 Open **My Stickers** from Home or the STICK inventory. Import a photo/file, make a photo or selfie Polaroid, or open Apple Image Playground on a supported iPhone. The native editor offers full-image or square crop, optional foreground cutout with a white border, and a Polaroid caption. Preview the finished design before saving.

@@ -245,3 +245,9 @@ Verification: Unity Edit Mode **134/134**, graphics Play Mode **10/10**, backend
 - Installed over the existing app on USB device **Dawg.**, UDID `00008130-001420500E41001C`, reported model iPhone16,2 (iPhone 15 Pro Max), iOS 26.6.1. `ios-deploy` reported `InstallComplete` and exited 0. No uninstall or data reset.
 - Logs: `/tmp/tagtag-integrated-prepare.log`, `/tmp/tagtag-integrated-export.log`, `/tmp/tagtag-integrated-xcode.log`, `/tmp/tagtag-integrated-install.log`.
 - This verifies build/signing/installation only; no new on-device interaction or live-backend deployment was performed in this pass.
+
+## Home library update — 2026-09-26
+
+Unity graphics-enabled Play Mode verification covers the Collected/My designs switch, sorted private designs, preview/placement/removal, failed operations, account changes, artwork recovery, and session scroll/page continuity. Standard and compact/large-text layouts were inspected; [Home screenshots](screenshots/home-library/home-collected-empty.png) use deterministic test content.
+
+Physical-device verification for this update is **pending**. On an iPhone, check Home at normal and larger text sizes, create/save a design, open it from My designs, place it in AR, return to the same gallery, then cancel and confirm design removal. Verify saved copies remain in collections and sign-out clears private designs. Do not treat editor tests as proof of native creation or AR handoff.
