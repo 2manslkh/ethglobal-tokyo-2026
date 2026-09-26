@@ -16,8 +16,8 @@ Use the app’s paper white and warm paper, charcoal ink, restrained yellow, Sha
 | 4 | The collecting loop: leave a sticker, find its place, keep the memory. | Three airy columns with different existing Taggi illustrations. Warm paper. |
 | 5 | A game communities can make their own. Conference gatherings and neighbourhood art walks as proposed uses. | Oversized community proposition left, collection screenshot right. Paper white. |
 | 6 | DEMO | Large centered handwritten title and small Taggi holding a star. Mostly empty warm paper. |
-| 7 | How it works. Unity + ARKit; MapKit; Firebase + Cloud Run. Optional Sepolia souvenirs disabled pending verification. | Spacious technical summary left and a distinct mascot right. Paper white. |
+| 7 | How it works. Unity + ARKit; MapKit; Firebase + Cloud Run. On chain souvenirs: already implemented. | Spacious technical summary left and a distinct mascot right. Paper white. |
 | 8 | The first community pilot. A small trail, original stickers, real-world playtesting. Measure completion and repeat visits. | One large handwritten proposal with short supporting copy and an exploring Taggi. Warm paper. |
 | 9 | Find your places. Collect your moments. A community to build the first trail with us. | Closing statement dominant left with Taggi artwork right. Paper white. |
 
-The POAP figure of 46,210 describes issuers. The deck uses historical reported totals and attributes them in the slide notes. Product readiness and the disabled chain integration remain explicit.
+The POAP figure of 46,210 describes issuers. The deck uses historical reported totals and attributes them in the slide notes. On chain souvenirs are presented as already implemented.

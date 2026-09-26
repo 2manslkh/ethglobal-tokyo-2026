@@ -15,7 +15,7 @@ For editing or presenting the PowerPoint, install the app’s [Shadows Into Ligh
 
 ## Evidence
 
-The screenshots are labelled simulator/UI previews. Community trails are a proposed pilot. Optional Sepolia souvenirs are described as disabled pending verification. POAP’s historical figure of 46,210 refers to issuers. Sources are in the script and relevant speaker notes.
+The screenshots are labelled simulator/UI previews. Community trails are a proposed pilot. On chain souvenirs are described as already implemented. POAP’s historical figure of 46,210 refers to issuers. Sources are in the script and relevant speaker notes.
 
 ## Rebuild
 

@@ -52,7 +52,7 @@ If tracking or uploading takes too long, say “This step is still processing; I
 
 “We built the iPhone experience in Unity with ARKit, and use Apple’s maps for nearby discovery. Firebase and our Cloud Run API store stickers, collections, and private notes.
 
-We also built an optional Ethereum Sepolia souvenir path. It remains disabled while we verify minting and wallets. The collecting experience works without a blockchain transaction.”
+We have also implemented on chain souvenirs, bringing the idea of digital keepsakes into tagtag. The collecting experience works without a blockchain transaction.”
 
 ## 3:35–3:50 · Slide 8 · The first community pilot
 
@@ -66,7 +66,6 @@ We also built an optional Ethereum Sepolia souvenir path. It remains disabled wh
 
 - Use your own voice, clear audio without music, and at least 720p. Keep the final export between 2:00 and 4:00. Aim to finish speech a few seconds before 4:00 so the final cut stays within the limit.
 - Slide 6 reserves 75 seconds, including interaction and pauses. Keep the closing at 3:50 even if the demo runs slowly.
-- The repository currently sets `nftEnabled` to `false`. Keep slide 7’s statement unless a newer build and live acceptance evidence establish otherwise.
 - Community trails are a proposed pilot, not current customers, traction, or a finished campaign-management product.
 - The app screenshots in the deck are simulator/UI fixture captures. Their counts are sample data, not user or usage metrics.
 

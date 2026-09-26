@@ -85,8 +85,8 @@ text(s,'Nearby discovery on Apple’s maps',85,440,760,49,30);
 text(s,'Firebase + Cloud Run',84,535,760,60,44,true);
 text(s,'Stickers, collections and private notes',85,600,760,49,30);
 await image(s,A+'Presets/taggi-8.png',902,161,283,298);
-text(s,'Optional Sepolia souvenirs',879,514,337,55,28,true);
-text(s,'Implemented, disabled\npending verification',879,581,332,73,23,false,C.muted);folio(s,7);
+text(s,'On chain souvenirs',879,514,337,55,28,true);
+text(s,'Already implemented',879,581,332,73,23,false,C.muted);folio(s,7);
 
 s=slide('The first community pilot',true);
 text(s,'The first\ncommunity pilot',81,76,720,188,73,true);
