@@ -11,11 +11,13 @@ namespace Tagtag.Blockchain
     /// A Firebase JWT-backed thirdweb in-app EOA. The coordinator owns Firebase
     /// token refresh, backend binding, and account-generation checks.
     /// </summary>
-    public sealed class ThirdwebEmbeddedWallet : IEmbeddedWallet
+    public sealed partial class ThirdwebEmbeddedWallet : IEmbeddedWallet
     {
         private const string SdkVersion = "6.1.3";
 
         private readonly string clientId;
+        private readonly string bundleId;
+        private readonly string platform;
         private readonly SemaphoreSlim sessionGate = new SemaphoreSlim(1, 1);
         private InAppWallet wallet;
         private WalletSessionStorage sessionStorage;
@@ -28,6 +30,10 @@ namespace Tagtag.Blockchain
             }
 
             this.clientId = clientId;
+            // Constructed by the Unity application on its main thread. Keep
+            // these values for receipt polling after asynchronous continuations.
+            bundleId = Application.identifier;
+            platform = Application.platform.ToString();
         }
 
         public async Task<string> Connect(string firebaseIdToken)
@@ -39,8 +45,6 @@ namespace Tagtag.Blockchain
 
             // Unity application properties must be read before an asynchronous
             // continuation can leave the Unity thread.
-            var bundleId = Application.identifier;
-            var platform = Application.platform.ToString();
             var temporaryCachePath = Application.temporaryCachePath;
             var persistentDataPath = Application.persistentDataPath;
 

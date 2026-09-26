@@ -3,5 +3,5 @@
     "rootNamespace": "Tagtag.Blockchain",
     "references": ["Thirdweb.Unity.Http"],
     "overrideReferences": true,
-    "precompiledReferences": ["Thirdweb.dll"]
+    "precompiledReferences": ["Thirdweb.dll", "Nethereum.Hex.dll", "Newtonsoft.Json.dll"]
 }
