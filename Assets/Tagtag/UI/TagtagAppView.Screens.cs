@@ -23,8 +23,20 @@ namespace Tagtag.UI
             page.style.paddingLeft = 20f;
             page.style.paddingRight = 20f;
             page.style.paddingBottom = 22f;
-            Label title = Text(page, "Your sticker book", 30, true);
-            title.style.marginTop = 16f;
+            VisualElement heading = Row(page);
+            heading.style.alignItems = Align.Center;
+            heading.style.marginTop = 16f;
+            Label title = Text(heading, "Your sticker book", 30, true);
+            title.style.flexGrow = 1f;
+            title.style.minWidth = 0f;
+            homeProfileButton = new PaperIconButton(SignedIn(state) ? "Account settings" : "Sign in", "profile", () =>
+            {
+                accountScreen = SignedIn(controller.State) ? AccountScreen.Overview : AccountScreen.SignIn;
+                controller.SetAccountOpen(true);
+            });
+            homeProfileButton.name = "Home Profile";
+            homeProfileButton.style.marginLeft = 8f;
+            heading.Add(homeProfileButton);
             title.style.marginBottom = 3f;
             homeCount = new PaperCollectionCount();
             homeCount.style.flexDirection = FlexDirection.Row;
@@ -343,11 +355,8 @@ namespace Tagtag.UI
         private VisualElement stickGuidance;
         private VisualElement stickActions;
         private VisualElement cameraSurface;
-        private Image cameraSelectedArtwork;
-        private Label cameraSelectedName;
         private Label stickPlacementGuidanceLabel;
         private Label stickModeTitle;
-        private VisualElement stickAdjustments;
         private Button stickWriteButton;
         private Button stickInventoryButton;
         private Button stickCloseButton;
@@ -391,17 +400,28 @@ namespace Tagtag.UI
             cameraCover.style.top = 0f;
             cameraCover.style.bottom = 0f;
             cameraCover.style.backgroundColor = Paper;
-            cameraCover.style.alignItems = Align.Center;
-            cameraCover.style.justifyContent = Justify.Center;
-            cameraCover.style.paddingLeft = 30f;
-            cameraCover.style.paddingRight = 30f;
-            Art(cameraCover, "taggi-1", 100f).style.marginBottom = 18f;
-            cameraTitleLabel = Text(cameraCover, "Getting the camera ready", 23, true);
+            ScrollView recoveryScroll = PaperScroll(cameraCover);
+            recoveryScroll.name = "Camera recovery scroll";
+            recoveryScroll.style.position = Position.Absolute;
+            recoveryScroll.style.left = 0f;
+            recoveryScroll.style.right = 0f;
+            VisualElement recoveryContent = recoveryScroll.contentContainer;
+            recoveryContent.style.alignItems = Align.Center;
+            recoveryContent.style.paddingLeft = 30f;
+            recoveryContent.style.paddingRight = 30f;
+            recoveryContent.style.paddingTop = 16f;
+            recoveryContent.style.paddingBottom = 16f;
+            Image recoveryArt = Art(recoveryContent, "taggi-1", 72f);
+            recoveryArt.style.flexShrink = 0f;
+            recoveryArt.style.marginBottom = 18f;
+            cameraTitleLabel = Text(recoveryContent, "Getting the camera ready", 23, true);
+            cameraTitleLabel.style.flexShrink = 0f;
             cameraTitleLabel.style.unityTextAlign = TextAnchor.MiddleCenter;
-            cameraDetailLabel = Text(cameraCover, "Hold your phone up while the camera starts.", 15, false, Muted);
+            cameraDetailLabel = Text(recoveryContent, "Hold your phone up while the camera starts.", 15, false, Muted);
+            cameraDetailLabel.style.flexShrink = 0f;
             cameraDetailLabel.style.unityTextAlign = TextAnchor.MiddleCenter;
             cameraDetailLabel.style.marginTop = 7f;
-            cameraRecoveryButton = Action(cameraCover, "Try camera again", () =>
+            cameraRecoveryButton = Action(recoveryContent, "Try camera again", () =>
             {
                 if (controller?.Ar?.CameraPresentation == CameraPresentationState.PermissionDenied)
                     Application.OpenURL("app-settings:");
@@ -415,42 +435,31 @@ namespace Tagtag.UI
             top.style.right = 12f;
             top.style.top = 10f;
             top.style.alignItems = Align.FlexStart;
-            stickCloseButton = Action(top, "Close", CloseCamera, false);
+            stickCloseButton = new PaperIconButton("Close camera", "close", CloseCamera);
+            top.Add(stickCloseButton);
             stickCloseButton.name = "STICK Close";
-            stickCloseButton.tooltip = "Close camera";
             stickCloseButton.AddToClassList("camera-close");
-            stickCloseButton.style.minWidth = 64f;
-            stickCloseButton.style.marginRight = 8f;
-            VisualElement topCard = Column(top);
-            topCard.style.flexGrow = 1f;
-            topCard.style.minWidth = 0f;
-            topCard.style.paddingLeft = 12f;
-            topCard.style.paddingRight = 12f;
-            topCard.style.paddingTop = 8f;
-            topCard.style.paddingBottom = 8f;
-            topCard.style.backgroundColor = Paper;
-            topCard.style.borderTopLeftRadius = 14f;
-            topCard.style.borderTopRightRadius = 14f;
-            topCard.style.borderBottomLeftRadius = 14f;
-            topCard.style.borderBottomRightRadius = 14f;
+            stickCloseButton.Insert(0, new PaperDottedOutline(true));
+            VisualElement topContent = Column(top);
+            topContent.style.flexGrow = 1f;
+            topContent.style.minWidth = 0f;
+            VisualElement topCard = Column(topContent);
+            topCard.name = "STICK title sticker";
+            topCard.AddToClassList("camera-title-sticker");
+            topCard.Add(new PaperDottedOutline(false));
             stickModeTitle = Text(topCard, "STICK", 23, true);
-            VisualElement selection = Row(topCard);
-            selection.style.alignItems = Align.Center;
-            selection.style.minHeight = 0f;
-            cameraSelectedArtwork = Art(selection, "taggi-1", 48f);
-            cameraSelectedArtwork.name = "STICK Selected Artwork";
-            cameraSelectedName = Text(selection, "", 14, true);
-            cameraSelectedName.style.marginLeft = 8f;
-            ScrollView guidanceScroll = PaperScroll(topCard);
+            stickModeTitle.style.unityTextAlign = TextAnchor.MiddleCenter;
+            ScrollView guidanceScroll = PaperScroll(topContent);
             guidanceScroll.name = "STICK guidance scroll";
+            guidanceScroll.AddToClassList("camera-guidance-notice");
             guidanceScroll.style.flexGrow = 0f;
-            guidanceScroll.style.maxHeight = 100f;
+            guidanceScroll.style.maxHeight = 116f;
             stickGuidance = guidanceScroll.contentContainer;
             stickPlacementGuidanceLabel = Text(stickGuidance, "", 14, false, Ink);
             stickPlacementGuidanceLabel.name = "STICK Placement Guidance";
             cameraTrackingLabel = Text(stickGuidance, "", 12, false, Muted);
             cameraTrackingLabel.style.marginTop = 2f;
-            AddStatus(topCard, state);
+            AddStatus(stickGuidance, state);
             VisualElement dock = Column(page);
             dock.name = "STICK camera dock";
             dock.style.position = Position.Absolute;
@@ -466,30 +475,15 @@ namespace Tagtag.UI
             dock.style.borderTopRightRadius = 20f;
             dock.style.borderBottomLeftRadius = 20f;
             dock.style.borderBottomRightRadius = 20f;
-            var adjustmentFoldout = new Foldout { text = "Size & rotation", value = false };
-            adjustmentFoldout.AddToClassList("camera-adjustments");
-            adjustmentFoldout.style.unityFont = SemiboldFont;
-            adjustmentFoldout.style.fontSize = Mathf.RoundToInt(15f * textScale);
-            dock.Add(adjustmentFoldout);
-            stickAdjustments = adjustmentFoldout;
-            stickAdjustments.name = "STICK Adjustments";
-            ScrollView adjustScroll = PaperScroll(stickAdjustments);
-            adjustScroll.style.maxHeight = 122f;
-            adjustScroll.style.flexGrow = 0f;
-            VisualElement sizeRow = Row(adjustScroll.contentContainer);
-            AddAdjustment(sizeRow, "Smaller", -1f, 0f);
-            AddAdjustment(sizeRow, "Larger", 1f, 0f);
-            VisualElement rotationRow = Row(adjustScroll.contentContainer);
-            AddAdjustment(rotationRow, "Rotate left", 0f, -5f);
-            AddAdjustment(rotationRow, "Rotate right", 0f, 5f);
-            Button center = Action(adjustScroll.contentContainer, "Move to camera center", () =>
+            // Keep recovery content scrollable between the independently sized overlays.
+            void LayoutRecovery()
             {
-                IArExperience ar = controller?.Ar;
-                if (!CanAdjustCamera(ar)) return;
-                ar.AdjustPlacement(ar.PlacementWidthMeters, ar.PlacementRotationDegrees,
-                    new Vector2(Screen.width * .5f, Screen.height * .5f));
-            }, false);
-            center.name = "STICK Move to camera center";
+                recoveryScroll.style.top = top.layout.yMax + 8f;
+                recoveryScroll.style.bottom = Mathf.Max(0f, page.layout.height - dock.layout.yMin) + 8f;
+            }
+            top.RegisterCallback<GeometryChangedEvent>(_ => LayoutRecovery());
+            dock.RegisterCallback<GeometryChangedEvent>(_ => LayoutRecovery());
+            page.RegisterCallback<GeometryChangedEvent>(_ => LayoutRecovery());
             stickActions = Row(dock);
             stickActions.style.alignItems = Align.Center;
             stickActions.style.justifyContent = Justify.SpaceBetween;
@@ -530,17 +524,6 @@ namespace Tagtag.UI
             stickPlacementGuidanceLabel.text = selected ? placement.Guidance : state.selected != null ?
                 PaperFlow.DiscoveryGuidance(state.selected) :
                 "Open your stickers, choose Taggi, then place it on a surface.";
-            bool hasArtwork = selected || state.selected != null;
-            cameraSelectedArtwork.style.display = hasArtwork ? DisplayStyle.Flex : DisplayStyle.None;
-            cameraSelectedName.style.display = hasArtwork ? DisplayStyle.Flex : DisplayStyle.None;
-            if (hasArtwork)
-            {
-                cameraSelectedArtwork.image = Resources.Load<Texture2D>("Tagtag/Presets/" +
-                    (selected ? state.selectedPreset : state.selected.presetId));
-                cameraSelectedName.text = selected ? PaperFlow.PresetName(state.selectedPreset) :
-                    Safe(state.selected.place, "A sticker nearby");
-            }
-            stickAdjustments.style.display = placement.ShowAdjustments ? DisplayStyle.Flex : DisplayStyle.None;
             stickWriteButton.style.display = selected ? DisplayStyle.Flex : DisplayStyle.None;
             SetDisabled(stickWriteButton, !placement.CanWriteNote);
             stickRetryButton.style.display = PaperFlow.ShowDiscoveryRetry(state) ? DisplayStyle.Flex : DisplayStyle.None;

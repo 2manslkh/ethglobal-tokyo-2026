@@ -16,7 +16,6 @@
 .paper-app .paper-button.camera-close { background-color:#fffefa; }
 .paper-app .paper-button.camera-close:hover { background-color:#e8e6df; }
 .paper-app .paper-button.camera-close:active { background-color:#dcd9cf; }
-.paper-app .camera-adjustments .unity-foldout__toggle { min-height:44px; }
 .paper-app .icon-button { min-width:48px; padding:10px; align-items:center; justify-content:center; }
 .paper-app .paper-selection { min-height:52px; padding-right:32px; -unity-text-align:middle-left; border-width:0; }
 .paper-app .paper-selection.selected { background-color:#fff6d2; }
@@ -75,3 +74,7 @@
 .paper-app .paper-notice.success { background-color:#ecf6e9; color:#2b653a; }
 .paper-app .paper-notice .notice-copy { flex-grow:1; flex-shrink:1; margin-left:8px; }
 .paper-app.reduced-motion .paper-button { transition-duration:0ms; }
+
+.paper-app .paper-button.camera-close { width:48px; height:48px; min-width:48px; min-height:48px; margin:0 10px 0 0; padding:0; border-radius:24px; }
+.paper-app .camera-title-sticker { background-color:#fffefa; min-height:48px; padding:10px 14px; justify-content:center; flex-shrink:0; }
+.paper-app .camera-guidance-notice { background-color:#fffefa; margin-top:8px; padding:8px 10px; border-radius:8px; }

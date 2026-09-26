@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8"?>
+<test-run id="2" testcasecount="2" result="Failed(Child)" total="2" passed="0" failed="2" inconclusive="0" skipped="0" asserts="0" engine-version="3.5.0.0" clr-version="4.0.30319.42000" start-time="2026-09-25 23:58:04Z" end-time="2026-09-25 23:58:05Z" duration="1.3808463">
+  <test-suite type="TestSuite" id="1020" name="tagtag" fullname="tagtag" runstate="Runnable" testcasecount="6" result="Failed" site="Child" start-time="2026-09-25 23:58:04Z" end-time="2026-09-25 23:58:05Z" duration="1.380846" total="2" passed="0" failed="2" inconclusive="0" skipped="0" asserts="0">
+    <properties>
+      <property name="platform" value="PlayMode" />
+    </properties>
+    <failure>
+      <message><![CDATA[One or more child tests had errors]]></message>
+    </failure>
+    <test-suite type="Assembly" id="1015" name="Tagtag.Startup.Tests.dll" fullname="/Users/kenk/Desktop/ethglobal-tokyo-2026/Library/ScriptAssemblies/Tagtag.Startup.Tests.dll" runstate="Runnable" testcasecount="3" result="Failed" site="Child" start-time="2026-09-25 23:58:04Z" end-time="2026-09-25 23:58:05Z" duration="1.376135" total="2" passed="0" failed="2" inconclusive="0" skipped="0" asserts="0">
+      <properties>
+        <property name="_PID" value="95338" />
+        <property name="_APPDOMAIN" value="Unity Child Domain" />
+        <property name="platform" value="PlayMode" />
+        <property name="EditorOnly" value="False" />
+      </properties>
+      <failure>
+        <message><![CDATA[One or more child tests had errors]]></message>
+      </failure>
+      <test-suite type="TestSuite" id="1016" name="Tagtag" fullname="Tagtag" runstate="Runnable" testcasecount="3" result="Failed" site="Child" start-time="2026-09-25 23:58:04Z" end-time="2026-09-25 23:58:05Z" duration="1.375596" total="2" passed="0" failed="2" inconclusive="0" skipped="0" asserts="0">
+        <properties />
+        <failure>
+          <message><![CDATA[One or more child tests had errors]]></message>
+        </failure>
+        <test-suite type="TestSuite" id="1017" name="Tests" fullname="Tagtag.Tests" runstate="Runnable" testcasecount="3" result="Failed" site="Child" start-time="2026-09-25 23:58:04Z" end-time="2026-09-25 23:58:05Z" duration="1.373081" total="2" passed="0" failed="2" inconclusive="0" skipped="0" asserts="0">
+          <properties />
+          <failure>
+            <message><![CDATA[One or more child tests had errors]]></message>
+          </failure>
+          <test-suite type="TestFixture" id="1010" name="PaperVisualTests" fullname="Tagtag.Tests.PaperVisualTests" classname="Tagtag.Tests.PaperVisualTests" runstate="Runnable" testcasecount="2" result="Failed" site="Child" start-time="2026-09-25 23:58:04Z" end-time="2026-09-25 23:58:05Z" duration="1.372322" total="2" passed="0" failed="2" inconclusive="0" skipped="0" asserts="0">
+            <properties />
+            <failure>
+              <message><![CDATA[One or more child tests had errors]]></message>
+            </failure>
+            <test-case id="1011" name="CameraInventoryFlowUsesFullScreenAndExplicitPlacement" fullname="Tagtag.Tests.PaperVisualTests.CameraInventoryFlowUsesFullScreenAndExplicitPlacement" methodname="CameraInventoryFlowUsesFullScreenAndExplicitPlacement" classname="Tagtag.Tests.PaperVisualTests" runstate="Runnable" seed="1490628751" result="Failed" start-time="2026-09-25 23:58:04Z" end-time="2026-09-25 23:58:05Z" duration="0.937976" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+              <failure>
+                <message><![CDATA[  Expected: 48.0f +/- 0.100000001f
+  But was:  71.0f
+]]></message>
+                <stack-trace><![CDATA[at Tagtag.Tests.PaperVisualTests+<CameraInventoryFlowUsesFullScreenAndExplicitPlacement>d__6.MoveNext () [0x0025b] in /Users/kenk/Desktop/ethglobal-tokyo-2026/Assets/Tagtag/Application/PlayModeTests/PaperVisualTests.cs:49
+at UnityEngine.TestTools.TestEnumerator+<Execute>d__7.MoveNext () [0x0003a] in ./Library/PackageCache/com.unity.test-framework@1405238725ab/UnityEngine.TestRunner/NUnitExtensions/Attributes/TestEnumerator.cs:44
+]]></stack-trace>
+              </failure>
+              <output><![CDATA[Paper UI capture: /var/folders/_r/65qcktj96mgb6y7948nn9g9m0000gn/T/tagtag/tagtag/tagtag-paper-review/camera-fullscreen-preparing.png
+]]></output>
+            </test-case>
+            <test-case id="1012" name="CapturesPaperScreensAndRecoveryStates" fullname="Tagtag.Tests.PaperVisualTests.CapturesPaperScreensAndRecoveryStates" methodname="CapturesPaperScreensAndRecoveryStates" classname="Tagtag.Tests.PaperVisualTests" runstate="Runnable" seed="744970714" result="Failed" start-time="2026-09-25 23:58:05Z" end-time="2026-09-25 23:58:05Z" duration="0.419252" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+              <failure>
+                <message><![CDATA[  Expected: False
+  But was:  True
+]]></message>
+                <stack-trace><![CDATA[at Tagtag.Tests.PaperVisualTests+<CapturesPaperScreensAndRecoveryStates>d__8.MoveNext () [0x0024c] in /Users/kenk/Desktop/ethglobal-tokyo-2026/Assets/Tagtag/Application/PlayModeTests/PaperVisualTests.cs:142
+at UnityEngine.TestTools.TestEnumerator+<Execute>d__7.MoveNext () [0x0003a] in ./Library/PackageCache/com.unity.test-framework@1405238725ab/UnityEngine.TestRunner/NUnitExtensions/Attributes/TestEnumerator.cs:44
+]]></stack-trace>
+              </failure>
+              <output><![CDATA[Paper UI capture: /var/folders/_r/65qcktj96mgb6y7948nn9g9m0000gn/T/tagtag/tagtag/tagtag-paper-review/home-empty.png
+Saving results to: /tmp/tagtag-navigation/red.xml
+]]></output>
+            </test-case>
+          </test-suite>
+        </test-suite>
+      </test-suite>
+    </test-suite>
+  </test-suite>
+</test-run>

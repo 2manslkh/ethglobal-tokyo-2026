@@ -30,14 +30,14 @@ namespace Tagtag.UI
         private PanelSettings ownedPanelSettings;
         private VisualElement root;
         private VisualElement safeRoot;
-        private VisualElement topHost;
+        private VisualElement statusBarBacking;
         private VisualElement screenHost;
         private VisualElement navHost;
         private VisualElement overlayHost;
         private VisualElement cameraCover;
         private Label cameraTrackingLabel;
         private Button publishButton;
-        private Button topProfileButton;
+        private Button homeProfileButton;
         private PaperNavigationMotion navigationMotion = new PaperNavigationMotion();
         private string renderedIdentity;
         private string renderedSheetSignature;
@@ -225,8 +225,13 @@ namespace Tagtag.UI
                 safeRoot = Column(root);
                 safeRoot.style.flexGrow = 1f;
                 safeRoot.style.minHeight = 0f;
-                topHost = Column(safeRoot);
-                topHost.style.flexShrink = 0f;
+                statusBarBacking = new VisualElement { name = "Status bar paper", pickingMode = PickingMode.Ignore };
+                statusBarBacking.style.position = Position.Absolute;
+                statusBarBacking.style.left = 0f;
+                statusBarBacking.style.right = 0f;
+                statusBarBacking.style.top = 0f;
+                statusBarBacking.style.backgroundColor = Paper;
+                root.Add(statusBarBacking);
                 screenHost = Column(safeRoot);
                 screenHost.style.flexGrow = 1f;
                 screenHost.style.flexShrink = 1f;
@@ -327,7 +332,7 @@ namespace Tagtag.UI
                 cameraCover = null;
                 cameraTrackingLabel = null;
                 publishButton = null;
-                topProfileButton = null;
+                homeProfileButton = null;
                 homeBook = null;
                 homeFooter = null;
                 homeInvitation = null;
@@ -338,9 +343,7 @@ namespace Tagtag.UI
                 stickGuidance = null;
                 stickActions = null;
                 cameraSurface = null;
-                cameraSelectedArtwork = null;
                 stickWriteButton = null;
-                stickAdjustments = null;
                 accountCollectionCount = null;
                 accountAuthoredCount = null;
                 accountMotionSwitch = null;
@@ -358,18 +361,16 @@ namespace Tagtag.UI
                 statusSettingsButton = null;
                 focusedField = null;
                 SyncDraftFromState();
-                topHost.Clear();
                 screenHost.Clear();
                 navHost.Clear();
                 root.style.backgroundColor = Paper;
                 if (state.accountOpen) BuildAccount(state);
                 else
                 {
-                    if (PaperFlow.ShowGlobalChrome(state)) BuildTopBar(state);
                     if (state.page == AppPage.Home) BuildHome(state);
                     else if (state.page == AppPage.Stick) BuildStick(state);
                     else BuildExplore(state);
-                    if (PaperFlow.ShowGlobalChrome(state)) BuildTabBar(state);
+                    if (PaperFlow.ShowBottomNavigation(state)) BuildTabBar(state);
                 }
                 var reason = navigationMotion.Observe(identity, !state.accountOpen);
                 PaperNavigationMotion.Enter(screenHost, reason);
@@ -414,7 +415,7 @@ namespace Tagtag.UI
         private void RefreshMounted(AppState state)
         {
             UpdateStatus(state);
-            if (topProfileButton != null) topProfileButton.text = SignedIn(state) ? "Account" : "Sign in";
+            if (homeProfileButton != null) homeProfileButton.tooltip = SignedIn(state) ? "Account settings" : "Sign in";
             if (state.accountOpen) RefreshAccount(state);
             else if (state.page == AppPage.Home) RefreshHome(state);
             else if (state.page == AppPage.Stick) RefreshStick(state);
@@ -436,7 +437,9 @@ namespace Tagtag.UI
             lastScreenHeight = Screen.height;
             float scaleX = root.layout.width > 0f ? root.layout.width / Screen.width : 1f;
             float scaleY = root.layout.height > 0f ? root.layout.height / Screen.height : scaleX;
-            safeRoot.style.paddingTop = Mathf.Max(0f, (Screen.height - lastSafeArea.yMax) * scaleY);
+            float topInset = Mathf.Max(0f, (Screen.height - lastSafeArea.yMax) * scaleY);
+            safeRoot.style.paddingTop = topInset;
+            statusBarBacking.style.height = topInset;
             safeRoot.style.paddingBottom = Mathf.Max(lastSafeArea.yMin, lastKeyboardHeight) * scaleY;
             safeRoot.style.paddingLeft = Mathf.Max(0f, lastSafeArea.xMin * scaleX);
             safeRoot.style.paddingRight = Mathf.Max(0f, (Screen.width - lastSafeArea.xMax) * scaleX);
@@ -449,25 +452,6 @@ namespace Tagtag.UI
             draftPlace = state.draftPlace ?? "";
             draftTeaser = state.draftTeaser ?? "";
             draftNote = state.draftNote ?? "";
-        }
-
-        private void BuildTopBar(AppState state)
-        {
-            VisualElement bar = Row(topHost);
-            bar.style.height = 62f;
-            bar.style.paddingLeft = 24f;
-            bar.style.paddingRight = 20f;
-            bar.style.alignItems = Align.Center;
-            bar.style.justifyContent = Justify.SpaceBetween;
-            bar.style.backgroundColor = Paper;
-            Text(bar, "tagtag", 26, true, Ink);
-            Button profile = Action(bar, SignedIn(state) ? "Account" : "Sign in", () =>
-            {
-                accountScreen = SignedIn(controller.State) ? AccountScreen.Overview : AccountScreen.SignIn;
-                controller.SetAccountOpen(true);
-            }, false);
-            topProfileButton = profile;
-            profile.style.minWidth = 72f;
         }
 
         private void BuildTabBar(AppState state)

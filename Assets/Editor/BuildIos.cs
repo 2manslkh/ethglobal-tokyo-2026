@@ -29,6 +29,7 @@ public static class BuildIos
         if (icon == null)
             throw new InvalidOperationException("App icon is missing at " + AppIconPath);
 
+        PlayerSettings.statusBarHidden = false;
         PlayerSettings.companyName = AppName;
         PlayerSettings.productName = AppName;
         PlayerSettings.SetApplicationIdentifier(NamedBuildTarget.iOS, "com.kenk.tagtag");
@@ -174,6 +175,9 @@ public static class BuildIos
         info.root.SetString("NSCameraUsageDescription", CameraUsageDescription);
         info.root.SetString("NSLocationWhenInUseUsageDescription", LocationUsageDescription);
         info.root.SetBoolean("UIRequiresFullScreen", true);
+        info.root.SetBoolean("UIStatusBarHidden", false);
+        info.root.SetBoolean("UIViewControllerBasedStatusBarAppearance", true);
+        info.root.SetString("UIStatusBarStyle", "UIStatusBarStyleDarkContent");
         var bundledFonts = info.root.values.ContainsKey("UIAppFonts")
             ? info.root["UIAppFonts"].AsArray() : info.root.CreateArray("UIAppFonts");
         bundledFonts.AddString(clusterFont);

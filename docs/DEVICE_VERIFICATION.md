@@ -130,3 +130,51 @@ Initial verification reproduced four location/publication failures in 101 Edit M
 The repaired publishing snapshot passed **120/120 Edit Mode** (2026-09-26 00:09:35–36 UTC) and **8/8 graphics Play Mode** (00:20:02–38 UTC). The final bounded source review found no residual blocker in the six repaired paths. Fresh captures confirm readable text-only buttons, borderless tonal pointer feedback, a stronger count, and a reachable compact Settings action. Mounted tests verify disabled in-flight editing and restoration of the same note field, text, caret, and selection afterward. An already-issued network request may finish remotely after interruption; the saved operation remains available for reconciliation by retry. Actual upload/finalize interruption on hardware is still unverified.
 
 Physical follow-up remains pending: with Precise Location off, check immediate Settings guidance and draft retention; enable precision, return, retry publishing, and record the slowest visible stage. Check a stationary note-writing interval, interruption during map capture/upload, no duplicate retry, stable button labels, and the emphasized collected count. No device publication success is claimed for this update yet.
+
+## Navigation and camera simplification — 2026-09-26
+
+The global brand/sign-in header and reserved space are removed. Home's profile
+icon opens guest sign-in or the signed-in account screen. Camera Close uses a
+48-unit circular paper sticker; the placement title sticker contains only
+“Place Sticker.” Guidance stays in a separate scrollable notice. Placement uses
+existing drag, pinch and twist gestures with unchanged size limits and blocking.
+Recovery content scrolls between the header and action dock at enlarged text size.
+
+Verification commands (Unity `6000.5.5f1`, repository root):
+
+```sh
+/Applications/Unity/Hub/Editor/6000.5.5f1/Unity.app/Contents/MacOS/Unity \
+  -batchmode -nographics -projectPath "$PWD" -buildTarget iOS \
+  -runTests -testPlatform EditMode \
+  -testResults /tmp/tagtag-navigation/edit.xml -logFile /tmp/tagtag-navigation/edit.log
+/Applications/Unity/Hub/Editor/6000.5.5f1/Unity.app/Contents/MacOS/Unity \
+  -batchmode -projectPath "$PWD" -buildTarget StandaloneOSX \
+  -runTests -testPlatform PlayMode -testFilter Tagtag \
+  -testResults /tmp/tagtag-navigation/play.xml -logFile /tmp/tagtag-navigation/play.log
+```
+
+Evidence is retained in [navigation-camera](verification/navigation-camera/).
+The captures use a 390×844 standard fixture and a 320×568 fixture with 1.4× text
+and reduced motion. These are rendered Unity fixtures; camera imagery is simulated
+and the native map/status bar are not present in these captures. Coverage includes
+Home, Explore, placement, discovery, permission denial, interruption, unavailable
+camera, guest profile access, authentication return, signed-in account access,
+placement readiness, sheet input blocking, and recovery-action scrolling.
+
+The new UI regressions first failed on the old header and Close size; the compact
+recovery regression first failed before its scrollable layout was added. The full
+Edit Mode suite passed 94/94 and the graphics-enabled Play Mode suite passed 6/6.
+A separate GPT-6-Sol high review found no actionable correctness issues.
+
+Native status-bar settings and the export hook now enforce visible dark status
+text. The existing generated Unity iOS controller was inspected and reads those
+plist keys. Native export/build, actual status-bar visibility, safe-area placement,
+and camera coordinate alignment on iPhone remain **pending the combined publishing
+dogfood integration build**, per coordinator instruction. No device build was
+installed and no native build was run for this branch.
+
+CoreDevice did not expose an available physical iPhone during this task. Physical
+pinch/twist, surface drag, sheet blocking, tracking interruption, background/resume,
+and VoiceOver remain **unverified** on this revision. Run and record these checks
+after the coordinator installs the combined build; do not replace that build with
+this branch's older standalone output.
