@@ -1,0 +1,9 @@
+{
+    "name": "Tagtag.Blockchain.Tests",
+    "rootNamespace": "Tagtag.Blockchain.Tests",
+    "references": ["Tagtag.Blockchain"],
+    "optionalUnityReferences": ["TestAssemblies"],
+    "includePlatforms": ["Editor"],
+    "overrideReferences": true,
+    "precompiledReferences": ["nunit.framework.dll"]
+}

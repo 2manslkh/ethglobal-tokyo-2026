@@ -18,6 +18,10 @@ namespace Tagtag.UI
         private Button googleSignInButton;
         private Button deleteButton;
         private PaperField deleteField;
+        private Label walletStatusLabel;
+        private string transferRecipient = "";
+        private VisualElement nftTransferHost;
+        private readonly PresenterCache nftTransferContents = new PresenterCache();
 
         private void BuildAccount(AppState state)
         {
@@ -57,12 +61,14 @@ namespace Tagtag.UI
 
         private void RefreshAccount(AppState state)
         {
+            if (walletStatusLabel != null) walletStatusLabel.text = NftPresentation.WalletStatus(state);
+            RefreshNftTransferRows(state);
             if (accountCollectionCount != null) accountCollectionCount.text = CollectionPresentation.OrderedDistinct(state.collection).Count.ToString();
             if (accountAuthoredCount != null) accountAuthoredCount.text = state.authored.Count.ToString();
             if (accountMotionSwitch != null && accountMotionSwitch.value != reducedMotion) accountMotionSwitch.SetValueWithoutNotify(reducedMotion);
             foreach (PaperSelection size in textSizeChoices)
                 if (size.userData is float value) size.SetSelected(Mathf.Abs(textScale - value) < .01f);
-            if (deleteButton != null) SetDisabled(deleteButton, deleteConfirmation != "DELETE" || state.busy);
+            if (deleteButton != null) SetDisabled(deleteButton, !NftPresentation.CanDelete(state, deleteConfirmation));
             if (appleSignInButton != null) SetDisabled(appleSignInButton, state.busy || !state.servicesConfigured);
             if (googleSignInButton != null) SetDisabled(googleSignInButton, state.busy || !state.servicesConfigured);
             foreach (Button button in authoredWithdrawButtons) SetDisabled(button, state.busy);
@@ -105,6 +111,14 @@ namespace Tagtag.UI
 
             Text(content, Safe(state.user.displayName, "Your account"), 28, true).style.marginTop = 22f;
             Text(content, "Your stickers and collection", 15, false, Muted).style.marginTop = 4f;
+            if (state.nftEnabled)
+            {
+                Divider(content);
+                Text(content, "Your souvenir wallet · Sepolia testnet", 17, true);
+                walletStatusLabel = Text(content, NftPresentation.WalletStatus(state), 13, false, Muted);
+                walletStatusLabel.style.marginTop = 6f;
+                Text(content, "New discoveries become transferable NFTs. Tagtag covers minting; private notes stay in your book.", 14, false, Muted).style.marginTop = 6f;
+            }
             Divider(content);
             VisualElement collection = Row(content);
             collection.style.justifyContent = Justify.SpaceBetween;
@@ -161,6 +175,8 @@ namespace Tagtag.UI
             Action(content, "Delete account and stickers", () =>
             {
                 deleteConfirmation = "";
+                transferRecipient = "";
+                (controller as INftTransferController)?.AcknowledgeNftLoss(false);
                 accountScreen = AccountScreen.DeleteConfirmation;
                 QueueRender();
             }, false).style.marginTop = 9f;
@@ -247,6 +263,7 @@ namespace Tagtag.UI
             Label explanation = Text(content, "This removes your account, the stickers you left, and your own collection. Other people's access to notes you wrote will be revoked at their next sync.", 16);
             explanation.style.marginTop = 12f;
             explanation.style.marginBottom = 15f;
+            if (NftPresentation.RequiresAcknowledgement(state)) BuildNftTransferOut(content, state);
             Text(content, "Type DELETE to confirm", 15, true);
             PaperField confirmation = new PaperField("Confirmation", deleteConfirmation, 16, false,
                 "Type DELETE to confirm account deletion");
@@ -259,24 +276,84 @@ namespace Tagtag.UI
             content.Add(confirmation);
             Button delete = Action(content, "Permanently delete account", () =>
             {
-                if (deleteConfirmation != "DELETE") return;
+                if (!NftPresentation.CanDelete(controller.State, deleteConfirmation)) return;
                 controller.DeleteAccount();
                 deleteConfirmation = "";
             });
             deleteButton = delete;
             delete.AddToClassList("danger");
             delete.style.marginTop = 13f;
-            SetDisabled(delete, deleteConfirmation != "DELETE" || state.busy);
+            SetDisabled(delete, !NftPresentation.CanDelete(state, deleteConfirmation));
             confirmation.RegisterValueChangedCallback(evt =>
             {
                 deleteConfirmation = evt.newValue;
-                SetDisabled(delete, deleteConfirmation != "DELETE" || controller.State.busy);
+                SetDisabled(delete, !NftPresentation.CanDelete(controller.State, deleteConfirmation));
             });
             Action(content, "Keep my account", () =>
             {
                 accountScreen = AccountScreen.Overview;
                 QueueRender();
             }, false).style.marginTop = 12f;
+        }
+
+        private void BuildNftTransferOut(VisualElement content, AppState state)
+        {
+            Text(content, "Keep your NFTs", 20, true);
+            Text(content, "Send souvenirs to an Ethereum wallet you control before deleting your sign-in. Transfers use Sepolia test ETH from your souvenir wallet; minting is still covered by tagtag.", 14, false, Muted).style.marginTop = 8f;
+            walletStatusLabel = Text(content, NftPresentation.WalletStatus(state), 13, false, Muted);
+            var destination = new PaperField("Recipient wallet", transferRecipient, 42, false, "Ethereum address on Sepolia, beginning with 0x");
+            destination.name = "NFT recipient";
+            destination.RegisterValueChangedCallback(evt => { transferRecipient = evt.newValue; nftTransferContents.Reset(); RefreshNftTransferRows(controller.State); });
+            content.Add(destination);
+            Text(content, "Check the full address carefully. Transfers cannot be undone.", 13, false, Muted).style.marginTop = 6f;
+            nftTransferHost = Column(content);
+            nftTransferContents.Reset();
+            RefreshNftTransferRows(state);
+            Action(content, "Refresh transfer status", () => (controller as INftTransferController)?.RefreshNftTransfers(), false);
+            string walletExplorer = NftPresentation.WalletExplorerUrl(state.walletAddress);
+            if (!string.IsNullOrEmpty(walletExplorer)) Action(content, "View wallet on Sepolia", () => Application.OpenURL(walletExplorer), false);
+            Text(content, "NFTs remain on-chain. Pending mints, incomplete transfers, or NFTs left in this wallet may become inaccessible after you delete your sign-in. You can keep your account and finish transfers later.", 14, false, Muted).style.marginTop = 12f;
+            var acknowledge = new PaperSwitch("I understand and accept possible NFT access loss", state.nftDeletionAcknowledged);
+            acknowledge.name = "Acknowledge NFT access loss";
+            acknowledge.style.whiteSpace = WhiteSpace.Normal;
+            acknowledge.style.minHeight = 44f;
+            acknowledge.style.marginTop = 10f;
+            acknowledge.style.marginBottom = 15f;
+            acknowledge.Q(className: "switch-track").style.flexShrink = 0;
+            acknowledge.RegisterValueChangedCallback(evt => (controller as INftTransferController)?.AcknowledgeNftLoss(evt.newValue));
+            content.Add(acknowledge);
+        }
+
+        private void RefreshNftTransferRows(AppState state)
+        {
+            if (nftTransferHost == null) return;
+            string key = state.busy + ":" + state.walletStatus + ":" + transferRecipient;
+            foreach (var item in state.collection) key += ":" + item.id + ":" + item.nft?.status;
+            foreach (var item in state.nftTransfers) key += ":" + item.stickerId + ":" + item.status + ":" + item.message;
+            if (!nftTransferContents.NeedsRefresh(key)) return;
+            nftTransferHost.Clear();
+            bool found = false;
+            foreach (var sticker in state.collection)
+            {
+                if (string.IsNullOrEmpty(sticker.nft?.status)) continue;
+                found = true;
+                Divider(nftTransferHost);
+                Text(nftTransferHost, Safe(sticker.place, "Collected souvenir"), 16, true);
+                var transfer = state.nftTransfers.Find(item => item.stickerId == sticker.id);
+                Text(nftTransferHost, transfer == null ? NftPresentation.Status(sticker.nft) : transfer.message, 14, false, Muted);
+                if (!string.IsNullOrEmpty(transfer?.transactionHash))
+                {
+                    string explorer = NftPresentation.ExplorerUrl(new NftStatus { chainId = 11155111, transactionHash = transfer.transactionHash });
+                    if (!string.IsNullOrEmpty(explorer)) Action(nftTransferHost, "View transfer", () => Application.OpenURL(explorer), false);
+                }
+                if (sticker.nft.status == "confirmed" && (transfer == null || transfer.status == "failed"))
+                {
+                    string stickerId = sticker.id;
+                    var send = Action(nftTransferHost, "Send this NFT", () => (controller as INftTransferController)?.TransferNft(stickerId, transferRecipient));
+                    SetDisabled(send, state.busy || state.walletStatus != "ready" || !NftPresentation.ValidRecipient(transferRecipient, state.walletAddress));
+                }
+            }
+            if (!found) Text(nftTransferHost, "No minted souvenirs in your current book.", 14, false, Muted);
         }
 
         private void OpenReport(string stickerId)
@@ -551,6 +628,13 @@ namespace Tagtag.UI
             Text(content, Safe(sticker.place, "A place you visited"), 25, true).style.marginTop = 8f;
             Text(content, "Left by " + Safe(sticker.authorName, "someone nearby"), 14, false, Muted).style.marginTop = 4f;
             Text(content, "Collected " + Date(sticker.collectedAt), 13, false, Muted).style.marginTop = 2f;
+            if (!string.IsNullOrEmpty(NftPresentation.Status(sticker.nft)))
+            {
+                Text(content, NftPresentation.Status(sticker.nft), 14, false, Muted).style.marginTop = 10f;
+                string explorer = NftPresentation.ExplorerUrl(sticker.nft);
+                if (!string.IsNullOrEmpty(explorer))
+                    Action(content, "View NFT transaction", () => Application.OpenURL(explorer), false);
+            }
             Divider(content);
             Text(content, "The clue", 14, true);
             Text(content, Safe(sticker.teaser, "No clue available"), 16).style.marginTop = 5f;

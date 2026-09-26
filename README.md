@@ -12,7 +12,7 @@ Browsing is available before sign-in. Publishing and collecting require Apple or
 
 ## Stack
 
-Unity `6000.5.5f1`, UI Toolkit, AR Foundation/ARKit, native MapKit and AuthenticationServices, Firebase Authentication, Firestore, private Cloud Storage, and a Node.js API on Cloud Run. This release uses app-based collections. See [PRODUCT.md](PRODUCT.md), the [implementation plan](docs/plans/2026-09-26-tagtag.md), and [API contract](docs/plans/tagtag-api-contract.md).
+Unity `6000.5.5f1`, UI Toolkit, AR Foundation/ARKit, native MapKit and AuthenticationServices, Firebase Authentication, Firestore, private Cloud Storage, and a Node.js API on Cloud Run. Collections can automatically mint transferable ERC-721 souvenirs on Ethereum Sepolia through Thirdweb embedded wallets and a backend mint worker. NFT rollout is disabled until configured and verified; existing book entries are not backfilled. See [NFT setup](docs/NFT_SETUP.md), the [contract](contracts/README.md), [PRODUCT.md](PRODUCT.md), and [API contract](docs/plans/tagtag-api-contract.md).
 
 ## Development
 

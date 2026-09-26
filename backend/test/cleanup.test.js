@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { cleanupAbandoned } from '../src/cleanup.js';
 import { MemoryAdapter } from './memory.js';
+import { deleteAccountData } from '../src/account.js';
 
 test('cleanup removes old pending maps and expired sessions but retains published maps', async () => {
     const adapter = new MemoryAdapter();
@@ -33,4 +34,19 @@ test('cleanup resumes data removal for an account whose Auth identity is already
     assert.equal(await adapter.get('collections', 'copy'), null);
     assert.equal(await adapter.mapMetadata('sticker'), null);
     assert.equal((await adapter.get('accounts', 'alice')).cleaned, true);
+});
+
+test('account cleanup removes wallet challenge and cancels unsigned mint, retaining signed reconciliation', async () => {
+    const adapter = new MemoryAdapter();
+    await adapter.set('wallets', 'alice', { id: 'alice', address: '0x1111111111111111111111111111111111111111' });
+    await adapter.set('walletAddresses', '0x1111111111111111111111111111111111111111', { uid: 'alice' });
+    await adapter.set('walletChallenges', 'challenge', { id: 'challenge', uid: 'alice' });
+    await adapter.set('nftMints', 'unsigned', { id: 'unsigned', userId: 'alice', state: 'waiting', recipient: '' });
+    await adapter.set('nftMints', 'signed', { id: 'signed', userId: 'alice', state: 'submitted', rawTransaction: '0xabc' });
+    await deleteAccountData(adapter, 'alice', 10000);
+    assert.equal(await adapter.get('wallets', 'alice'), null);
+    assert.equal(await adapter.get('walletChallenges', 'challenge'), null);
+    assert.equal((await adapter.get('walletAddresses', '0x1111111111111111111111111111111111111111')).uid, undefined);
+    assert.equal((await adapter.get('nftMints', 'unsigned')).state, 'cancelled');
+    assert.equal((await adapter.get('nftMints', 'signed')).rawTransaction, '0xabc');
 });

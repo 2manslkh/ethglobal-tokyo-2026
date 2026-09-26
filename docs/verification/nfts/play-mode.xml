@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<test-run id="2" testcasecount="1" result="Passed" total="1" passed="1" failed="0" inconclusive="0" skipped="0" asserts="0" engine-version="3.5.0.0" clr-version="4.0.30319.42000" start-time="2026-09-26 02:03:17Z" end-time="2026-09-26 02:03:21Z" duration="3.3950539">
+  <test-suite type="TestSuite" id="1021" name="tagtag" fullname="tagtag" runstate="Runnable" testcasecount="7" result="Passed" start-time="2026-09-26 02:03:17Z" end-time="2026-09-26 02:03:21Z" duration="3.395054" total="1" passed="1" failed="0" inconclusive="0" skipped="0" asserts="0">
+    <properties>
+      <property name="platform" value="PlayMode" />
+    </properties>
+    <test-suite type="Assembly" id="1016" name="Tagtag.Startup.Tests.dll" fullname="/private/tmp/tagtag-nfts/Library/ScriptAssemblies/Tagtag.Startup.Tests.dll" runstate="Runnable" testcasecount="4" result="Passed" start-time="2026-09-26 02:03:17Z" end-time="2026-09-26 02:03:21Z" duration="3.391036" total="1" passed="1" failed="0" inconclusive="0" skipped="0" asserts="0">
+      <properties>
+        <property name="_PID" value="37056" />
+        <property name="_APPDOMAIN" value="Unity Child Domain" />
+        <property name="platform" value="PlayMode" />
+        <property name="EditorOnly" value="False" />
+      </properties>
+      <test-suite type="TestSuite" id="1017" name="Tagtag" fullname="Tagtag" runstate="Runnable" testcasecount="4" result="Passed" start-time="2026-09-26 02:03:17Z" end-time="2026-09-26 02:03:21Z" duration="3.390723" total="1" passed="1" failed="0" inconclusive="0" skipped="0" asserts="0">
+        <properties />
+        <test-suite type="TestSuite" id="1018" name="Tests" fullname="Tagtag.Tests" runstate="Runnable" testcasecount="4" result="Passed" start-time="2026-09-26 02:03:17Z" end-time="2026-09-26 02:03:21Z" duration="3.390517" total="1" passed="1" failed="0" inconclusive="0" skipped="0" asserts="0">
+          <properties />
+          <test-suite type="TestFixture" id="1010" name="PaperVisualTests" fullname="Tagtag.Tests.PaperVisualTests" classname="Tagtag.Tests.PaperVisualTests" runstate="Runnable" testcasecount="3" result="Passed" start-time="2026-09-26 02:03:17Z" end-time="2026-09-26 02:03:21Z" duration="3.389821" total="1" passed="1" failed="0" inconclusive="0" skipped="0" asserts="0">
+            <properties />
+            <test-case id="1011" name="NftStatusUpdatesWithoutReplacingPrivateNotes" fullname="Tagtag.Tests.PaperVisualTests.NftStatusUpdatesWithoutReplacingPrivateNotes" methodname="NftStatusUpdatesWithoutReplacingPrivateNotes" classname="Tagtag.Tests.PaperVisualTests" runstate="Runnable" seed="1110683207" result="Passed" start-time="2026-09-26 02:03:17Z" end-time="2026-09-26 02:03:21Z" duration="3.385020" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+              <output><![CDATA[Paper UI capture: /var/folders/_r/65qcktj96mgb6y7948nn9g9m0000gn/T/tagtag/tagtag/tagtag-paper-review/nft-home.png
+Paper UI capture: /var/folders/_r/65qcktj96mgb6y7948nn9g9m0000gn/T/tagtag/tagtag/tagtag-paper-review/nft-pending.png
+Paper UI capture: /var/folders/_r/65qcktj96mgb6y7948nn9g9m0000gn/T/tagtag/tagtag/tagtag-paper-review/nft-confirmed.png
+Paper UI capture: /var/folders/_r/65qcktj96mgb6y7948nn9g9m0000gn/T/tagtag/tagtag/tagtag-paper-review/nft-wallet.png
+Paper UI capture: /var/folders/_r/65qcktj96mgb6y7948nn9g9m0000gn/T/tagtag/tagtag/tagtag-paper-review/nft-transfer-out.png
+Paper UI capture: /var/folders/_r/65qcktj96mgb6y7948nn9g9m0000gn/T/tagtag/tagtag/tagtag-paper-review/nft-transfer-pending.png
+Paper UI capture: /var/folders/_r/65qcktj96mgb6y7948nn9g9m0000gn/T/tagtag/tagtag/tagtag-paper-review/nft-deletion-fallback.png
+Saving results to: /private/tmp/tagtag-nft-visual.xml
+]]></output>
+            </test-case>
+          </test-suite>
+        </test-suite>
+      </test-suite>
+    </test-suite>
+  </test-suite>
+</test-run>

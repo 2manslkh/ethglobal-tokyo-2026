@@ -1,1 +1,1 @@
-{"name":"Tagtag.Services","rootNamespace":"Tagtag.Services","references":["Tagtag.Core"]}
+{"name":"Tagtag.Services","rootNamespace":"Tagtag.Services","references":["Tagtag.Core","Tagtag.Blockchain"]}

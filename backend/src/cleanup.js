@@ -24,6 +24,11 @@ export async function cleanupAbandoned(adapter, now = Math.floor(Date.now() / 10
         if (!expired.length) break;
         for (const session of expired) { await adapter.delete('discoveries', session.id); discoveries++; }
     }
+    for (;;) {
+        const expired = await adapter.query('walletChallenges', [['expiresAt', '<', now]], 200);
+        if (!expired.length) break;
+        for (const challenge of expired) await adapter.delete('walletChallenges', challenge.id);
+    }
     const tombstones = await adapter.query('accounts', [['deleted', '==', true], ['cleaned', '==', false]], 200);
     for (const account of tombstones) {
         if (account.cleaned) continue;

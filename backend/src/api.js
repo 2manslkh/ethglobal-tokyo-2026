@@ -1,4 +1,5 @@
-import { createHash, randomUUID } from 'node:crypto';
+import { createHash, randomBytes, randomUUID } from 'node:crypto';
+import { getAddress, isHex, recoverMessageAddress } from 'viem';
 import { distanceMeters, geohash, neighboringCells } from './geo.js';
 import { deleteAccountData as removeAccountData } from './account.js';
 
@@ -66,8 +67,14 @@ async function bodyJson(request) {
     }
 }
 
-export function createApi({ adapter, now = () => Math.floor(Date.now() / 1000), ids = randomUUID, deleteAccountData = removeAccountData }) {
+export function createApi({ adapter, now = () => Math.floor(Date.now() / 1000), ids = randomUUID, deleteAccountData = removeAccountData,
+    nft = { enabled: false } }) {
     if (!adapter) throw new Error('Adapter required');
+    if (nft.enabled && (nft.chainId !== 11155111 || !nft.contractAddress || !nft.domain)) throw new Error('Invalid NFT configuration');
+    const tokenId = nft.tokenId || (() => BigInt(`0x${randomBytes(32).toString('hex')}`).toString());
+    const walletStatus = address => ({ enabled: !!nft.enabled, address: address || '', chainId: 11155111 });
+    const nftStatus = job => job && ({ status: job.state === 'confirmed' ? 'confirmed' : job.state === 'cancelled' ? 'cancelled' : job.state === 'delayed' ? 'delayed' : 'pending',
+        chainId: job.chainId, contractAddress: job.contractAddress, tokenId: job.tokenId, transactionHash: job.transactionHash || '' });
     const limits = new Map();
     const rateLimit = (scope, key, max, seconds) => {
         const timestamp = now();
@@ -108,12 +115,15 @@ export function createApi({ adapter, now = () => Math.floor(Date.now() / 1000), 
     const isBlocked = async (uid, authorId) => !!(await adapter.get('blocks', digest(`${uid}\0${authorId}`)));
     const collected = async (uid, id, collectedAt) => {
         const sticker = await adapter.get('stickers', id);
+        const collectionId = digest(`${uid}\0${id}`);
+        const job = nft.enabled ? await adapter.get('nftMints', collectionId) : null;
         const blocked = sticker && await isBlocked(uid, sticker.authorId);
         const authorDeleted = sticker && (await adapter.get('accounts', sticker.authorId))?.deleted;
         const unavailable = !sticker || sticker.status === 'removed' || sticker.status === 'deleted' || blocked || authorDeleted;
-        return sticker ? { ...summary(sticker), note: unavailable ? '' : sticker.note, collectedAt, unavailable: !!unavailable } : {
+        return sticker ? { ...summary(sticker), note: unavailable ? '' : sticker.note, collectedAt, unavailable: !!unavailable,
+            ...(job ? { nft: nftStatus(job) } : {}) } : {
             id, presetId: '', authorId: '', authorName: '', place: '', teaser: '', latitude: 0, longitude: 0, revision: 0, createdAt: 0,
-            note: '', collectedAt, unavailable: true
+            note: '', collectedAt, unavailable: true, ...(job ? { nft: nftStatus(job) } : {})
         };
     };
     const send = (response, status, data) => {
@@ -170,6 +180,60 @@ export function createApi({ adapter, now = () => Math.floor(Date.now() / 1000), 
             }
 
             const user = await auth(request);
+            if (method === 'GET' && path === '/v1/wallet') {
+                const wallet = nft.enabled ? await adapter.get('wallets', user.uid) : null;
+                return send(response, 200, walletStatus(wallet?.address));
+            }
+            if (method === 'POST' && path === '/v1/wallet/challenge') {
+                if (!nft.enabled) throw new ApiError(503, 'not_configured', 'Wallet unavailable');
+                rateLimit('walletChallenge', user.uid, 10, 300);
+                const input = (await bodyJson(request)).address;
+                let address;
+                try { address = getAddress(input); } catch { bad('address is invalid'); }
+                const challengeId = ids();
+                const expiresAt = now() + 300;
+                const message = `${nft.domain} wants to bind a tagtag souvenir wallet.\nPurpose: bind wallet\nAddress: ${address}\nChain ID: 11155111\nChallenge: ${challengeId}\nExpires At: ${expiresAt}`;
+                await adapter.set('walletChallenges', challengeId, { id: challengeId, uid: user.uid, address, message, expiresAt, used: false });
+                return send(response, 200, { challengeId, message, expiresAt });
+            }
+            if (method === 'POST' && path === '/v1/wallet/bind') {
+                if (!nft.enabled) throw new ApiError(503, 'not_configured', 'Wallet unavailable');
+                rateLimit('walletBind', user.uid, 10, 300);
+                const input = await bodyJson(request);
+                const challengeId = text(input.challengeId, 128, 'challengeId');
+                if (!isHex(input.signature, { strict: true }) || input.signature.length !== 132) bad('signature is invalid');
+                const challenge = await adapter.get('walletChallenges', challengeId);
+                if (!challenge || challenge.uid !== user.uid || challenge.used || challenge.expiresAt <= now()) denied();
+                let recovered;
+                try { recovered = await recoverMessageAddress({ message: challenge.message, signature: input.signature }); }
+                catch { denied(); }
+                if (recovered.toLowerCase() !== challenge.address.toLowerCase()) denied();
+                await adapter.transaction(async tx => {
+                    const current = await tx.get('walletChallenges', challengeId);
+                    if (!current || current.uid !== user.uid || current.used || current.expiresAt <= now()) conflict('Challenge already consumed');
+                    if ((await tx.get('accounts', user.uid))?.deleted) denied();
+                    if (await tx.get('wallets', user.uid)) conflict('Wallet already bound');
+                    const key = current.address.toLowerCase();
+                    if (await tx.get('walletAddresses', key)) conflict('Address already bound');
+                    await tx.set('walletChallenges', challengeId, { ...current, used: true });
+                    await tx.set('wallets', user.uid, { id: user.uid, address: current.address, boundAt: now() });
+                    await tx.set('walletAddresses', key, { id: key, uid: user.uid });
+                });
+                try {
+                    for (;;) {
+                        const waiting = await adapter.query('nftMints', [['userId', '==', user.uid], ['state', '==', 'waiting']], 200);
+                        for (const job of waiting) await adapter.transaction(async tx => {
+                            const [current, wallet] = await Promise.all([tx.get('nftMints', job.id), tx.get('wallets', user.uid)]);
+                            if (current?.state === 'waiting') await tx.set('nftMints', job.id, { ...current, state: 'queued',
+                                recipient: wallet.address, nextAttemptAt: now() });
+                        });
+                        if (waiting.length < 200) break;
+                    }
+                } catch {
+                    // Binding is durable; the scheduled worker resumes any waiting jobs.
+                }
+                return send(response, 200, walletStatus(challenge.address));
+            }
             if (method === 'POST' && path === '/v1/publications/prepare') {
                 const data = await bodyJson(request);
                 const operationId = text(data.operationId, 100, 'operationId');
@@ -265,7 +329,18 @@ export function createApi({ adapter, now = () => Math.floor(Date.now() / 1000), 
                     if (!discovery || discovery.userId !== user.uid || discovery.stickerId !== id || discovery.expiresAt < now()) denied();
                     if (distanceMeters(point, sticker) > 100) denied();
                     const timestamp = now();
+                    const wallet = nft.enabled ? await tx.get('wallets', user.uid) : null;
                     await tx.set('collections', collectionId, { id: collectionId, userId: user.uid, stickerId: id, collectedAt: timestamp });
+                    if (nft.enabled) {
+                        const freshTokenId = tokenId();
+                        if (typeof freshTokenId !== 'string' || !/^(0|[1-9][0-9]*)$/.test(freshTokenId) ||
+                            BigInt(freshTokenId) >= 2n ** 256n) throw new Error('Invalid token ID generator');
+                        await tx.set('nftMints', collectionId, { id: collectionId, userId: user.uid, stickerId: id,
+                            authorId: sticker.authorId, tokenId: freshTokenId, preset: Number(sticker.presetId.slice(-1)) - 1,
+                            chainId: 11155111, contractAddress: nft.contractAddress,
+                            recipient: wallet?.address || '', state: wallet ? 'queued' : 'waiting',
+                            createdAt: timestamp, nextAttemptAt: timestamp, attempts: 0, transactionHash: '' });
+                    }
                     return timestamp;
                 });
                 return send(response, 200, { sticker: await collected(user.uid, id, collectedAt) });
@@ -318,7 +393,7 @@ export function createApi({ adapter, now = () => Math.floor(Date.now() / 1000), 
                 return send(response, 200, { ok: true });
             }
             if (method === 'DELETE' && path === '/v1/account') {
-                await adapter.transaction(async tx => { await tx.set('accounts', user.uid, { id: user.uid, deleted: true, cleaned: false, deletedAt: now() }); });
+                await adapter.transaction(async tx => { await tx.set('accounts', user.uid, { id: user.uid, deleted: true, authDeleted: false, cleaned: false, deletedAt: now() }); });
                 try {
                     await adapter.deleteAuth(request.headers.authorization.slice(7));
                 } catch (error) {

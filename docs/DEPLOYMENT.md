@@ -34,6 +34,8 @@ Cloud Run accepts public HTTP traffic for browsing; the application verifies Fir
 
 ## Maintenance and cost
 
+NFT minting is implemented but disabled in the committed app configuration. No NFT contract, pinned metadata, Thirdweb project configuration, or mint-worker deployment is recorded as live by this change. Follow [NFT setup](NFT_SETUP.md) before enabling it. The HTTP service receives only public NFT configuration; only the separate worker identity receives the signer secret. Existing app collections continue to work with NFT flags off. Do not enable the feature until the real two-device mint and transfer-out checks pass.
+
 The `tagtag-cleanup` Cloud Run job runs `node src/cleanup.js` with one task, 512 MiB, one CPU, a ten-minute timeout, and one retry. Cloud Scheduler `tagtag-cleanup-daily` invokes it with OAuth at 04:00 Asia/Tokyo. It removes abandoned uploads and expired discovery sessions and resumes account-data cleanup.
 
 The API has zero minimum instances and one maximum instance. Per-instance request limits, a five-publication daily user quota, 16 MiB maps, and bounded queries reduce accidental use. Limits reset on instance restart and are not a guaranteed spending cap.

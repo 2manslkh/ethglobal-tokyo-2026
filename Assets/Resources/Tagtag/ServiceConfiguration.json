@@ -2,5 +2,7 @@
   "apiBaseUrl": "https://tagtag-api-329004805254.asia-northeast1.run.app",
   "firebaseApiKey": "AIzaSyBO2i2wxzQ4OSTDcrCp3QOnCYZAwqYkvfk",
   "googleClientId": "329004805254-ghhna3idoh8618f9l1667fb4l5ise1hb.apps.googleusercontent.com",
-  "googleReversedClientId": "com.googleusercontent.apps.329004805254-ghhna3idoh8618f9l1667fb4l5ise1hb"
+  "googleReversedClientId": "com.googleusercontent.apps.329004805254-ghhna3idoh8618f9l1667fb4l5ise1hb",
+  "nftEnabled": false,
+  "thirdwebClientId": ""
 }

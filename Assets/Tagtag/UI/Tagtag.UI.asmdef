@@ -1,5 +1,5 @@
 {
     "name": "Tagtag.UI",
     "rootNamespace": "Tagtag.UI",
-    "references": ["Tagtag.Core"]
+    "references": ["Tagtag.Core", "Tagtag.Blockchain"]
 }

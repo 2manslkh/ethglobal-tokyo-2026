@@ -17,6 +17,7 @@ export class MemoryAdapter {
             if (op === '==') return item[field] === value;
             if (op === 'in') return value.includes(item[field]);
             if (op === '<') return item[field] < value;
+            if (op === '<=') return item[field] <= value;
             throw new Error(`Unknown filter ${op}`);
         })).slice(0, limit).map(item => structuredClone(item));
     }
