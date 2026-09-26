@@ -34,7 +34,7 @@ busy refreshes, enlarged text, interruption, remount, and delayed artwork.
 Run Edit Mode with the README command. For graphics-enabled UI checks, omit
 `-nographics`, use `-buildTarget StandaloneOSX -testPlatform PlayMode`, and pass
 `-testFilter Tagtag.Tests.CelebrationVisualTests` (or `Tagtag.Tests` for the broader
-app suite). **214/214 Edit Mode tests passed** ([XML](edit-mode.xml)); **30/30 selected Play Mode tests passed** ([XML](play-mode.xml)), including all seven celebration tests.
+app suite). **217/217 Edit Mode tests passed after integration** ([XML](edit-mode.xml)); **30/30 selected Play Mode tests passed** ([XML](play-mode.xml)), including all seven celebration tests. After integrating the concurrent AR cancellation change, the seven celebration tests passed again ([integration XML](integrated-play-mode.xml)).
 
 The native haptic bridge passed an Objective-C++ syntax check against the iPhoneOS
 SDK with ARC and an arm64 iOS 16 target. This is not a complete Xcode app build.

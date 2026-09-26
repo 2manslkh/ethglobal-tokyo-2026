@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="utf-8"?>
+<test-run id="2" testcasecount="7" result="Passed" total="7" passed="7" failed="0" inconclusive="0" skipped="0" asserts="0" engine-version="3.5.0.0" clr-version="4.0.30319.42000" start-time="2026-09-26 06:59:57Z" end-time="2026-09-26 07:00:08Z" duration="10.4791752">
+  <test-suite type="TestSuite" id="1053" name="tagtag" fullname="tagtag" runstate="Runnable" testcasecount="36" result="Passed" start-time="2026-09-26 06:59:57Z" end-time="2026-09-26 07:00:08Z" duration="10.479175" total="7" passed="7" failed="0" inconclusive="0" skipped="0" asserts="0">
+    <properties>
+      <property name="platform" value="PlayMode" />
+    </properties>
+    <test-suite type="Assembly" id="1048" name="Tagtag.Startup.Tests.dll" fullname="/private/tmp/tagtag-celebration/Library/ScriptAssemblies/Tagtag.Startup.Tests.dll" runstate="Runnable" testcasecount="31" result="Passed" start-time="2026-09-26 06:59:57Z" end-time="2026-09-26 07:00:08Z" duration="10.474895" total="7" passed="7" failed="0" inconclusive="0" skipped="0" asserts="0">
+      <properties>
+        <property name="_PID" value="63863" />
+        <property name="_APPDOMAIN" value="Unity Child Domain" />
+        <property name="platform" value="PlayMode" />
+        <property name="EditorOnly" value="False" />
+      </properties>
+      <test-suite type="TestSuite" id="1049" name="Tagtag" fullname="Tagtag" runstate="Runnable" testcasecount="31" result="Passed" start-time="2026-09-26 06:59:57Z" end-time="2026-09-26 07:00:08Z" duration="10.474355" total="7" passed="7" failed="0" inconclusive="0" skipped="0" asserts="0">
+        <properties />
+        <test-suite type="TestSuite" id="1050" name="Tests" fullname="Tagtag.Tests" runstate="Runnable" testcasecount="31" result="Passed" start-time="2026-09-26 06:59:57Z" end-time="2026-09-26 07:00:08Z" duration="10.474054" total="7" passed="7" failed="0" inconclusive="0" skipped="0" asserts="0">
+          <properties />
+          <test-suite type="TestFixture" id="1013" name="CelebrationVisualTests" fullname="Tagtag.Tests.CelebrationVisualTests" classname="Tagtag.Tests.CelebrationVisualTests" runstate="Runnable" testcasecount="7" result="Passed" start-time="2026-09-26 06:59:57Z" end-time="2026-09-26 07:00:08Z" duration="10.473119" total="7" passed="7" failed="0" inconclusive="0" skipped="0" asserts="0">
+            <properties />
+            <test-case id="1017" name="AccountChangeRemovesRewardAndFailureDoesNotCreateOne" fullname="Tagtag.Tests.CelebrationVisualTests.AccountChangeRemovesRewardAndFailureDoesNotCreateOne" methodname="AccountChangeRemovesRewardAndFailureDoesNotCreateOne" classname="Tagtag.Tests.CelebrationVisualTests" runstate="Runnable" seed="1476752675" result="Passed" start-time="2026-09-26 06:59:57Z" end-time="2026-09-26 06:59:59Z" duration="1.169506" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1016" name="CompactEnlargedRewardsKeepActionVisibleAndReducedArtworkSettled" fullname="Tagtag.Tests.CelebrationVisualTests.CompactEnlargedRewardsKeepActionVisibleAndReducedArtworkSettled" methodname="CompactEnlargedRewardsKeepActionVisibleAndReducedArtworkSettled" classname="Tagtag.Tests.CelebrationVisualTests" runstate="Runnable" seed="1517673666" result="Passed" start-time="2026-09-26 06:59:59Z" end-time="2026-09-26 07:00:01Z" duration="2.133849" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1019" name="CustomArtworkRevealsOnlyWhenAvailableAndNeverBlocksContinue" fullname="Tagtag.Tests.CelebrationVisualTests.CustomArtworkRevealsOnlyWhenAvailableAndNeverBlocksContinue" methodname="CustomArtworkRevealsOnlyWhenAvailableAndNeverBlocksContinue" classname="Tagtag.Tests.CelebrationVisualTests" runstate="Runnable" seed="1805011425" result="Passed" start-time="2026-09-26 07:00:01Z" end-time="2026-09-26 07:00:03Z" duration="1.774984" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1014" name="FoundRewardWaitsForUserThenOpensNoteWithoutReplay" fullname="Tagtag.Tests.CelebrationVisualTests.FoundRewardWaitsForUserThenOpensNoteWithoutReplay" methodname="FoundRewardWaitsForUserThenOpensNoteWithoutReplay" classname="Tagtag.Tests.CelebrationVisualTests" runstate="Runnable" seed="1674182657" result="Passed" start-time="2026-09-26 07:00:03Z" end-time="2026-09-26 07:00:04Z" duration="1.762970" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1020" name="InterruptionSettlesMotionWithoutDismissingOrReplaying" fullname="Tagtag.Tests.CelebrationVisualTests.InterruptionSettlesMotionWithoutDismissingOrReplaying" methodname="InterruptionSettlesMotionWithoutDismissingOrReplaying" classname="Tagtag.Tests.CelebrationVisualTests" runstate="Runnable" seed="1258799217" result="Passed" start-time="2026-09-26 07:00:04Z" end-time="2026-09-26 07:00:05Z" duration="1.053916" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1015" name="PlacedRewardBlocksCameraAndReturnsToItOnContinue" fullname="Tagtag.Tests.CelebrationVisualTests.PlacedRewardBlocksCameraAndReturnsToItOnContinue" methodname="PlacedRewardBlocksCameraAndReturnsToItOnContinue" classname="Tagtag.Tests.CelebrationVisualTests" runstate="Runnable" seed="246014828" result="Passed" start-time="2026-09-26 07:00:05Z" end-time="2026-09-26 07:00:06Z" duration="1.065673" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1018" name="RemountedRewardKeepsNormalMotionStarsFinished" fullname="Tagtag.Tests.CelebrationVisualTests.RemountedRewardKeepsNormalMotionStarsFinished" methodname="RemountedRewardKeepsNormalMotionStarsFinished" classname="Tagtag.Tests.CelebrationVisualTests" runstate="Runnable" seed="474585855" result="Passed" start-time="2026-09-26 07:00:06Z" end-time="2026-09-26 07:00:08Z" duration="1.504978" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+              <output><![CDATA[Saving results to: /tmp/tagtag-celebration-integrated-play.xml
+]]></output>
+            </test-case>
+          </test-suite>
+        </test-suite>
+      </test-suite>
+    </test-suite>
+  </test-suite>
+</test-run>

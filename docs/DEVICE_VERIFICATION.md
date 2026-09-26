@@ -490,10 +490,11 @@ or verify two-device recovery/collection. The filtered stage log is
 Added the artwork-led reward after completed publication and new AR collection.
 The action immediately returns to the camera or opens the collected note.
 
-- Unity Edit Mode: **214/214 passed**.
+- Unity Edit Mode after integration: **217/217 passed**.
 - Graphics-enabled app Play Mode: **30/30 passed**, including seven celebration
   tests for input blocking, refresh, account changes, enlarged text, interruption,
-  remount, and custom-artwork recovery.
+  remount, and custom-artwork recovery. All seven celebration UI tests passed
+  again after integrating the concurrent AR cancellation change.
 - iOS haptic bridge: Objective-C++ syntax check passed against the iPhoneOS SDK.
 - Independent code and visual review accepted the fixes; six actual Unity
   captures and XML results are in [celebration verification](verification/celebration/README.md).
