@@ -60,7 +60,7 @@ namespace Tagtag.AR
             }
             var encoded = JsonUtility.ToJson(pins);
 #if UNITY_IOS && !UNITY_EDITOR
-            TagtagMapSetReducedMotion(PlayerPrefs.GetInt("tagtag.reducedMotion", 0) != 0);
+            TagtagMapSetReducedMotion(false);
             if (TagtagMapShow(screenRect.x, screenRect.y, screenRect.width, screenRect.height,
                 Screen.width, Screen.height, initialLocation != null ? 1 : 0,
                 initialLocation?.latitude ?? 0, initialLocation?.longitude ?? 0,

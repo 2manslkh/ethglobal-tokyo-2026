@@ -29,9 +29,11 @@ Run behavior tests from the repository root:
 
 Backend commands are documented in [backend/README.md](backend/README.md). Live infrastructure and maintenance are recorded in [deployment](docs/DEPLOYMENT.md).
 
-Login uses the supplied Taggi video as a silent looping background, with a matching poster for reduced motion, loading, and playback failure. The transparent header and footer show the tagline, sign-in buttons, and in-app Privacy Policy and Terms & Conditions sheets. Login fits without scrolling; policy content scrolls inside its sheet. Provider cancellation and errors remain on the login screen for retry.
+Login uses the supplied Taggi video as a silent looping background, with a matching poster for loading and playback failure. The transparent header and footer show the tagline, sign-in buttons, and in-app Privacy Policy and Terms & Conditions sheets. Login fits without scrolling; policy content scrolls inside its sheet. Provider cancellation and errors remain on the login screen for retry.
 
 The startup regression lives in `Assets/Tagtag/Application/PlayModeTests/`. Use `-testPlatform PlayMode -testFilter Tagtag.Tests.StartupTests` with the Unity test command to check the real entry scene and rendered login pixels. For a macOS player check, use `-buildTarget StandaloneOSX -testPlatform StandaloneOSX`; its test-only callback also writes `tagtag-startup-result.xml` beside the screenshot in `Application.temporaryCachePath` if the player cannot return results to the editor. Editor rendering alone does not verify that player builds contain the required UI text resources.
+
+Text uses Standard sizing and animations stay enabled; legacy reading and motion preferences are ignored.
 
 The paper UI uses a persistent shell and updates mounted controls when application state changes. Shared components, fonts, and motion are self-contained; [source provenance and font licenses](Assets/Tagtag/UI/SOURCE_PROVENANCE.md) document their adaptation. Camera presentation is independent of tracking: an opaque paper cover remains until AR reports displayable live imagery and returns after interruption. On iOS, the AVFoundation bridge is the authority for camera permission; Unity may strip its webcam authorization implementation from AR-only builds. Nearby lookup has an independent loading state so location acquisition does not lock navigation. **Find in AR** opens the camera before waiting for location or the saved AR map, with progress and retry guidance in the camera view. Close stays available while discovery loads: leaving the camera cancels the search, and late results cannot reopen AR or overwrite a newer search. Discovery still requires a precise location fix.
 
@@ -45,7 +47,7 @@ New publications include a camera-only Original spot photo to help nearby finder
 
 Run graphics-enabled placement and rendering checks with `-buildTarget StandaloneOSX -testPlatform PlayMode -testFilter Tagtag`. Repeat with `-testPlatform StandaloneOSX` to verify shader inclusion in a built player. The test callback writes the complete suite to `Application.temporaryCachePath/tagtag-player-result.xml`, and the real sticker render to `tagtag-sticker-render.png`.
 
-Successful publication and new AR collection open a full-screen sticker celebration with a short artwork reveal, drawn yellow stars, and one iOS success haptic when the artwork becomes available. Tap **Keep exploring** to return to the camera or **Read the note** to open the collected sticker. Reduced motion keeps the artwork and stars still; rewards do not replay on refresh or when reopening a sticker. See [celebration verification](docs/verification/celebration/README.md).
+Successful publication and new AR collection open a full-screen sticker celebration with a short artwork reveal, drawn yellow stars, and one iOS success haptic when the artwork becomes available. Tap **Keep exploring** to return to the camera or **Read the note** to open the collected sticker. Rewards do not replay on refresh or when reopening a sticker. See [celebration verification](docs/verification/celebration/README.md).
 
 ## iPhone build
 

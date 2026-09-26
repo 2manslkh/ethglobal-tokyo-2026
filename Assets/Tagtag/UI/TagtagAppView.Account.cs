@@ -11,8 +11,6 @@ namespace Tagtag.UI
         private Label accountAuthoredCount;
         private VisualElement authoredListHost;
         private readonly PresenterCache authoredListContents = new PresenterCache();
-        private PaperSwitch accountMotionSwitch;
-        private readonly List<PaperSelection> textSizeChoices = new List<PaperSelection>();
         private readonly List<Button> authoredWithdrawButtons = new List<Button>();
         private Button appleSignInButton;
         private Button googleSignInButton;
@@ -64,9 +62,6 @@ namespace Tagtag.UI
             RefreshNftTransferRows(state);
             if (accountCollectionCount != null) accountCollectionCount.text = CollectionPresentation.OrderedDistinct(state.collection).Count.ToString();
             if (accountAuthoredCount != null) accountAuthoredCount.text = state.authored.Count.ToString();
-            if (accountMotionSwitch != null && accountMotionSwitch.value != reducedMotion) accountMotionSwitch.SetValueWithoutNotify(reducedMotion);
-            foreach (PaperSelection size in textSizeChoices)
-                if (size.userData is float value) size.SetSelected(Mathf.Abs(textScale - value) < .01f);
             if (deleteButton != null) SetDisabled(deleteButton, !NftPresentation.CanDelete(state, deleteConfirmation));
             if (appleSignInButton != null) SetDisabled(appleSignInButton, state.busy || !state.servicesConfigured);
             if (googleSignInButton != null) SetDisabled(googleSignInButton, state.busy || !state.servicesConfigured);
@@ -111,29 +106,6 @@ namespace Tagtag.UI
                 QueueRender();
             }, false).style.alignSelf = Align.FlexStart;
             Divider(content);
-            Text(content, "Reading and motion", 20, true);
-            Label size = Text(content, "Text size", 15, false, Muted);
-            size.style.marginTop = 12f;
-            VisualElement sizes = Row(content);
-            sizes.style.marginTop = 7f;
-            textSizeChoices.Clear();
-            AddTextSize(sizes, "Standard", 1f);
-            AddTextSize(sizes, "Larger", 1.2f);
-            AddTextSize(sizes, "Largest", 1.4f);
-            PaperSwitch motion = new PaperSwitch("Reduced motion", reducedMotion,
-                "Page changes stay still. AR movement follows your camera.");
-            accountMotionSwitch = motion;
-            content.Add(motion);
-            motion.RegisterValueChangedCallback(evt =>
-            {
-                if (evt.target != motion) return;
-                reducedMotion = evt.newValue;
-                PlayerPrefs.SetInt("tagtag.reducedMotion", reducedMotion ? 1 : 0);
-                PlayerPrefs.Save();
-                root.EnableInClassList("reduced-motion", reducedMotion);
-            });
-            motion.style.marginTop = 12f;
-            Divider(content);
             Action(content, "Sign out", () =>
             {
                 controller.SignOut();
@@ -147,26 +119,6 @@ namespace Tagtag.UI
                 accountScreen = AccountScreen.DeleteConfirmation;
                 QueueRender();
             }, false).style.marginTop = 9f;
-        }
-
-        private void AddTextSize(VisualElement parent, string label, float scale)
-        {
-            PaperSelection button = new PaperSelection(label, Mathf.Abs(textScale - scale) < .01f, () =>
-            {
-                textScale = scale;
-                PlayerPrefs.SetFloat("tagtag.textScale", scale);
-                PlayerPrefs.Save();
-                ApplyTextScale();
-                RefreshAccount(controller.State);
-            });
-            button.userData = scale;
-            button.style.unityFont = SemiboldFont;
-            parent.Add(button);
-            textSizeChoices.Add(button);
-            button.style.flexGrow = 1f;
-            button.style.marginRight = 4f;
-            button.style.paddingLeft = 5f;
-            button.style.paddingRight = 5f;
         }
 
         private void BuildAuthored(VisualElement content, AppState state)

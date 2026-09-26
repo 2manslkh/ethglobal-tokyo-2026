@@ -77,8 +77,8 @@ namespace Tagtag.UI
         private string draftPlace = "";
         private string draftTeaser = "";
         private string draftNote = "";
-        private float textScale = 1f;
-        private bool reducedMotion;
+        private readonly float textScale = 1f;
+        private readonly bool reducedMotion = false;
         private bool renderQueued;
         private bool mapDirty;
         private bool bookPressed;
@@ -110,7 +110,6 @@ namespace Tagtag.UI
                 StickerArtwork.Changed += OnArtworkChanged;
                 artworkSubscribed = true;
             }
-            LoadPreferences();
             EnsureDocument();
             SyncDraftFromState();
             QueueRender();
@@ -118,7 +117,6 @@ namespace Tagtag.UI
 
         private void Awake()
         {
-            LoadPreferences();
             EnsureDocument();
         }
 
@@ -274,12 +272,6 @@ namespace Tagtag.UI
             }
         }
 
-        private void LoadPreferences()
-        {
-            textScale = Mathf.Clamp(PlayerPrefs.GetFloat("tagtag.textScale", 1f), 1f, 1.4f);
-            reducedMotion = PlayerPrefs.GetInt("tagtag.reducedMotion", 0) != 0;
-        }
-
         private void OnControllerChanged()
         {
             AppState state = controller?.State;
@@ -422,12 +414,10 @@ namespace Tagtag.UI
                 stickSelectedArtworkPointerHeld = false;
                 accountCollectionCount = null;
                 accountAuthoredCount = null;
-                accountMotionSwitch = null;
                 authoredListHost = null;
                 authoredWithdrawButtons.Clear();
                 appleSignInButton = null;
                 googleSignInButton = null;
-                textSizeChoices.Clear();
                 deleteButton = null;
                 deleteField = null;
                 screenStatusLabel = null;

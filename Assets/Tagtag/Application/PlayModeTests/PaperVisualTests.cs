@@ -723,7 +723,7 @@ namespace Tagtag.Tests
             controller.Notify();
             yield return Capture("explore-error");
 
-            // Real preferences are applied by a fresh view, as on app restart.
+            // Legacy preferences must be ignored by a fresh view, as on app restart.
             document.panelSettings.targetTexture = null;
             UnityEngine.Object.Destroy(host);
             yield return null;
@@ -741,15 +741,18 @@ namespace Tagtag.Tests
             document.panelSettings.targetTexture = target;
             document.panelSettings.clearColor = true;
             document.panelSettings.colorClearValue = new Color32(218, 225, 222, 255);
-            yield return Capture("home-compact-largest-reduced-motion");
+            yield return Capture("home-compact-fixed-defaults");
             controller.State.accountOpen = true;
             controller.Notify();
-            yield return Capture("account-compact-largest-reduced-motion");
+            yield return Capture("account-compact-fixed-defaults");
+            Assert.That(document.rootVisualElement.Query<Label>().ToList().Any(label => label.text == "Reading and motion" || label.text == "Text size" || label.text == "Reduced motion"), Is.False);
+            Assert.That(document.rootVisualElement.Q(className: "reduced-motion"), Is.Null);
+            Assert.That(document.rootVisualElement.resolvedStyle.fontSize, Is.EqualTo(16f));
             controller.State.accountOpen = false;
             controller.State.selected = Sticker(0);
             controller.State.selected.teaser = new string('W', 180);
             controller.Navigate(AppPage.Explore);
-            yield return Capture("explore-compact-largest-long-clue");
+            yield return Capture("explore-compact-long-clue");
             var teaserScroll = document.rootVisualElement.Q<ScrollView>("Explore teaser scroll");
             Assert.That(teaserScroll, Is.Not.Null);
             foreach (var element in new VisualElement[] { document.rootVisualElement, teaserScroll.parent.parent.parent,
@@ -767,13 +770,13 @@ namespace Tagtag.Tests
             controller.Navigate(AppPage.Stick);
             for (int frame = 0; frame < 10; frame++) yield return null;
             Submit("Your Note");
-            yield return Capture("note-compact-largest-reduced-motion");
+            yield return Capture("note-compact-fixed-defaults");
             Submit("Close");
             yield return new WaitForSecondsRealtime(.4f);
             controller.Camera.CameraPresentation = CameraPresentationState.Live;
             controller.Camera.IsTracking = true;
             controller.Notify();
-            yield return Capture("camera-compact-largest-reduced-motion");
+            yield return Capture("camera-compact-fixed-defaults");
             AssertCenteredStickControls();
             var compactInventory = document.rootVisualElement.Q<Button>("STICK Inventory");
             Assert.That(compactInventory.worldBound.yMax, Is.LessThanOrEqualTo(document.rootVisualElement.worldBound.yMax));
@@ -781,7 +784,7 @@ namespace Tagtag.Tests
             Assert.That(document.rootVisualElement.Q("STICK camera dock").worldBound.yMin,
                 Is.GreaterThanOrEqualTo(document.rootVisualElement.Q("STICK camera header").worldBound.yMax));
             Submit("STICK Inventory");
-            yield return Capture("inventory-compact-largest-reduced-motion");
+            yield return Capture("inventory-compact-fixed-defaults");
             Submit("Close");
             yield return new WaitForSecondsRealtime(.4f);
             Submit("STICK Write note");
@@ -829,7 +832,7 @@ namespace Tagtag.Tests
         }
 
         [UnityTest]
-        public IEnumerator CompactLargeTextCreatorTilesKeepLabelsAndArtworkInsideTheirBounds()
+        public IEnumerator CompactCreatorTilesIgnoreLegacyTextSizeAndKeepContentInsideBounds()
         {
             oldScale = PlayerPrefs.GetFloat("tagtag.textScale", 1f);
             oldMotion = PlayerPrefs.GetInt("tagtag.reducedMotion", 0);
@@ -855,7 +858,7 @@ namespace Tagtag.Tests
                 var label = tile.Q<Label>();
                 Assert.That(art.image, Is.Not.Null);
                 Assert.That(label.text, Is.EqualTo(source));
-                Assert.That(label.resolvedStyle.fontSize, Is.GreaterThanOrEqualTo(19f));
+                Assert.That(label.resolvedStyle.fontSize, Is.EqualTo(14f));
                 Assert.That(tile.worldBound.xMin, Is.GreaterThanOrEqualTo(sheet.Scroll.worldBound.xMin - 1f));
                 Assert.That(tile.worldBound.xMax, Is.LessThanOrEqualTo(sheet.Scroll.worldBound.xMax + 1f));
                 Assert.That(art.worldBound.xMin, Is.GreaterThanOrEqualTo(tile.worldBound.xMin - 1f));
@@ -1004,7 +1007,7 @@ namespace Tagtag.Tests
         }
 
         [UnityTest]
-        public IEnumerator LoginSupportsRetryCompactTextAndReducedMotion()
+        public IEnumerator LoginSupportsRetryAndIgnoresLegacyReadingPreferences()
         {
             oldScale = PlayerPrefs.GetFloat("tagtag.textScale", 1f);
             oldMotion = PlayerPrefs.GetInt("tagtag.reducedMotion", 0);
@@ -1018,7 +1021,7 @@ namespace Tagtag.Tests
             target = new RenderTexture(320, 568, 24);
             target.Create();
             document.panelSettings.targetTexture = target;
-            yield return Capture("login-compact-large-text");
+            yield return Capture("login-compact-fixed-defaults");
             var root = document.rootVisualElement;
             var apple = root.Q<Button>("Action Continue with Apple");
             var google = root.Q<Button>("Action Continue with Google");
@@ -1052,13 +1055,14 @@ namespace Tagtag.Tests
                 Assert.That(legalSheet.Scroll.Query<Label>().ToList().Count, Is.GreaterThan(5));
                 yield return Capture(title == "Privacy Policy" ? "login-privacy" : "login-terms");
                 Submit("Close");
-                yield return null; yield return null;
+                yield return new WaitForSecondsRealtime(.3f);
                 Assert.That(root.Q<PaperSheet>(), Is.Null);
                 Assert.That(root.Query<ScrollView>().ToList(), Is.Empty);
             }
-            Assert.That(host.GetComponent<UnityEngine.Video.VideoPlayer>(), Is.Null, "Reduced motion must not decode video.");
+            Assert.That(host.GetComponent<UnityEngine.Video.VideoPlayer>(), Is.Not.Null, "Legacy reduced motion must not disable login video.");
             Assert.That(apple.worldBound.width, Is.EqualTo(google.worldBound.width).Within(1f));
-            Assert.That(apple.resolvedStyle.height, Is.GreaterThanOrEqualTo(52));
+            Assert.That(apple.resolvedStyle.minHeight.value, Is.EqualTo(52f));
+            Assert.That(apple.resolvedStyle.height, Is.GreaterThanOrEqualTo(51f), "Allow subpixel panel rounding of the 52-point minimum.");
             Assert.That(google.worldBound.xMax, Is.LessThanOrEqualTo(root.worldBound.xMax));
             controller.State.busy = true;
             controller.State.status = "Opening Apple…";

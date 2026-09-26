@@ -109,7 +109,7 @@ namespace Tagtag.Tests
         }
 
         [UnityTest]
-        public IEnumerator CompactEnlargedRewardsKeepActionVisibleAndReducedArtworkSettled()
+        public IEnumerator CompactRewardsIgnoreLegacyTextSizeAndKeepActionVisible()
         {
             foreach (bool found in new[] { false, true })
             {
@@ -117,13 +117,13 @@ namespace Tagtag.Tests
                 if (host == null) yield return Mount(1.4f, 320, 568);
                 else { controller.Notify(); yield return Settle(); }
                 var art = Root.Q<Image>("Celebration artwork");
-                Assert.AreEqual(Vector3.one, art.resolvedStyle.scale.value);
+                Assert.That(Vector3.Distance(Vector3.one, art.resolvedStyle.scale.value), Is.LessThan(.005f), "Animated artwork must settle at full size.");
                 var action = Root.Q<Button>("Celebration continue");
                 Assert.GreaterOrEqual(action.worldBound.height, 44f);
                 Assert.LessOrEqual(action.worldBound.yMax, Root.worldBound.yMax);
                 Assert.GreaterOrEqual(action.worldBound.xMin, Root.worldBound.xMin);
                 Assert.LessOrEqual(action.worldBound.xMax, Root.worldBound.xMax);
-                yield return Capture(found ? "found-compact-large-text" : "placed-compact-large-text");
+                yield return Capture(found ? "found-compact-fixed-defaults" : "placed-compact-fixed-defaults");
                 Submit(found ? "Read the note" : "Keep exploring");
                 yield return Settle();
             }
@@ -200,7 +200,7 @@ namespace Tagtag.Tests
             yield return Mount();
             PaperMotion.SetPaused(true);
             var art = Root.Q<Image>("Celebration artwork");
-            Assert.AreEqual(Vector3.one, art.resolvedStyle.scale.value);
+            Assert.That(Vector3.Distance(Vector3.one, art.resolvedStyle.scale.value), Is.LessThan(.005f), "Animated artwork must settle at full size.");
             Assert.IsNotNull(controller.State.celebrations.Pending);
             PaperMotion.SetPaused(false);
             controller.Notify();
@@ -228,7 +228,7 @@ namespace Tagtag.Tests
             using (var evt = NavigationSubmitEvent.GetPooled()) { button.Focus(); evt.target = button; button.SendEvent(evt); }
         }
 
-        private static IEnumerator Settle() { yield return new WaitForSecondsRealtime(.35f); }
+        private static IEnumerator Settle() { yield return new WaitForSecondsRealtime(.8f); }
         private IEnumerator Capture(string name)
         {
             yield return Settle();
