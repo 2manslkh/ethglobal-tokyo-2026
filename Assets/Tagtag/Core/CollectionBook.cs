@@ -19,13 +19,16 @@ namespace Tagtag
 
         public static int PageCount(int count) => Math.Max(1, (Math.Max(0, count) + PageSize - 1) / PageSize);
 
+        public static bool FreshLocationTimestamp(LocationFix location, long now) =>
+            location != null && now - location.measuredUnixSeconds >= -5 && now - location.measuredUnixSeconds <= 30;
+
         public static bool FreshLocation(LocationFix location, long now, float maxAccuracyMeters = 50)
         {
             return location != null && !double.IsNaN(location.latitude) && !double.IsInfinity(location.latitude)
                 && !double.IsNaN(location.longitude) && !double.IsInfinity(location.longitude)
                 && Math.Abs(location.latitude) <= 90 && Math.Abs(location.longitude) <= 180
                 && !float.IsNaN(location.accuracyMeters) && location.accuracyMeters >= 0 && location.accuracyMeters <= maxAccuracyMeters
-                && now - location.measuredUnixSeconds >= -5 && now - location.measuredUnixSeconds <= 30;
+                && FreshLocationTimestamp(location, now);
         }
 
         public static bool CanUnlock(RecoveryData recovery, string tappedId, bool arCanCollect, long now)

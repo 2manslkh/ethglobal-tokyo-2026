@@ -230,6 +230,9 @@ namespace Tagtag.Services
             try
             {
                 CheckPermission();
+                if (activeRequests == 1 && stationaryUpdates && runtime.Status == LocationServiceStatus.Running &&
+                    !CollectionBook.FreshLocationTimestamp(runtime.LastFix, runtime.UtcNow.ToUnixTimeSeconds()))
+                    StopRuntime();
                 EnsureStarted();
                 var deadline = runtime.UtcNow.AddSeconds(20);
                 LocationFix lastFix = null;

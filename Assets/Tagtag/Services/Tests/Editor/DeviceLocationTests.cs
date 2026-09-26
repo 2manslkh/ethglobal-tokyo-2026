@@ -54,6 +54,27 @@ namespace Tagtag.Services.Tests
         }
 
         [Test]
+        public async Task RestartsRunningLocationSessionWhenItsFixIsStaleAndInaccurate()
+        {
+            var runtime = new LocationRuntime { Authorization = LocationAuthorization.FullAccuracy,
+                Status = LocationServiceStatus.Stopped, LastFix = Fix(2000, 20) };
+            var location = new DeviceLocation(runtime);
+            location.Prewarm();
+            runtime.AfterDelay = () =>
+            {
+                if (runtime.StartCount > 1)
+                    runtime.LastFix = Fix(8, runtime.UtcNow.ToUnixTimeSeconds());
+            };
+
+            LocationFix fix = await location.Current(maxAccuracyMeters: 100);
+
+            Assert.That(runtime.StartCount, Is.EqualTo(2));
+            Assert.That(fix.accuracyMeters, Is.EqualTo(8));
+            Assert.That(runtime.DelayCount, Is.EqualTo(1));
+            location.Stop();
+        }
+
+        [Test]
         public async Task ReturnsTheMeasuredTimestampWithoutRefreshingItArtificially()
         {
             var runtime = new LocationRuntime { Authorization = LocationAuthorization.FullAccuracy,
