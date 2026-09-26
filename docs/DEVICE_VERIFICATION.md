@@ -267,3 +267,14 @@ Source through `5fb423a` adds illustrated Upload/Photo/Imagine choices, Home My 
 - Installed over the existing app on **Dawg., iPhone 15 Pro Max**, UDID `00008130-001420500E41001C`, using CoreDevice; installation and launch of `com.kenk.tagtag` both exited 0. No uninstall or data reset. Logs: `/tmp/tagtag-creator-final-install.log`, `/tmp/tagtag-creator-final-launch.log`. This establishes installation and launch, not interactive device acceptance.
 
 Follow the [device test guide](CREATOR_SCAN_TEST_GUIDE.md). Native creation, Apple Intelligence, real AR tracking, and end-to-end publication are **not yet verified** for this revision.
+
+## Device bug follow-up — 2026-09-26
+
+- Image Playground now reads its temporary image before dismissal and copies the byte buffer before queuing Objective-C work. This addresses two source-level lifetime faults behind the reported unreadable-image error; actual generation still needs a device retry.
+- Sheet backgrounds now reach the bottom edge, with the home-indicator inset inside the paper padding. Keyboard avoidance remains.
+- The user clarified publishing was blocked by unclear multi-angle scanning guidance. Camera and note UI now explain the required motion; Continue scanning retains draft text.
+- New maps include a shared Original spot photo, with a discovery thumbnail and enlarged saved-photo sheet. The photo does not bypass AR recovery or collection. Old v1 maps remain readable without photos; v2 maps require the updated app on both phones. No backend changes or deployment were needed.
+- Swift 5 type-check against the iPhoneOS SDK passed. Separate ARKit preparation, Unity iOS export and automatically signed Xcode Debug build passed. Logs: `/tmp/tagtag-device-fixes-prepare.log`, `/tmp/tagtag-device-fixes-export.log`, `/tmp/tagtag-device-fixes-xcode.log`. No test suites were added or run in this follow-up.
+- CoreDevice installed the app over the existing installation on **Dawg., iPhone 15 Pro Max**, UDID `00008130-001420500E41001C`; install and launch of `com.kenk.tagtag` exited 0. Logs: `/tmp/tagtag-device-fixes-install.log`, `/tmp/tagtag-device-fixes-launch.log`. Physical interaction acceptance remains pending; installation is not evidence of successful Image Playground generation or two-phone recovery.
+
+Use the updated [device test guide](CREATOR_SCAN_TEST_GUIDE.md), including shared preview and sheet checks.
