@@ -184,7 +184,7 @@ namespace Tagtag.Services.Tests
             {
                 controller.SelectPreset("taggi-1");
                 controller.CaptureSpot();
-                controller.SetDraft(controller.State.draftPlace, controller.State.draftTeaser, "My note");
+                controller.SetDraft("Sticker spot", controller.State.draftTeaser, "My note");
                 camera.CanPublishEnabled = false;
                 camera.Scan = PlacementScanState.Placed;
                 controller.Publish();
@@ -678,7 +678,7 @@ namespace Tagtag.Services.Tests
             {
                 controller.SelectPreset("taggi-1");
                 controller.CaptureSpot();
-                controller.SetDraft(controller.State.draftPlace, controller.State.draftTeaser, "Keep this note");
+                controller.SetDraft("Sticker spot", controller.State.draftTeaser, "Keep this note");
                 controller.Publish();
                 string firstOperation = saved.Read(identity.UserId).operationId;
                 picker.Complete(null);
@@ -716,7 +716,7 @@ namespace Tagtag.Services.Tests
             {
                 controller.SelectPreset("taggi-1");
                 controller.CaptureSpot();
-                controller.SetDraft(controller.State.draftPlace, controller.State.draftTeaser, "A note");
+                controller.SetDraft("Sticker spot", controller.State.draftTeaser, "A note");
                 controller.Publish();
                 picker.Complete(null);
                 await Task.Yield();
