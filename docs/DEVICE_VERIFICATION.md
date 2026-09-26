@@ -923,3 +923,24 @@ Local evidence: `/tmp/tagtag-latest-backend-tests.log`,
 `/tmp/tagtag-latest-nft-export.log`, `/tmp/tagtag-latest-nft-signed-build.log`,
 `/tmp/tagtag-latest-iphone-install.log`, and
 `/tmp/tagtag-latest-iphone-launch.log`.
+
+## Capture readiness investigation — 2026-09-27
+
+On Dawg. (iPhone 15 Pro Max), STICK repeatedly showed “The spatial map is
+not ready” after the scan ring had turned fully yellow. LLDB stopped at the
+actual `CaptureWorldMap` failure branch. The request ID was 2;
+`UnityARKit_getWorldMapRequestStatus(2)` returned 6, which the installed
+ARKit package defines as `ErrorInsufficientFeatures`. The most recently
+observed session, mapping, and anchor readiness flags were all true; the
+experience was active and not paused.
+
+After detaching the debugger, the user kept the placement, scanned a wider
+area including surrounding edges, walls, or furniture, and confirmed that
+STICK captured successfully. No code or installation change was required
+between the failed request and successful retry.
+
+The ring currently reflects live mapping/tracking readiness, not a successful
+world-map serialization. This device check demonstrates that ARKit can still
+reject capture for insufficient features after the indicator becomes ready.
+The generic failure wording and optimistic readiness indicator remain a UX
+limitation; this investigation did not change their behavior.
