@@ -64,6 +64,21 @@ test('prepare retries are idempotent and incomplete upload cannot finalize', asy
     } finally { await f.close(); }
 });
 
+test('publication accepts a fresh 75 metre fix through finalization', async () => {
+    const f = await fixture();
+    try {
+        const publication = await f.call('POST', '/v1/publications/prepare', {
+            ...draft('op-75m'), location: { ...fix(), accuracyMeters: 75 }
+        });
+        assert.equal(publication.status, 200);
+        f.adapter.upload(publication.data.id, 12);
+        const finalized = await f.call('POST', `/v1/publications/${publication.data.id}/finalize`, {
+            operationId: 'op-75m', location: { ...fix(), accuracyMeters: 75 }
+        });
+        assert.equal(finalized.status, 200);
+    } finally { await f.close(); }
+});
+
 test('prepare retry accepts fresh GPS drift but preserves first placement', async () => {
     const f = await fixture();
     try {
@@ -83,6 +98,8 @@ test('stale, inaccurate and malformed input is rejected', async () => {
     try {
         assert.equal((await f.call('POST', '/v1/nearby', { location: fix(999_969) }, null)).status, 400);
         assert.equal((await f.call('POST', '/v1/nearby', { location: { ...fix(), accuracyMeters: 51 } }, null)).status, 400);
+        assert.equal((await f.call('POST', '/v1/nearby', { location: { ...fix(), accuracyMeters: 75 } }, null)).status, 400);
+        assert.equal((await f.call('POST', '/v1/publications/prepare', { ...draft('op-75m'), location: { ...fix(), accuracyMeters: 75 } })).status, 200);
         assert.equal((await f.call('POST', '/v1/publications/prepare', { ...draft(), note: 'x'.repeat(2001) })).status, 400);
         assert.equal((await f.call('POST', '/v1/publications/prepare', { ...draft(), mapBytes: 16 * 1024 * 1024 + 1 })).status, 400);
     } finally { await f.close(); }

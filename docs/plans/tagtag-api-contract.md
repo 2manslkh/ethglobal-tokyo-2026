@@ -30,7 +30,7 @@ Success JSON object; errors `{error:{code,message}}`. Authorization uses Bearer 
 
 Admin custom claim `admin:true`: report list and moderation actions; agent may define private admin wire details and document under backend.
 
-Defaults: location ≤30s old and accuracy ≤50m; recovery/collection within 100m of placement; note ≤2000 chars, teaser ≤180, place ≤80; 5 publications/user/day; bounded nearby results (100). Never return coordinates/notes/tokens in request logs. Maps private in bucket. Presets have no uploads from end users. Published original persists after collection. Backend agent adds tests with injected adapters and emulator integration where available.
+Defaults: location ≤30s old; publication prepare/finalize accept accuracy ≤100m, while nearby/recovery/collection require ≤50m; recovery/collection within 100m of placement; note ≤2000 chars, teaser ≤180, place ≤80; 5 publications/user/day; bounded nearby results (100). Never return coordinates/notes/tokens in request logs. Maps private in bucket. Presets have no uploads from end users. Published original persists after collection. Backend agent adds tests with injected adapters and emulator integration where available.
 
 ## Ownership and coordination
 

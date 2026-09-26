@@ -73,8 +73,20 @@ namespace Tagtag.Services.Tests
 
             ApiFailure error = Assert.ThrowsAsync<ApiFailure>(async () => await new DeviceLocation(runtime).Current());
 
-            StringAssert.Contains("more accurate location", error.Message);
+            StringAssert.Contains("accuracy is still low", error.Message);
             Assert.That(error.Message, Does.Not.Contain("Settings"));
+        }
+
+        [Test]
+        public async Task PublishingAcceptsLocationFixesWithinOneHundredMeters()
+        {
+            var runtime = new LocationRuntime { Authorization = LocationAuthorization.FullAccuracy,
+                Status = LocationServiceStatus.Running, LastFix = Fix(75, 100) };
+
+            LocationFix fix = await new DeviceLocation(runtime).Current(maxAccuracyMeters: 100);
+
+            Assert.That(fix.accuracyMeters, Is.EqualTo(75));
+            Assert.That(runtime.DelayCount, Is.Zero);
         }
 
         [Test]

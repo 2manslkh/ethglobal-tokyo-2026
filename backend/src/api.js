@@ -77,9 +77,9 @@ export function createApi({ adapter, now = () => Math.floor(Date.now() / 1000), 
         else if (++state.count > max) throw new ApiError(429, 'rate_limited', 'Too many requests');
         if (limits.size > 10000) for (const [entry, value] of limits) if (value.until <= timestamp) limits.delete(entry);
     };
-    const location = value => {
+    const location = (value, maxAccuracyMeters = 50) => {
         const point = coordinates(value);
-        number(value.accuracyMeters, 0, 50, 'accuracyMeters');
+        number(value.accuracyMeters, 0, maxAccuracyMeters, 'accuracyMeters');
         if (!Number.isInteger(value.measuredUnixSeconds) || value.measuredUnixSeconds < now() - 30 || value.measuredUnixSeconds > now() + 5) bad('Location fix is stale');
         return point;
     };
@@ -175,7 +175,7 @@ export function createApi({ adapter, now = () => Math.floor(Date.now() / 1000), 
                 const operationId = text(data.operationId, 100, 'operationId');
                 if (!/^[A-Za-z0-9_-]+$/.test(operationId)) bad('operationId is invalid');
                 if (!PRESETS.has(data.presetId)) bad('presetId is invalid');
-                const point = location(data.location);
+                const point = location(data.location, 100);
                 const input = {
                     presetId: data.presetId, place: content(data.place, 80, 'place'), teaser: content(data.teaser, 180, 'teaser'),
                     note: content(data.note, 2000, 'note'), latitude: point.latitude, longitude: point.longitude,
@@ -212,7 +212,7 @@ export function createApi({ adapter, now = () => Math.floor(Date.now() / 1000), 
                 const id = segments[2];
                 const data = await bodyJson(request);
                 const operationId = text(data.operationId, 100, 'operationId');
-                const point = location(data.location);
+                const point = location(data.location, 100);
                 const sticker = await adapter.get('stickers', id);
                 if (!sticker) missing();
                 if (sticker.authorId !== user.uid) denied();
