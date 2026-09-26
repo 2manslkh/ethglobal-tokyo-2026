@@ -1,5 +1,7 @@
 # Design
 
+Tagline: **Find your places, Collect your moments**
+
 ## Theme
 
 **Little discoveries worth keeping.**

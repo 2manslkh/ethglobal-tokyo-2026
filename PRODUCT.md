@@ -1,5 +1,7 @@
 # Product
 
+Tagline: **Find your places, Collect your moments**
+
 <!-- impeccable:product-schema 1 -->
 
 ## Platform

@@ -1,6 +1,6 @@
 # tagtag
 
-Leave a little discovery. Find one worth keeping.
+Find your places, Collect your moments
 
 tagtag is an iPhone AR sticker app starring **Taggi**. Its paper-white interface follows [DESIGN.md](DESIGN.md), with four die-cut mascot presets and three tabs:
 
@@ -32,6 +32,8 @@ Backend commands are documented in [backend/README.md](backend/README.md). Live 
 The startup regression lives in `Assets/Tagtag/Application/PlayModeTests/`. Use `-testPlatform PlayMode -testFilter Tagtag.Tests.StartupTests` with the Unity test command to check the real entry scene and rendered Home pixels. For a macOS player check, use `-buildTarget StandaloneOSX -testPlatform StandaloneOSX`; its test-only callback also writes `tagtag-startup-result.xml` beside the screenshot in `Application.temporaryCachePath` if the player cannot return results to the editor. Editor rendering alone does not verify that player builds contain the required UI text resources.
 
 The paper UI uses a persistent shell and updates mounted controls when application state changes. Shared components, fonts, and motion are self-contained; [source provenance and font licenses](Assets/Tagtag/UI/SOURCE_PROVENANCE.md) document their adaptation. Camera presentation is independent of tracking: an opaque paper cover remains until AR reports displayable live imagery and returns after interruption. On iOS, the AVFoundation bridge is the authority for camera permission; Unity may strip its webcam authorization implementation from AR-only builds. Nearby lookup has an independent loading state so location acquisition does not lock navigation.
+
+Publishing checks iOS app-level Location and Precise Location authorization before AR map capture. Select a sticker to start acquiring a fresh fix while placing and writing; location updates remain active only for an active placement or lookup. If precision is disabled, the note sheet offers Open Settings. Enable **Settings > Apps > tagtag > Location > Precise Location**, return, and retry. Full precision still needs a real measurement within 50 metres and 30 seconds; weak indoor GPS can require moving outdoors. Publishing shows map, location, preparation, upload, and finalization progress. Stage logs include elapsed time without coordinates or note content.
 
 For mounted-view and visual regression checks, run Unity without `-nographics`, using `-buildTarget StandaloneOSX -testPlatform PlayMode -testFilter Tagtag.Tests.PaperVisualTests`. The fixture checks draft/caret/focus/scroll continuity, sign-in return, duplicate activation, and synced collection details. It captures normal and compact layouts under `Application.temporaryCachePath/tagtag-paper-review`; its standalone result is `tagtag-paper-visual-result.xml`. The neutral background in the live-camera fixture is simulated imagery. Native maps, the software keyboard, permissions, and AR still require simulator or physical-device checks.
 
