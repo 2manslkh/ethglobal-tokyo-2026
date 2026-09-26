@@ -1,0 +1,61 @@
+{
+  "status": "review-draft",
+  "width": 1320,
+  "height": 2868,
+  "slides": [
+    {
+      "id": "01-find-your-places",
+      "title": "Find your<br>places.",
+      "sub": "Little discoveries. Right around you.",
+      "screen": "docs/verification/map-overlap/iphone.png",
+      "art": "Assets/Resources/Tagtag/Navigation/explore.png",
+      "style": "hero",
+      "note": "Native map test capture. Replace test labels and capture current Explore with real pins."
+    },
+    {
+      "id": "02-follow-your-curiosity",
+      "title": "A little curiosity<br>goes places.",
+      "sub": "Follow a clue someone left for you.",
+      "screen": "docs/verification/die-cut-ui/explore-teaser.png",
+      "art": "Assets/Resources/Tagtag/Presets/taggi-1.png",
+      "style": "clue",
+      "note": "Cropped Unity teaser fixture; map-unavailable region excluded. Replace with current teaser capture."
+    },
+    {
+      "id": "03-uncover-a-story",
+      "title": "Find a sticker.<br>Uncover a story.",
+      "sub": "A small discovery. A personal connection.",
+      "screen": "docs/verification/celebration/found.png",
+      "art": "Assets/Resources/Tagtag/Navigation/stick.png",
+      "style": "found",
+      "note": "Unity celebration fixture temporarily represents discovery. Replace with real AR discovery capture."
+    },
+    {
+      "id": "04-collect-your-moments",
+      "title": "Collect your<br>moments.",
+      "sub": "Your places, kept in a sticker book.",
+      "screen": "docs/submission/screenshots/02-sticker-book-simulated.png",
+      "art": "Assets/Resources/Tagtag/Navigation/stick-book.png",
+      "style": "book",
+      "note": "Unity populated-book fixture with older navigation. Replace with current populated collection."
+    },
+    {
+      "id": "05-make-it-yours",
+      "title": "Make it<br>yours.",
+      "sub": "Turn a photo into your next sticker.",
+      "screen": "docs/verification/die-cut-ui/my-stickers-sources.png",
+      "art": "Assets/Resources/Tagtag/Home/make-sticker.png",
+      "style": "make",
+      "note": "Unity creation-source fixture. Replace with current photo-to-sticker editor and finished artwork."
+    },
+    {
+      "id": "06-leave-a-discovery",
+      "title": "Leave a little<br>discovery.",
+      "sub": "A place you love. A note worth finding.",
+      "screen": "docs/verification/celebration/placed.png",
+      "art": "Assets/Resources/Tagtag/Presets/taggi-2.png",
+      "style": "leave",
+      "note": "Unity publication celebration fixture. Replace with current on-device publication success."
+    }
+  ]
+}

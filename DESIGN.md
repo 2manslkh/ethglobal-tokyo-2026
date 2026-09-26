@@ -174,7 +174,14 @@ Reuse `AppMotion.EaseOut` and its restrained spring, which settles after a small
 overshoot. Preserve component-specific timings where the source defines them:
 the shared roles are not a command to replace every duration. Buttons use tonal
 press feedback with stable geometry; selection markers and switch thumbs animate
-within their controls. Sheets retain their drag, settle, and dismissal behavior.
+within their controls. Sheets retain their drag, settle, and dismissal behavior. Home's
+Collected, Your Designs, and Placed tabs use small warm-white paper labels with
+nearly square corners, inset charcoal dashes, centered semibold titles, and soft
+lower-edge shadows. The selected label has a warmer yellow-paper fill. Give Your
+Designs extra width to keep the title on one line. A press triggers a restrained
+280 ms damped rotational wiggle (at most 2.2 degrees); switching remains immediate.
+Repeated presses restart from the current angle, and cancellation, detachment,
+backgrounding, or reduced motion settles the label level.
 
 Successful publication and new collection use the sticker celebration described
 below. Animate the sticker artwork and small drawn stars; keep the screen, copy,

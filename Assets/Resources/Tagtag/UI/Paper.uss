@@ -29,6 +29,14 @@
 .paper-app .paper-button.primary:focus:active { background-color:#ddba2f; }
 .paper-app .paper-button.danger:focus:active { background-color:#e7c8c0; }
 .paper-app .paper-selection.selected:focus:active { background-color:#e9d18a; }
+/* Home tabs are small paper labels, with the longer title given more width. */
+.paper-app .paper-button.home-section-tab { min-height:60px; margin:0 3px; padding:10px 9px; border-radius:3px; background-color:#fffaf0; color:#20201e; -unity-text-align:middle-center; white-space:nowrap; overflow:visible; }
+.paper-app .paper-button.home-section-tab.selected { background-color:#f7e6b7; }
+.paper-app .paper-button.home-section-tab:hover { background-color:#f4ecdd; }
+.paper-app .paper-button.home-section-tab.selected:hover { background-color:#f0dda8; }
+.paper-app .paper-button.home-section-tab:focus { background-color:#eee2cb; }
+.paper-app .paper-button.home-section-tab.selected:focus { background-color:#ebd395; }
+.paper-app .paper-button.home-section-tab:active,.paper-app .paper-button.home-section-tab:focus:active { background-color:#e8d8b9; }
 .paper-app .paper-field { margin-top:12px; color:#20201e; min-height:76px; flex-direction:column; align-items:stretch; flex-shrink:0; min-width:0; }
 .paper-app .paper-field.multiline { min-height:172px; }
 .paper-app .paper-field .unity-base-field__label { width:auto; min-width:0; align-self:stretch; margin-bottom:7px; color:#20201e; white-space:normal; }

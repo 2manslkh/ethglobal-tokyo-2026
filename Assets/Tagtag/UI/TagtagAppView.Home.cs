@@ -116,6 +116,39 @@ namespace Tagtag.UI
             });
         }
 
+        private static void DrawHomeTab(MeshGenerationContext context, PaperSelection tab)
+        {
+            float width = tab.layout.width, height = tab.layout.height;
+            if (width <= 0f || height <= 0f) return;
+            var painter = context.painter2D;
+            painter.lineCap = LineCap.Round;
+            // Layer fine strokes below the paper edge for a soft contact shadow.
+            for (int layer = 4; layer >= 1; layer--)
+            {
+                painter.strokeColor = new Color(.28f, .22f, .13f, .035f * (5 - layer));
+                painter.lineWidth = 1f;
+                painter.BeginPath();
+                painter.MoveTo(new Vector2(3f + layer, height + layer * .7f));
+                painter.LineTo(new Vector2(width - 3f - layer, height + layer * .7f));
+                painter.Stroke();
+            }
+            PaperDottedOutline.DrawOn(context, tab, false, 3f, 4f);
+        }
+
+        private static void ShakeHomeTab(PaperSelection tab)
+        {
+            if (!tab.enabledInHierarchy) return;
+            float startingAngle = tab.resolvedStyle.rotate.angle.ToDegrees();
+            // A quick, damped paper wiggle; layout and activation never wait for it.
+            PaperMotion.Tween(tab, "home-tab-shake", .28f, progress =>
+            {
+                float remaining = 1f - progress;
+                float angle = progress >= 1f ? 0f : startingAngle * remaining * remaining +
+                    Mathf.Sin(progress * Mathf.PI * 5f) * 2.2f * remaining * remaining;
+                tab.style.rotate = new Rotate(new Angle(Mathf.Clamp(angle, -2.2f, 2.2f), AngleUnit.Degree));
+            });
+        }
+
         private void BuildHome(AppState state)
         {
             homeContents.Reset();
@@ -180,14 +213,27 @@ namespace Tagtag.UI
             homePlacedTab.name = "Home Placed";
             foreach (PaperSelection tab in new[] { homeCollectedTab, homeDesignTab, homePlacedTab })
             {
-                tab.style.width = Length.Percent(tab == homeCollectedTab ? 38f : tab == homeDesignTab ? 34f : 28f);
-                tab.style.flexGrow = 1f;
+                tab.style.flexBasis = 0f;
+                tab.style.flexGrow = tab == homeCollectedTab ? 33f : tab == homeDesignTab ? 42f : 25f;
                 tab.style.minWidth = 0f;
-                tab.style.minHeight = 48f;
-                tab.style.whiteSpace = WhiteSpace.Normal;
+                tab.style.minHeight = 60f;
+                tab.style.whiteSpace = WhiteSpace.NoWrap;
                 tab.style.paddingLeft = 9f;
                 tab.style.paddingRight = 9f;
-                tab.style.fontSize = Mathf.RoundToInt(12f * textScale);
+                tab.style.fontSize = Mathf.RoundToInt(14f * textScale);
+                tab.style.unityFont = SemiboldFont;
+                tab.style.unityFontStyleAndWeight = FontStyle.Normal;
+                tab.AddToClassList("home-section-tab");
+                tab.style.borderTopLeftRadius = tab.style.borderTopRightRadius = 3f;
+                tab.style.borderBottomLeftRadius = tab.style.borderBottomRightRadius = 3f;
+                tab.ShowDottedOutline = false;
+                tab.generateVisualContent += context => DrawHomeTab(context, tab);
+                tab.RegisterCallback<PointerDownEvent>(evt =>
+                {
+                    if (evt.button == 0 && evt.isPrimary && tab.enabledInHierarchy) ShakeHomeTab(tab);
+                }, TrickleDown.TrickleDown);
+                tab.RegisterCallback<PointerCancelEvent>(_ => PaperMotion.Cancel(tab, "home-tab-shake"));
+                tab.RegisterCallback<NavigationSubmitEvent>(_ => ShakeHomeTab(tab));
                 tab.Q<PaperIcon>(className: "selection-check").style.display = DisplayStyle.None;
                 sectionSwitch.Add(tab);
             }
