@@ -1,12 +1,14 @@
 import { createHash, randomUUID } from 'node:crypto';
 import { distanceMeters, geohash, neighboringCells } from './geo.js';
 import { deleteAccountData as removeAccountData } from './account.js';
+import { inspectDesignImage, MAX_DESIGN_BYTES, MAX_DESIGN_EDGE } from './design-image.js';
 
 const MAX_MAP = 16 * 1024 * 1024;
 const PRESETS = new Set(['taggi-1', 'taggi-2', 'taggi-3', 'taggi-4']);
 const MAX_BODY = 32768;
 const DISCOVERY_SECONDS = 300;
 const NEARBY_METERS = 2000;
+const DESIGN_KINDS = new Set(['image', 'ai', 'polaroid']);
 
 class ApiError extends Error {
     constructor(status, code, message) { super(message); this.status = status; this.code = code; }
@@ -41,7 +43,8 @@ const vector = (value, fields, field) => {
     return Object.fromEntries(fields.map(key => [key, number(value[key], -10000, 10000, `${field}.${key}`)]));
 };
 const summary = sticker => ({
-    id: sticker.id, presetId: sticker.presetId, authorId: sticker.authorId,
+    id: sticker.id, presetId: sticker.presetId, designId: sticker.designId,
+    artworkWidth: sticker.artworkWidth, artworkHeight: sticker.artworkHeight, authorId: sticker.authorId,
     authorName: sticker.authorName, place: sticker.place, teaser: sticker.teaser,
     latitude: sticker.latitude, longitude: sticker.longitude,
     revision: sticker.revision, createdAt: sticker.createdAt
@@ -106,12 +109,23 @@ export function createApi({ adapter, now = () => Math.floor(Date.now() / 1000), 
         return sticker;
     };
     const isBlocked = async (uid, authorId) => !!(await adapter.get('blocks', digest(`${uid}\0${authorId}`)));
+    const designResponse = async design => ({ id: design.id, ownerId: design.ownerId, name: design.name, kind: design.kind,
+        width: design.width, height: design.height, revision: design.revision, createdAt: design.createdAt,
+        artworkUrl: await adapter.signDesignRead(design.id, 'artwork'), thumbnailUrl: await adapter.signDesignRead(design.id, 'thumbnail') });
+    const visibleSummary = async sticker => {
+        const result = summary(sticker);
+        if (sticker.designId) {
+            result.artworkUrl = await adapter.signDesignRead(sticker.designId, 'artwork');
+            result.thumbnailUrl = await adapter.signDesignRead(sticker.designId, 'thumbnail');
+        }
+        return result;
+    };
     const collected = async (uid, id, collectedAt) => {
         const sticker = await adapter.get('stickers', id);
         const blocked = sticker && await isBlocked(uid, sticker.authorId);
         const authorDeleted = sticker && (await adapter.get('accounts', sticker.authorId))?.deleted;
         const unavailable = !sticker || sticker.status === 'removed' || sticker.status === 'deleted' || blocked || authorDeleted;
-        return sticker ? { ...summary(sticker), note: unavailable ? '' : sticker.note, collectedAt, unavailable: !!unavailable } : {
+        return sticker ? { ...(unavailable ? summary(sticker) : await visibleSummary(sticker)), note: unavailable ? '' : sticker.note, collectedAt, unavailable: !!unavailable } : {
             id, presetId: '', authorId: '', authorName: '', place: '', teaser: '', latitude: 0, longitude: 0, revision: 0, createdAt: 0,
             note: '', collectedAt, unavailable: true
         };
@@ -164,20 +178,113 @@ export function createApi({ adapter, now = () => Math.floor(Date.now() / 1000), 
                 const authors = [...new Set(near.map(item => item.authorId))];
                 const accounts = await Promise.all(authors.map(id => adapter.get('accounts', id)));
                 const deletedAuthors = new Set(authors.filter((_, index) => accounts[index]?.deleted));
-                const items = near.filter(item => !deletedAuthors.has(item.authorId))
-                    .sort((a, b) => distanceMeters(point, a) - distanceMeters(point, b)).slice(0, 100).map(summary);
+                const visible = near.filter(item => !deletedAuthors.has(item.authorId))
+                    .sort((a, b) => distanceMeters(point, a) - distanceMeters(point, b)).slice(0, 100);
+                const items = await Promise.all(visible.map(visibleSummary));
                 return send(response, 200, { items });
             }
 
             const user = await auth(request);
+            if (method === 'GET' && path === '/v1/designs') {
+                rateLimit('designs', user.uid, 60, 60);
+                const entries = await adapter.query('designs', [['ownerId', '==', user.uid], ['status', '==', 'ready']], 100);
+                const ready = entries.sort((a, b) => b.createdAt - a.createdAt);
+                return send(response, 200, { items: await Promise.all(ready.map(designResponse)) });
+            }
+            if (method === 'POST' && path === '/v1/designs/prepare') {
+                const data = await bodyJson(request);
+                const operationId = text(data.operationId, 100, 'operationId');
+                if (!/^[A-Za-z0-9_-]+$/.test(operationId)) bad('operationId is invalid');
+                const name = content(data.name, 80, 'name');
+                if (!DESIGN_KINDS.has(data.kind)) bad('kind is invalid');
+                const imageBytes = number(data.imageBytes, 1, MAX_DESIGN_BYTES, 'imageBytes');
+                const width = number(data.width, 1, MAX_DESIGN_EDGE, 'width');
+                const height = number(data.height, 1, MAX_DESIGN_EDGE, 'height');
+                if (![imageBytes, width, height].every(Number.isInteger)) bad('Design size is invalid');
+                const id = digest(`design\0${user.uid}\0${operationId}`);
+                const requestHash = digest(JSON.stringify({ name, kind: data.kind, imageBytes, width, height }));
+                const day = Math.floor(now() / 86400);
+                await adapter.transaction(async tx => {
+                    if ((await tx.get('accounts', user.uid))?.deleted) denied();
+                    const existing = await tx.get('designs', id);
+                    if (existing) {
+                        if (existing.ownerId !== user.uid || existing.requestHash !== requestHash) conflict('Operation ID already used');
+                        return;
+                    }
+                    const quotaId = digest(`design-quota\0${user.uid}\0${day}`);
+                    const quota = await tx.get('designQuotas', quotaId);
+                    if ((quota?.count ?? 0) >= 20) throw new ApiError(429, 'quota_exceeded', 'Daily design limit reached');
+                    const countId = digest(`design-count\0${user.uid}`);
+                    const count = await tx.get('designCounts', countId);
+                    if ((count?.active ?? 0) >= 100) throw new ApiError(429, 'quota_exceeded', 'Design library limit reached');
+                    await tx.set('designQuotas', quotaId, { id: quotaId, userId: user.uid, day, count: (quota?.count ?? 0) + 1 });
+                    await tx.set('designCounts', countId, { id: countId, userId: user.uid, active: (count?.active ?? 0) + 1 });
+                    await tx.set('designs', id, { id, ownerId: user.uid, operationId, requestHash, name, kind: data.kind,
+                        width, height, imageBytes, status: 'pending', references: 0, revision: 1, createdAt: now() });
+                });
+                const design = await adapter.get('designs', id);
+                if (design.status !== 'pending' && design.status !== 'ready') conflict('Design has been removed');
+                if (design.status === 'ready') return send(response, 200, { id, uploadUrl: '', uploadHeaders: {} });
+                return send(response, 200, { id, ...(await adapter.signDesignUpload(id)) });
+            }
+            if (method === 'POST' && segments[1] === 'designs' && segments[3] === 'finalize' && segments.length === 4) {
+                await bodyJson(request);
+                const id = segments[2];
+                const design = await adapter.get('designs', id);
+                if (!design) missing();
+                if (design.ownerId !== user.uid) denied();
+                if (design.status === 'ready') return send(response, 200, { design: await designResponse(design) });
+                if (design.status !== 'pending') conflict('Design has been removed');
+                const metadata = await adapter.designMetadata(id);
+                if (!metadata || metadata.size !== design.imageBytes || metadata.contentType !== 'image/png') conflict('Design upload is incomplete');
+                let image;
+                try { image = await inspectDesignImage(await adapter.readDesignUpload(id, metadata)); }
+                catch { bad('Uploaded image is not a valid PNG'); }
+                if (image.width !== design.width || image.height !== design.height) bad('Image dimensions differ from prepare request');
+                try { await adapter.saveDesignAssets(id, image.artwork, image.thumbnail); }
+                catch (error) {
+                    if (error.code === 'asset_conflict') conflict('Design artwork has already been finalized from a different upload');
+                    throw error;
+                }
+                await adapter.transaction(async tx => {
+                    if ((await tx.get('accounts', user.uid))?.deleted) denied();
+                    const current = await tx.get('designs', id);
+                    if (!current || current.ownerId !== user.uid || !['pending', 'ready'].includes(current.status)) conflict('Design has been removed');
+                    if (current.status === 'pending') await tx.set('designs', id, { ...current, status: 'ready', width: image.width, height: image.height });
+                });
+                await adapter.cleanupPendingDesign(id);
+                return send(response, 200, { design: await designResponse(await adapter.get('designs', id)) });
+            }
+            if (method === 'DELETE' && segments[1] === 'designs' && segments.length === 3) {
+                const id = segments[2];
+                const archived = await adapter.transaction(async tx => {
+                    const design = await tx.get('designs', id);
+                    if (!design) missing();
+                    if (design.ownerId !== user.uid) denied();
+                    if (design.status === 'archived' || design.status === 'abandoned') return design;
+                    const countId = digest(`design-count\0${user.uid}`);
+                    const count = await tx.get('designCounts', countId);
+                    await tx.set('designCounts', countId, { id: countId, userId: user.uid, active: Math.max(0, (count?.active ?? 1) - 1) });
+                    const updated = { ...design, status: 'archived', revision: design.revision + 1 };
+                    await tx.set('designs', id, updated);
+                    return updated;
+                });
+                if (!archived.references) await adapter.deleteDesignAssets(id);
+                return send(response, 200, { ok: true });
+            }
             if (method === 'POST' && path === '/v1/publications/prepare') {
                 const data = await bodyJson(request);
                 const operationId = text(data.operationId, 100, 'operationId');
                 if (!/^[A-Za-z0-9_-]+$/.test(operationId)) bad('operationId is invalid');
-                if (!PRESETS.has(data.presetId)) bad('presetId is invalid');
+                const hasPreset = typeof data.presetId === 'string' && data.presetId.length > 0;
+                const hasDesign = typeof data.designId === 'string' && data.designId.length > 0;
+                if (hasPreset === hasDesign) bad('Exactly one presetId or designId is required');
+                if (hasPreset && !PRESETS.has(data.presetId)) bad('presetId is invalid');
+                if (hasDesign && !/^[a-f0-9]{64}$/.test(data.designId)) bad('designId is invalid');
                 const point = location(data.location);
                 const input = {
-                    presetId: data.presetId, place: content(data.place, 80, 'place'), teaser: content(data.teaser, 180, 'teaser'),
+                    ...(hasPreset ? { presetId: data.presetId } : { designId: data.designId }),
+                    place: content(data.place, 80, 'place'), teaser: content(data.teaser, 180, 'teaser'),
                     note: content(data.note, 2000, 'note'), latitude: point.latitude, longitude: point.longitude,
                     position: vector(data.position, ['x', 'y', 'z'], 'position'), rotation: vector(data.rotation, ['x', 'y', 'z', 'w'], 'rotation'),
                     widthMeters: number(data.widthMeters, 0.05, 2, 'widthMeters'), mapBytes: number(data.mapBytes, 1, MAX_MAP, 'mapBytes')
@@ -195,12 +302,17 @@ export function createApi({ adapter, now = () => Math.floor(Date.now() / 1000), 
                         if (distanceMeters(point, existing) > 100) denied();
                         return;
                     }
+                    const design = hasDesign ? await tx.get('designs', data.designId) : null;
+                    if (hasDesign && (!design || design.status !== 'ready' || design.ownerId !== user.uid)) denied();
                     const quotaId = digest(`${user.uid}\0${day}`);
                     const quota = await tx.get('quotas', quotaId);
                     if ((quota?.count ?? 0) >= 5) throw new ApiError(429, 'quota_exceeded', 'Daily publication limit reached');
                     await tx.set('quotas', quotaId, { id: quotaId, userId: user.uid, day, count: (quota?.count ?? 0) + 1 });
+                    if (design) await tx.set('designs', design.id, { ...design, references: (design.references || 0) + 1 });
                     await tx.set('stickers', id, { id, authorId: user.uid, authorName: String(user.name || 'Explorer').slice(0, 80),
-                        operationId, requestHash, ...input, geoCell: geohash(point.latitude, point.longitude), status: 'pending',
+                        operationId, requestHash, ...input,
+                        ...(design ? { artworkWidth: design.width, artworkHeight: design.height } : {}),
+                        geoCell: geohash(point.latitude, point.longitude), status: 'pending',
                         createdAt: now(), revision: 1 });
                 });
                 const sticker = await adapter.get('stickers', id);
@@ -217,7 +329,7 @@ export function createApi({ adapter, now = () => Math.floor(Date.now() / 1000), 
                 if (!sticker) missing();
                 if (sticker.authorId !== user.uid) denied();
                 if (sticker.operationId !== operationId) conflict('Operation ID mismatch');
-                if (sticker.status === 'published') return send(response, 200, { sticker: summary(sticker) });
+                if (sticker.status === 'published') return send(response, 200, { sticker: await visibleSummary(sticker) });
                 if (sticker.status !== 'pending') conflict('Publication is unavailable');
                 if (distanceMeters(point, sticker) > 100) denied();
                 const metadata = await adapter.mapMetadata(id);
@@ -230,7 +342,7 @@ export function createApi({ adapter, now = () => Math.floor(Date.now() / 1000), 
                     if (current.status === 'pending') await tx.set('stickers', id, { ...current, status: 'published', publishedAt: now() });
                     else if (current.status !== 'published') conflict('Publication is unavailable');
                 });
-                return send(response, 200, { sticker: summary(await adapter.get('stickers', id)) });
+                return send(response, 200, { sticker: await visibleSummary(await adapter.get('stickers', id)) });
             }
 
             if (method === 'POST' && segments[1] === 'stickers' && segments[3] === 'recover' && segments.length === 4) {
@@ -243,7 +355,7 @@ export function createApi({ adapter, now = () => Math.floor(Date.now() / 1000), 
                 const expiresAt = now() + DISCOVERY_SECONDS;
                 await adapter.set('discoveries', discoveryId, { id: discoveryId, userId: user.uid, stickerId: sticker.id, expiresAt });
                 const mapUrl = await adapter.signDownload(sticker.id, expiresAt);
-                return send(response, 200, { sticker: summary(sticker), discoveryId, expiresAt, mapUrl,
+                return send(response, 200, { sticker: await visibleSummary(sticker), discoveryId, expiresAt, mapUrl,
                     position: sticker.position, rotation: sticker.rotation, widthMeters: sticker.widthMeters });
             }
 
@@ -280,7 +392,8 @@ export function createApi({ adapter, now = () => Math.floor(Date.now() / 1000), 
             if (method === 'GET' && path === '/v1/authored') {
                 rateLimit('authored', user.uid, 60, 60);
                 const entries = await adapter.query('stickers', [['authorId', '==', user.uid]], 1000);
-                return send(response, 200, { items: entries.filter(item => item.status === 'published' || item.status === 'withdrawn').sort((a, b) => b.createdAt - a.createdAt).map(summary) });
+                const visible = entries.filter(item => item.status === 'published' || item.status === 'withdrawn').sort((a, b) => b.createdAt - a.createdAt);
+                return send(response, 200, { items: await Promise.all(visible.map(visibleSummary)) });
             }
             if (method === 'POST' && segments[1] === 'stickers' && segments[3] === 'withdraw' && segments.length === 4) {
                 await bodyJson(request);
