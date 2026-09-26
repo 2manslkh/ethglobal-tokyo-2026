@@ -278,3 +278,11 @@ Follow the [device test guide](CREATOR_SCAN_TEST_GUIDE.md). Native creation, App
 - CoreDevice installed the app over the existing installation on **Dawg., iPhone 15 Pro Max**, UDID `00008130-001420500E41001C`; install and launch of `com.kenk.tagtag` exited 0. Logs: `/tmp/tagtag-device-fixes-install.log`, `/tmp/tagtag-device-fixes-launch.log`. Physical interaction acceptance remains pending; installation is not evidence of successful Image Playground generation or two-phone recovery.
 
 Use the updated [device test guide](CREATOR_SCAN_TEST_GUIDE.md), including shared preview and sheet checks.
+
+
+## Required login refresh — 2026-09-26
+
+- **178 Edit Mode and 19 Play Mode tests passed.** Regression coverage includes the required sign-in gate, session-loss privacy, cancellation/retry, silent video looping, pause/resume, reduced motion, decoder fallback, and player/texture cleanup.
+- Separate ARKit preparation, Unity iOS export, and unsigned device Xcode Debug build passed. The final IL2CPP Simulator export and Xcode build also passed.
+- Login was installed and launched in **iPhone 17 Pro / iOS 26.2** and **iPhone SE (3rd generation) / iOS 18.5** simulators. Standard, compact, dark appearance, and enlarged-text captures are linked in the [verification record](verification/login/README.md). Changing pixels across native captures confirm video playback.
+- Physical-device provider authentication, playback, and cancellation are **not verified** for this revision. The verification record includes the manual steps. No physical-device installation or account sign-in was performed.
