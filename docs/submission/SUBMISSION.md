@@ -67,9 +67,9 @@ The repository also contains a Solidity ERC-721 souvenir contract, Thirdweb embe
 
 ## Partner prizes and judging
 
-The Select prizes step asks for **Building from Scratch** or **Continuity Track**, then **Top 10 Finalist & Partner Prizes** or **Partner Prizes only**. The draft currently shows Building from Scratch selected by default; no submission type or partner prize is selected. The form permits up to three partners and asks which other partner technologies were used.
+The Select prizes step asks for **Building from Scratch** or **Continuity Track**, then **Top 10 Finalist & Partner Prizes** or **Partner Prizes only**. Choose **Top 10 Finalist & Partner Prizes** to enter main judging, and leave **all partner prizes unselected**. The form permits up to three partners and does not state a minimum. Building from Scratch is still the form's default; confirm the correct track against the event rules before final submission. The finalist option was selected in the browser with every partner box unchecked, but the step cannot be saved until earlier required project details, images, and tech stack are complete.
 
-**No partner prize selected in this draft.** Each prize requires a truthful explanation of a working partner integration. The disabled Sepolia/Thirdweb path alone does not establish eligibility for any Tokyo 2026 partner prize. Review the [event prize list](https://ethglobal.com/events/tokyo2026/prizes) against a live demo before selecting a prize. If seeking a Top 10 finalist spot, record the required video first.
+**Partner prize answer: none.** Leave the partner checkboxes and the optional “other partners' technologies” picker empty. The disabled Sepolia/Thirdweb path does not establish a live partner integration. A 2–4 minute demo video is required for the selected finalist stream.
 
 ## Track and provenance
 
@@ -81,12 +81,12 @@ AI tools assisted implementation, documentation, and visual review. The eight ne
 
 - [ ] Confirm the chosen track and disclose supplied/pre-existing assets.
 - [x] Create the ETHGlobal project draft and inspect all steps.
-- [ ] Complete required project details, tech stack, images, and judging stream in the form.
+- [ ] Complete required project details, tech stack, and images, then save **Top 10 Finalist & Partner Prizes** with no partner prizes selected.
 - [ ] Verify GitHub is public and final commits are pushed.
 - [ ] Record and upload a 2–4 minute demo at 720p or higher, with a human voice and no sped-up footage if seeking finalist prizes.
 - [ ] Replace simulated UI captures with real iPhone captures for claims demonstrated on hardware.
 - [ ] Confirm a working public demo link or provide clear build/run steps.
-- [ ] Select only partner prizes supported by a working integration, if any.
+- [x] Decide partner prizes: none for this submission.
 - [ ] Review the Final step's event-rule attestation, then submit by **2026-09-27 09:00 JST** and check the dashboard for confirmation.
 
 The deadline, video guidance, track rules, AI disclosure, and prize limit come from [ETHGlobal's Tokyo 2026 submission guide](https://ethglobal.com/events/tokyo2026/info/details). The create-project sidebar still displays a generic “start from scratch” rule, while the event guide describes continuity tracks; use the event-specific track rules when making that selection.
