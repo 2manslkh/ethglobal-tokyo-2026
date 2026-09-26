@@ -34,19 +34,19 @@
       "id": "04-collect-your-moments",
       "title": "Collect your<br>moments.",
       "sub": "Your places, kept in a sticker book.",
-      "screen": "docs/submission/screenshots/02-sticker-book-simulated.png",
+      "screen": "docs/app-store/captures/collected-current.png",
       "art": "Assets/Resources/Tagtag/Navigation/stick-book.png",
       "style": "book",
-      "note": "Unity populated-book fixture with older navigation. Replace with current populated collection."
+      "note": "Fresh 1170 \u00d7 2532 Unity capture of current Collected UI with 20 sample stickers."
     },
     {
       "id": "05-make-it-yours",
       "title": "Make it<br>yours.",
       "sub": "Turn a photo into your next sticker.",
-      "screen": "docs/verification/die-cut-ui/my-stickers-sources.png",
+      "screen": "docs/app-store/captures/add-sticker-current.png",
       "art": "Assets/Resources/Tagtag/Home/make-sticker.png",
       "style": "make",
-      "note": "Unity creation-source fixture. Replace with current photo-to-sticker editor and finished artwork."
+      "note": "Fresh 1170 \u00d7 2532 Unity capture of current Add Sticker UI; supported-device capabilities are fixture data."
     },
     {
       "id": "06-leave-a-discovery",
