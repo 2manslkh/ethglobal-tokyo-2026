@@ -312,7 +312,7 @@ namespace Tagtag.Services
     [Serializable] public sealed class SummaryList { public StickerSummary[] items; }
     [Serializable] public sealed class CollectionList { public CollectedSticker[] items; }
     [Serializable] public sealed class StickerResult { public StickerSummary sticker; }
-    [Serializable] public sealed class CollectionResult { public CollectedSticker sticker; }
+    [Serializable] public sealed class CollectionResult { public CollectedSticker sticker; public bool isNew; }
     [Serializable] public sealed class OkResult { public bool ok; }
     [Serializable] public sealed class PrepareRequest
     {

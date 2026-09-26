@@ -802,24 +802,12 @@ namespace Tagtag.Services
             string collectionOwner = State.user.uid;
             Run(async () =>
             {
-                bool newCollection = false;
-                if (!State.collection.Any(item => item.id == id))
-                {
-                    State.status = "Checking your sticker book…";
-                    Notify();
-                    try
-                    {
-                        var before = await api.Call<CollectionList>("GET", "/v1/collection", null, await session.Token());
-                        newCollection = StickerCelebrations.IsNewInServerSnapshot(id, before?.items);
-                    }
-                    catch (ApiFailure) { /* Unknown novelty must not block collection or note access. */ }
-                }
                 EnsureCollectionAccount(collectionAccount, collectionOwner);
                 if (recovery != discovered || !CollectionBook.CanUnlock(discovered, id, Ar.CanCollect, Now))
                     throw new ApiFailure("Move closer and tap the tracked sticker again.");
                 State.status = "Collecting your sticker…";
                 Notify();
-                State.location = await location.Current();
+                State.location = await location.Current(maxAccuracyMeters: 5000);
                 EnsureCollectionAccount(collectionAccount, collectionOwner);
                 if (recovery != discovered || !CollectionBook.CanUnlock(discovered, id, Ar.CanCollect, Now)) throw new ApiFailure("Move closer and tap the tracked sticker again.");
                 string token = await session.Token();
@@ -829,7 +817,7 @@ namespace Tagtag.Services
                 var result = await api.Call<CollectionResult>("POST", Path(id) + "/collect", new CollectRequest {
                     discoveryId = discovered.discoveryId, location = State.location }, token);
                 EnsureCollectionAccount(collectionAccount, collectionOwner);
-                bool alreadyCollected = !newCollection || State.collection.Any(item => item.id == result.sticker.id);
+                bool alreadyCollected = !result.isNew || State.collection.Any(item => item.id == result.sticker.id);
                 State.collection.RemoveAll(item => item.id == result.sticker.id);
                 State.collection.Add(result.sticker); State.collection = CollectionBook.Normalize(State.collection);
                 SaveCollection(); State.detail = result.sticker; State.page = AppPage.Home;

@@ -304,6 +304,18 @@ namespace Tagtag.Services.Tests
         }
 
         [Test]
+        public async Task CollectionUsesFreshApproximateFixWithoutWaitingForPrecision()
+        {
+            var runtime = new LocationRuntime { Authorization = LocationAuthorization.FullAccuracy,
+                LastFix = Fix(2000.149f, 100) };
+
+            LocationFix fix = await new DeviceLocation(runtime).Current(maxAccuracyMeters: 5000);
+
+            Assert.That(fix.accuracyMeters, Is.EqualTo(2000.149f));
+            Assert.That(runtime.DelayCount, Is.Zero);
+        }
+
+        [Test]
         public async Task PublicationUsesPreciseFixWhenItArrivesDuringShortWait()
         {
             var runtime = new LocationRuntime { Authorization = LocationAuthorization.FullAccuracy,
