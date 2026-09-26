@@ -42,6 +42,7 @@ namespace Tagtag.Tests
             Assert.That(CollectionBook.FreshLocation(fix, 131), Is.False);
             fix.accuracyMeters = 51;
             Assert.That(CollectionBook.FreshLocation(fix, 120), Is.False);
+            Assert.That(CollectionBook.FreshLocation(fix, 120, 100), Is.True);
         }
     }
 }

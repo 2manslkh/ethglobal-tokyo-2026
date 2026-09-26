@@ -573,6 +573,7 @@ namespace Tagtag.UI
             CameraMessage message = PaperFlow.Camera(presentation);
             bool stickVisible = state.page == AppPage.Stick && !state.accountOpen;
             root.style.backgroundColor = stickVisible && !message.Cover ? Color.clear : Paper;
+            statusBarBacking.style.backgroundColor = stickVisible ? Color.clear : Paper;
             if (cameraCover == null) return;
             cameraCover.style.display = message.Cover ? DisplayStyle.Flex : DisplayStyle.None;
             cameraTitleLabel.text = message.Title;

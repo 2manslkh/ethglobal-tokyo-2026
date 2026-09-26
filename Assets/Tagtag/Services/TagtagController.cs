@@ -309,6 +309,7 @@ namespace Tagtag.Services
                 if (!SaveEditableDraft(State.selectedPreset, State.draftPlace, State.draftTeaser, State.draftNote))
                     throw new ApiFailure(State.error);
                 location.CheckPermission();
+                Task<LocationFix> prepareFixTask = location.Current(lifetimeCancellation.Token, 100);
                 if (pendingDraft == null)
                 {
                     SetPublicationStage("map", "Saving this spot…");
@@ -339,7 +340,7 @@ namespace Tagtag.Services
                 }
                 EnsurePublicationActive(operationGeneration, operationAccount);
                 SetPublicationStage("location-prepare", "Finding a precise location…");
-                var prepareFix = await location.Current(lifetimeCancellation.Token);
+                var prepareFix = await prepareFixTask;
                 EnsurePublicationActive(operationGeneration, operationAccount);
                 pendingDraft.location = State.location = prepareFix;
                 publications.Save(State.user.uid, pendingDraft);
@@ -361,7 +362,8 @@ namespace Tagtag.Services
                     EnsurePublicationActive(operationGeneration, operationAccount);
                 }
                 SetPublicationStage("location-finalize", "Checking your location again…");
-                var finalizeFix = await location.Current(lifetimeCancellation.Token);
+                var finalizeFix = location.IsFresh(prepareFix, 100)
+                    ? prepareFix : await location.Current(lifetimeCancellation.Token, 100);
                 EnsurePublicationActive(operationGeneration, operationAccount);
                 State.location = finalizeFix;
                 SetPublicationStage("finalize", "Publishing your sticker…");

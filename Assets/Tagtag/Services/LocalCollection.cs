@@ -202,6 +202,9 @@ namespace Tagtag.Services
 
         public void Resume() { if (!disposed) suspended = false; }
 
+        public bool IsFresh(LocationFix fix, float maxAccuracyMeters = 50) =>
+            CollectionBook.FreshLocation(fix, runtime.UtcNow.ToUnixTimeSeconds(), maxAccuracyMeters);
+
         private void EnsureStarted()
         {
             if (stationaryUpdates && (runtime.Status == LocationServiceStatus.Running ||
@@ -218,7 +221,7 @@ namespace Tagtag.Services
                 throw new ApiFailure("Location paused. Return to tagtag and try again.");
         }
 
-        public async Task<LocationFix> Current(CancellationToken cancellation = default)
+        public async Task<LocationFix> Current(CancellationToken cancellation = default, float maxAccuracyMeters = 50)
         {
             cancellation.ThrowIfCancellationRequested();
             int requestVersion = lifecycleVersion;
@@ -227,6 +230,9 @@ namespace Tagtag.Services
             try
             {
                 CheckPermission();
+                if (activeRequests == 1 && stationaryUpdates && runtime.Status == LocationServiceStatus.Running &&
+                    !CollectionBook.FreshLocationTimestamp(runtime.LastFix, runtime.UtcNow.ToUnixTimeSeconds()))
+                    StopRuntime();
                 EnsureStarted();
                 var deadline = runtime.UtcNow.AddSeconds(20);
                 LocationFix lastFix = null;
@@ -240,7 +246,7 @@ namespace Tagtag.Services
                     if (runtime.Status == LocationServiceStatus.Running)
                     {
                         lastFix = runtime.LastFix;
-                        if (CollectionBook.FreshLocation(lastFix, runtime.UtcNow.ToUnixTimeSeconds())) return lastFix;
+                        if (CollectionBook.FreshLocation(lastFix, runtime.UtcNow.ToUnixTimeSeconds(), maxAccuracyMeters)) return lastFix;
                     }
                     await runtime.Delay(cancellation);
                 }
@@ -250,7 +256,7 @@ namespace Tagtag.Services
                     Debug.LogWarning("[Tagtag location] outcome=timeout authorization=" + runtime.Authorization +
                         " accuracyMeters=" + lastFix.accuracyMeters +
                         " ageSeconds=" + (runtime.UtcNow.ToUnixTimeSeconds() - lastFix.measuredUnixSeconds));
-                throw new ApiFailure("We need a more accurate location. Move outdoors and try again.");
+                throw new ApiFailure("Location accuracy is still low. Wait a moment or try near a window, then retry.");
             }
             finally
             {
