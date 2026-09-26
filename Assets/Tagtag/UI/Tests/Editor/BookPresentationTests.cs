@@ -55,7 +55,7 @@ namespace Tagtag.UI.Tests
         [Test]
         public void MapStaysHiddenUnderAccountAndDetailSheets()
         {
-            AppState state = new AppState { page = AppPage.Explore, location = new LocationFix() };
+            AppState state = new AppState { user = new UserSession { uid = "review" }, page = AppPage.Explore, location = new LocationFix() };
             Assert.IsTrue(MapPresentation.ShouldShow(state, false));
             Assert.IsFalse(MapPresentation.ShouldShow(state, true));
             state.accountOpen = true;
@@ -71,7 +71,7 @@ namespace Tagtag.UI.Tests
         [Test]
         public void OpeningASheetHidesAMountedNativeMapBeforeItsOverlayAppears()
         {
-            AppState state = new AppState { page = AppPage.Explore, location = new LocationFix { accuracyMeters = 10f } };
+            AppState state = new AppState { user = new UserSession { uid = "review" }, page = AppPage.Explore, location = new LocationFix { accuracyMeters = 10f } };
             CountingMap map = new CountingMap();
             Assert.IsTrue(MapPresentation.SyncVisibility(state, false, map));
             Assert.IsFalse(MapPresentation.SyncVisibility(state, true, map));

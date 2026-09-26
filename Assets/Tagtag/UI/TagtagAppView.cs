@@ -126,6 +126,7 @@ namespace Tagtag.UI
         private void OnEnable()
         {
             PaperMotion.SetPaused(false);
+            if (loginPlayback != null) loginPlayback.enabled = true;
             if (controller != null)
             {
                 QueueRender();
@@ -135,12 +136,15 @@ namespace Tagtag.UI
         private void OnDisable()
         {
             PaperMotion.SetPaused(true);
+            if (loginPlayback != null) loginPlayback.enabled = false;
             controller?.Ar?.SetCameraInteraction(default, true);
             controller?.Map?.Hide();
         }
 
         private void OnDestroy()
         {
+            DisposeLogin();
+            if (appleFont != null) Destroy(appleFont);
             if (artworkSubscribed) StickerArtwork.Changed -= OnArtworkChanged;
             if (controller != null)
             {
@@ -329,6 +333,13 @@ namespace Tagtag.UI
             }
 
             AppState state = controller.State;
+            bool loginRequired = !SignedIn(state);
+            if (loginRequired)
+            {
+                sheet = Sheet.None;
+                AbandonSignInReturn();
+                controller.Map?.Hide();
+            }
             SyncHomeIdentity(state);
             SyncDeleteDesign(state);
             SyncHomePlacement(state);
@@ -357,11 +368,12 @@ namespace Tagtag.UI
                 accountScreen = AccountScreen.Overview;
             }
             MapPresentation.SyncVisibility(state, sheet != Sheet.None || state.creationOpen, controller.Map);
-            string identity = state.accountOpen ? "Account:" + (accountScreen == AccountScreen.SignIn && SignedIn(state) ? AccountScreen.Overview : accountScreen) : state.page.ToString();
+            string identity = loginRequired ? "Login" : state.accountOpen ? "Account:" + (accountScreen == AccountScreen.SignIn && SignedIn(state) ? AccountScreen.Overview : accountScreen) : state.page.ToString();
             bool destinationChanged = identity != renderedIdentity;
             if (destinationChanged)
             {
                 CaptureHomeScroll();
+                DisposeLogin();
                 if (!state.accountOpen && state.page == AppPage.Stick &&
                     renderedIdentity != null && renderedPage != AppPage.Stick)
                     cameraReturnPage = renderedPage == AppPage.Explore ? AppPage.Explore : AppPage.Home;
@@ -420,7 +432,8 @@ namespace Tagtag.UI
                 screenHost.Clear();
                 navHost.Clear();
                 root.style.backgroundColor = Paper;
-                if (state.accountOpen) BuildAccount(state);
+                if (loginRequired) BuildLogin(state);
+                else if (state.accountOpen) BuildAccount(state);
                 else
                 {
                     if (state.page == AppPage.Home) BuildHome(state);
@@ -434,7 +447,8 @@ namespace Tagtag.UI
             }
             else
             {
-                RefreshMounted(state);
+                if (loginRequired) RefreshLogin(state);
+                else RefreshMounted(state);
             }
 
             string sheetSignature = sheet + ":" + sheetStickerId + ":" + sheetDesignId + ":" + sheetAuthorId + ":" + state.accountOpen;
@@ -442,7 +456,7 @@ namespace Tagtag.UI
             {
                 overlayHost.Clear();
                 artworkNotices.RemoveAll(notice => notice.status.panel == null);
-                bool hideCreationSheet = state.accountOpen &&
+                bool hideCreationSheet = loginRequired || state.accountOpen &&
                     (sheet == Sheet.Picker || sheet == Sheet.Creator || sheet == Sheet.DeleteDesign);
                 if (sheet != Sheet.None && !hideCreationSheet) BuildSheet(state);
                 else

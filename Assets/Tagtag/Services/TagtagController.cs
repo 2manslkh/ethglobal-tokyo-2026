@@ -40,6 +40,7 @@ namespace Tagtag.Services
         private readonly CancellationTokenSource lifetimeCancellation = new CancellationTokenSource();
         private CancellationTokenSource captureCancellation;
         private bool disposed;
+        private bool loginGateActive;
         private bool suspended;
         private string publicationStage;
         private long publicationStageStarted;
@@ -90,6 +91,8 @@ namespace Tagtag.Services
             State.servicesConfigured = configuration.Configured;
             State.user = session.Current;
             nearbyCacheUserId = State.user?.uid;
+            SyncPlacementIdentity();
+            State.accountOpen = State.user == null;
             State.nftTransfers = transferStore.Read(State.user?.uid);
             State.collection = cache.Read(State.user?.uid);
             InitializeCreation(stickerCreation);
@@ -127,6 +130,37 @@ namespace Tagtag.Services
                 nearbyLastSuccess = default;
             }
             SyncPlacementIdentity();
+            if (State.user == null)
+            {
+                // Enforce the login gate after sign-out, deletion, and asynchronous session loss.
+                bool stopExperiences = !loginGateActive;
+                loginGateActive = true;
+                State.page = AppPage.Home;
+                State.accountOpen = true;
+                State.creationOpen = false;
+                State.detail = null;
+                Map.Hide();
+                if (stopExperiences)
+                {
+                    // Disk caches and drafts stay scoped to their owner; no private presentation
+                    // may survive into a different account whose initial synchronization fails.
+                    State.collection.Clear();
+                    State.authored.Clear();
+                    State.designs.Clear();
+                    State.nearby.Clear();
+                    State.selected = null;
+                    State.selectedPreset = State.selectedDesign = "";
+                    State.draftPlace = State.draftTeaser = State.draftNote = "";
+                    State.hasPendingDesign = State.hasPendingPublication = false;
+                    pendingDraft = null;
+                    recovery = null;
+                    CancelNearby();
+                    location.Stop();
+                    creation?.Cancel();
+                    Ar.Exit();
+                }
+            }
+            else loginGateActive = false;
             Changed?.Invoke();
         }
         public void SetSuspended(bool value)
@@ -150,6 +184,7 @@ namespace Tagtag.Services
         }
         public void Navigate(AppPage page)
         {
+            if (!RequireAccount()) return;
             if (nativeCreationOpen || State.busy && !synchronizing) return;
             if (page != AppPage.Explore) CancelNearby();
             if (State.page == AppPage.Stick && page != AppPage.Stick) Ar.Exit();
@@ -176,6 +211,7 @@ namespace Tagtag.Services
         }
         public void SetAccountOpen(bool open)
         {
+            if (!RequireAccount()) return;
             if (open) { CancelNearby(true); if (State.page == AppPage.Stick) location.Stop(); }
             State.accountOpen = open; Map.Hide(); Notify();
             if (!open)
@@ -187,8 +223,9 @@ namespace Tagtag.Services
         }
         public void SignIn(string provider)
         {
-            if (State.busy) return;
+            if (State.busy || !State.servicesConfigured || (provider != "apple" && provider != "google")) return;
             CancelNearby();
+            State.status = "Opening " + (provider == "apple" ? "Apple" : "Google") + "…";
             State.busy = true; State.error = ""; State.designError = ""; Notify();
             identity.SignIn(provider, configuration, credential =>
             {
@@ -197,6 +234,8 @@ namespace Tagtag.Services
                 Run(async () =>
                 {
                     State.user = await session.SignIn(credential);
+                    State.page = AppPage.Home;
+                    State.accountOpen = false;
                     State.nftTransfers = transferStore.Read(State.user.uid);
                     State.nftDeletionAcknowledged = false;
                     EnsureWallet();
@@ -235,7 +274,7 @@ namespace Tagtag.Services
 
         private async void RefreshNearby(bool preserveForegroundError)
         {
-            if (disposed || suspended || State.page != AppPage.Explore || State.accountOpen) return;
+            if (disposed || suspended || State.user == null || State.page != AppPage.Explore || State.accountOpen) return;
             if (State.busy) { nearbyRefreshQueued = true; return; }
             if (State.nearbyLoading) return;
             nearbyRefreshQueued = false;
@@ -353,6 +392,7 @@ namespace Tagtag.Services
         }
         public void SelectPreset(string presetId)
         {
+            if (!RequireAccount()) return;
             if (State.busy || !new[] { "taggi-1", "taggi-2", "taggi-3", "taggi-4" }.Contains(presetId)) return;
             if (State.selectedPreset == presetId && pendingDraft != null) return;
             string previousDesign = State.selectedDesign; State.selectedDesign = "";
@@ -571,6 +611,7 @@ namespace Tagtag.Services
         }
         public void Resume()
         {
+            if (!RequireAccount()) return;
             EnsureWallet();
             if (!State.busy && State.user != null && configuration.Configured)
                 Run(async () => { synchronizing = true; try { await SyncAccount(); } finally { synchronizing = false; } }, true);

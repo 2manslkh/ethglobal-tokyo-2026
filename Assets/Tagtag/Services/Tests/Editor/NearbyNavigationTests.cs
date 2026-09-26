@@ -17,7 +17,7 @@ namespace Tagtag.Services.Tests
         public void SetUp()
         {
             location = new TaskCompletionSource<LocationFix>();
-            controller = new TagtagController(new ServiceConfiguration(), new Camera(), new Map(), new Identity(),
+            controller = new TagtagController(new ServiceConfiguration(), new Camera(), new Map(), new Identity { StoredSession = ValidSession },
                 token => { requestToken = token; return location.Task; },
                 _ => Task.FromResult(Array.Empty<StickerSummary>()));
         }
@@ -43,7 +43,7 @@ namespace Tagtag.Services.Tests
         {
             var response = new TaskCompletionSource<StickerSummary[]>();
             controller.Dispose();
-            controller = new TagtagController(new ServiceConfiguration(), new Camera(), new Map(), new Identity(),
+            controller = new TagtagController(new ServiceConfiguration(), new Camera(), new Map(), new Identity { StoredSession = ValidSession },
                 _ => Task.FromResult(new LocationFix { latitude = 35, longitude = 139, accuracyMeters = 5 }),
                 _ => response.Task);
 
@@ -60,7 +60,7 @@ namespace Tagtag.Services.Tests
         {
             controller.Dispose();
             int calls = 0;
-            controller = new TagtagController(new ServiceConfiguration(), new Camera(), new Map(), new Identity(),
+            controller = new TagtagController(new ServiceConfiguration(), new Camera(), new Map(), new Identity { StoredSession = ValidSession },
                 _ => Task.FromResult(new LocationFix { latitude = 35, longitude = 139, accuracyMeters = 5 }),
                 _ => { calls++; return Task.FromResult(Array.Empty<StickerSummary>()); });
 
@@ -80,7 +80,7 @@ namespace Tagtag.Services.Tests
         public async Task FailedRefreshPreservesPinsAndExplicitRemoteSelection()
         {
             controller.Dispose();
-            controller = new TagtagController(new ServiceConfiguration(), new Camera(), new Map(), new Identity(),
+            controller = new TagtagController(new ServiceConfiguration(), new Camera(), new Map(), new Identity { StoredSession = ValidSession },
                 _ => Task.FromResult(new LocationFix { latitude = 35, longitude = 139, accuracyMeters = 5 }),
                 _ => Task.FromException<StickerSummary[]>(new ApiFailure("Nearby unavailable")));
             var oldPin = new StickerSummary { id = "old" };
@@ -118,7 +118,7 @@ namespace Tagtag.Services.Tests
         {
             var response = new TaskCompletionSource<StickerSummary[]>();
             controller.Dispose();
-            controller = new TagtagController(new ServiceConfiguration(), new Camera(), new Map(), new Identity(),
+            controller = new TagtagController(new ServiceConfiguration(), new Camera(), new Map(), new Identity { StoredSession = ValidSession },
                 _ => Task.FromResult(new LocationFix { latitude = 35, longitude = 139, accuracyMeters = 5 }),
                 _ => response.Task);
             controller.Navigate(AppPage.Explore);
@@ -177,12 +177,19 @@ namespace Tagtag.Services.Tests
                 _ => Task.FromResult(new LocationFix { accuracyMeters = 5 }), _ => response.Task);
             controller.Navigate(AppPage.Explore);
             controller.Navigate(AppPage.Home);
+            controller.State.authored.Add(new StickerSummary { id = "old-private-sticker" });
+            controller.State.draftNote = "Old account private draft";
+            controller.State.selectedPreset = "taggi-1";
             // Simulate Firebase rejecting the in-flight refresh; no network or live credential is needed.
             var field = typeof(TagtagController).GetField("session", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
             ((FirebaseSession)field.GetValue(controller)).SignOut();
             response.SetException(new ApiFailure("Your session expired. Sign in again.", 401));
             await Task.Yield();
             Assert.That(controller.State.user, Is.Null);
+            Assert.That(controller.State.accountOpen, Is.True);
+            Assert.That(controller.State.authored, Is.Empty, "Session loss must not expose the old account during a later failed sync.");
+            Assert.That(controller.State.draftNote, Is.Empty);
+            Assert.That(controller.State.selectedPreset, Is.Empty);
             Assert.That(controller.State.page, Is.EqualTo(AppPage.Home));
             Assert.That(controller.State.error, Is.Empty);
         }
@@ -213,7 +220,7 @@ namespace Tagtag.Services.Tests
         public void CreationFailureDoesNotReplaceWriteNoteError()
         {
             controller.Dispose();
-            controller = new TagtagController(new ServiceConfiguration(), new Camera(), new Map(), new Identity(),
+            controller = new TagtagController(new ServiceConfiguration(), new Camera(), new Map(), new Identity { StoredSession = ValidSession },
                 stickerCreation: new FailedCreation());
             controller.State.error = "Existing note guidance";
             controller.State.draftNote = "Keep this note";
@@ -224,6 +231,71 @@ namespace Tagtag.Services.Tests
             Assert.That(controller.State.error, Is.EqualTo("Existing note guidance"));
             Assert.That(controller.State.draftNote, Is.EqualTo("Keep this note"));
             Assert.That(controller.State.hasPendingDesign, Is.False);
+        }
+
+        [Test]
+        public void SignedOutStartupAndNavigationStayAtLogin()
+        {
+            controller.SignOut();
+            controller.Start();
+            foreach (var page in new[] { AppPage.Home, AppPage.Explore, AppPage.Stick })
+            {
+                controller.Navigate(page);
+                controller.SetAccountOpen(false);
+                Assert.That(controller.State.accountOpen, Is.True);
+                Assert.That(controller.State.page, Is.EqualTo(AppPage.Home));
+                Assert.That(controller.State.nearbyLoading, Is.False);
+            }
+        }
+
+        [Test]
+        public void SignedOutCannotOpenCreationOrCamera()
+        {
+            controller.SignOut();
+            controller.OpenCreation();
+            controller.CreateSticker("import");
+            controller.SelectPreset("taggi-1");
+            Assert.That(controller.State.creationOpen, Is.False);
+            Assert.That(controller.State.selectedPreset, Is.Empty);
+            Assert.That(controller.State.accountOpen, Is.True);
+            Assert.That(controller.State.page, Is.EqualTo(AppPage.Home));
+        }
+
+        [Test]
+        public void RestoredSessionStartsAtHomeAndSignOutReturnsToLogin()
+        {
+            controller.Dispose();
+            controller = new TagtagController(new ServiceConfiguration(), new Camera(), new Map(),
+                new Identity { StoredSession = ValidSession });
+            Assert.That(controller.State.accountOpen, Is.False);
+            Assert.That(controller.State.page, Is.EqualTo(AppPage.Home));
+            controller.Navigate(AppPage.Stick);
+            controller.SignOut();
+            Assert.That(controller.State.accountOpen, Is.True);
+            Assert.That(controller.State.page, Is.EqualTo(AppPage.Home));
+        }
+
+        [Test]
+        public void ProviderCancellationAllowsRetryWithoutLeavingLogin()
+        {
+            controller.Dispose();
+            var identity = new Identity();
+            controller = new TagtagController(new ServiceConfiguration { apiBaseUrl = "https://invalid.test", firebaseApiKey = "test" },
+                new Camera(), new Map(), identity);
+            controller.SignIn("apple");
+            controller.SignIn("google");
+            Assert.That(identity.Attempts, Is.EqualTo(1), "Repeated activation must not open a second provider.");
+            Assert.That(controller.State.busy, Is.True);
+            identity.Fail("Sign-in cancelled.");
+            Assert.That(controller.State.busy, Is.False);
+            Assert.That(controller.State.user, Is.Null);
+            Assert.That(controller.State.accountOpen, Is.True);
+            controller.SignIn("google");
+            Assert.That(identity.Attempts, Is.EqualTo(2));
+            Assert.That(controller.State.error, Is.Empty);
+            identity.Fail("Provider unavailable. Try again.");
+            Assert.That(controller.State.error, Does.Contain("Provider unavailable"));
+            Assert.That(controller.State.accountOpen, Is.True);
         }
 
         private static string ValidSession => JsonUtility.ToJson(new UserSession
@@ -265,7 +337,9 @@ namespace Tagtag.Services.Tests
         private sealed class Identity : INativeIdentity
         {
             public string StoredSession = "{}";
-            public void SignIn(string provider, ServiceConfiguration config, Action<IdentityCredential> success, Action<string> failure) { }
+            public int Attempts;
+            public Action<string> Fail;
+            public void SignIn(string provider, ServiceConfiguration config, Action<IdentityCredential> success, Action<string> failure) { Attempts++; Fail = failure; }
             public void StoreSession(string value) { }
             public string LoadSession() => StoredSession;
             public void ClearSession() { }

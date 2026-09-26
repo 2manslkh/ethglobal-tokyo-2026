@@ -210,11 +210,20 @@ sticker, reveal the full note, and collect a copy.
 
 ## App Screens
 
+### Login
+
+Sign-in is required before entering Home, STICK, or Explore. Login has a centered
+“Tagtag” header and the supplied portrait video playing silently behind the screen.
+Use a still frame for reduced motion, video preparation, and decoder failure.
+A light paper fade supports the bottom-aligned headline, explanation, and equally
+prominent provider controls: black Apple, white outlined Google, with official logos
+and provider typography. No Back, guest continuation, tab bar, or idle status card.
+Errors and progress appear inline. Respect safe areas and scroll enlarged content.
+
 ### Home
 
 Home shows the total number of stickers collected and the user's collection
-as a sticker book. A profile icon beside “Your sticker book” opens sign-in for
-guests and account settings for signed-in users. There is no global brand/sign-in
+as a sticker book. A profile icon beside “Your sticker book” opens account settings. There is no global brand/sign-in
 bar or reserved header space; screen titles and browsing tab navigation remain.
 
 Treat Home as a calm personal keepsake. Sticker artwork is the focal point;

@@ -8,9 +8,16 @@ namespace Tagtag.UI.Tests
     public sealed class MapPresentationExploreTests
     {
         [Test]
+        public void SignedOutExploreCannotMountMapEvenWithLocation()
+        {
+            var state = new AppState { page = AppPage.Explore, location = new LocationFix { accuracyMeters = 10 } };
+            Assert.That(MapPresentation.ShouldShow(state, false), Is.False);
+        }
+
+        [Test]
         public void ExploreMapCanMountBeforeFirstLocationFix()
         {
-            var state = new AppState { page = AppPage.Explore };
+            var state = new AppState { user = new UserSession { uid = "map-review" }, page = AppPage.Explore };
             Assert.That(MapPresentation.ShouldShow(state, false), Is.True);
         }
 
@@ -18,7 +25,7 @@ namespace Tagtag.UI.Tests
         public void ExplicitRemoteTargetIsIncludedOnceAndRecenteredOnce()
         {
             var remote = new StickerSummary { id = "remote", latitude = 35.1, longitude = 139.2 };
-            var state = new AppState { page = AppPage.Explore, mapSelection = remote };
+            var state = new AppState { user = new UserSession { uid = "map-review" }, page = AppPage.Explore, mapSelection = remote };
             state.nearby.Add(new StickerSummary { id = "local" });
             var map = new RecordingMap();
 
@@ -37,7 +44,7 @@ namespace Tagtag.UI.Tests
         public void ReopeningSamePlacedLocationAfterLeavingExploreRecentersAgain()
         {
             var target = new StickerSummary { id = "repeat", latitude = 35.1, longitude = 139.2 };
-            var state = new AppState { page = AppPage.Explore, mapSelection = target };
+            var state = new AppState { user = new UserSession { uid = "map-review" }, page = AppPage.Explore, mapSelection = target };
             var map = new RecordingMap();
 
             MapPresentation.SyncTarget(state, map);

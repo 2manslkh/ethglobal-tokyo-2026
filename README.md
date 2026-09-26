@@ -8,7 +8,7 @@ tagtag is an iPhone AR sticker app starring **Taggi**. Its paper-white interface
 - **STICK:** place a sticker on a tracked surface, write a public teaser and private note, then publish. Recover a nearby sticker's AR map and tap it within three metres to collect a copy and reveal its note.
 - **Explore:** a native Apple street map with sticker pins, clusters, and teaser sheets.
 
-Browsing is available before sign-in. Publishing and collecting require Apple or Google sign-in. Collection leaves the original sticker available. Account-specific collections are cached offline; removed content is updated at the next successful sync.
+Apple or Google sign-in is required to enter the app. Returning authenticated sessions open Home; signing out or losing a session returns to login. Collection leaves the original sticker available. Account-specific collections are cached offline; removed content is updated at the next successful sync.
 
 ## Stack
 
@@ -29,7 +29,9 @@ Run behavior tests from the repository root:
 
 Backend commands are documented in [backend/README.md](backend/README.md). Live infrastructure and maintenance are recorded in [deployment](docs/DEPLOYMENT.md).
 
-The startup regression lives in `Assets/Tagtag/Application/PlayModeTests/`. Use `-testPlatform PlayMode -testFilter Tagtag.Tests.StartupTests` with the Unity test command to check the real entry scene and rendered Home pixels. For a macOS player check, use `-buildTarget StandaloneOSX -testPlatform StandaloneOSX`; its test-only callback also writes `tagtag-startup-result.xml` beside the screenshot in `Application.temporaryCachePath` if the player cannot return results to the editor. Editor rendering alone does not verify that player builds contain the required UI text resources.
+Login uses a bundled, silent looping video with a poster fallback for reduced motion, loading, and playback failure. Provider cancellation and errors remain on the login screen for retry.
+
+The startup regression lives in `Assets/Tagtag/Application/PlayModeTests/`. Use `-testPlatform PlayMode -testFilter Tagtag.Tests.StartupTests` with the Unity test command to check the real entry scene and rendered login pixels. For a macOS player check, use `-buildTarget StandaloneOSX -testPlatform StandaloneOSX`; its test-only callback also writes `tagtag-startup-result.xml` beside the screenshot in `Application.temporaryCachePath` if the player cannot return results to the editor. Editor rendering alone does not verify that player builds contain the required UI text resources.
 
 The paper UI uses a persistent shell and updates mounted controls when application state changes. Shared components, fonts, and motion are self-contained; [source provenance and font licenses](Assets/Tagtag/UI/SOURCE_PROVENANCE.md) document their adaptation. Camera presentation is independent of tracking: an opaque paper cover remains until AR reports displayable live imagery and returns after interruption. On iOS, the AVFoundation bridge is the authority for camera permission; Unity may strip its webcam authorization implementation from AR-only builds. Nearby lookup has an independent loading state so location acquisition does not lock navigation.
 
@@ -102,7 +104,7 @@ An AR tap plus a server discovery session is a gameplay gate, not cryptographic 
 
 Home keeps the collected total beside an illustrated **Make a sticker** button. Switch between **Collected** and **My designs**: the book holds discovered stickers, while My designs shows your saved artwork newest first. An empty book shows Taggi hugging their knees and crying, with **Explore nearby** below.
 
-Tap one of your designs for a larger preview, then **Place sticker** to open the camera or **Remove design** to confirm removal from your library. Published and collected copies keep their artwork. The selected Home view, book page, and each view's scroll position survive navigation during the session; changing accounts clears the private design presentation. Refresh keeps cached cards visible, and signed-out users can sign in to see their designs.
+Tap one of your designs for a larger preview, then **Place sticker** to open the camera or **Remove design** to confirm removal from your library. Published and collected copies keep their artwork. The selected Home view, book page, and each view's scroll position survive navigation during the session; changing accounts clears the private design presentation. Refresh keeps cached cards visible. Signing out returns to login.
 
 Run the Home UI checks with Unity `-buildTarget StandaloneOSX -testPlatform PlayMode -testFilter Tagtag.Tests.HomeLibraryVisualTests` (graphics enabled). Captures are written under `Application.temporaryCachePath/tagtag-home-review`. Native creation, sign-in, and AR handoff still require an iPhone.
 

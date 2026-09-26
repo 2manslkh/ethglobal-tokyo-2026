@@ -34,6 +34,7 @@ namespace Tagtag.Services
         }
         public void OpenCreation()
         {
+            if (!RequireAccount()) return;
             if (State.busy || nativeCreationOpen) return;
             State.creationOpen = true; State.accountOpen = false; State.detail = null;
             State.designError = "";
@@ -48,6 +49,7 @@ namespace Tagtag.Services
         }
         public void CreateSticker(string source)
         {
+            if (!RequireAccount()) return;
             if (State.busy || nativeCreationOpen || (source != "import" && source != "ai" && source != "polaroid")) return;
             if (State.hasPendingDesign)
             { State.designError = "Save your pending sticker before creating another."; Notify(); return; }
@@ -159,6 +161,7 @@ namespace Tagtag.Services
         }
         public void SelectDesign(string id)
         {
+            if (!RequireAccount()) return;
             if (State.busy || nativeCreationOpen) return;
             var design = State.designs.FirstOrDefault(item => item.id == id && item.ownerId == State.user?.uid);
             if (design == null || !(Ar is ICustomArtworkAr custom)) return;

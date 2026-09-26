@@ -134,7 +134,7 @@ namespace Tagtag.Tests
         }
 
         [UnityTest]
-        public IEnumerator PlacedTabShowsGuestLoadingErrorAndRetry()
+        public IEnumerator PlacedTabShowsLoadingRetryAndLoginAfterSessionLoss()
         {
             yield return Mount();
             Submit("Home Placed"); yield return Settle();
@@ -147,8 +147,8 @@ namespace Tagtag.Tests
             Submit("Home Retry placements");
             Assert.That(controller.PlacementRefreshCalls, Is.EqualTo(2));
             controller.State.user = null; controller.Notify(); yield return Settle();
-            Submit("Home Placed"); yield return Settle();
-            Assert.That(Root.Q<Label>("Home placed status").text, Does.Contain("Sign in"));
+            Assert.That(Root.Q<Button>("Home Placed"), Is.Null);
+            Assert.That(Root.Q<Button>("Action Continue with Apple"), Is.Not.Null);
         }
 
         [UnityTest]
@@ -247,9 +247,9 @@ namespace Tagtag.Tests
             Assert.That(Root.Q<PaperSheet>(), Is.Null);
             Assert.That(Root.Q<Button>("Home Design private"), Is.Null);
             controller.State.user = null; controller.Notify(); yield return Settle();
-            Submit("Home My designs"); yield return Settle();
+            Assert.That(Root.Q<Button>("Home My designs"), Is.Null);
             Assert.That(Root.Q<Button>("Home Design private"), Is.Null);
-            Assert.That(Root.Query<Label>().ToList().Any(l => l.text != null && l.text.Contains("Sign in")), Is.True);
+            Assert.That(Root.Q<Button>("Action Continue with Apple") != null, Is.True);
             yield return Capture("home-designs-signed-out");
         }
 

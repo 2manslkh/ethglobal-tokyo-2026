@@ -11,7 +11,7 @@ namespace Tagtag.UI
 
         public static bool ShouldShow(AppState state, bool sheetOpen)
         {
-            return state != null && state.page == AppPage.Explore && !state.accountOpen && !sheetOpen;
+            return state?.user != null && !string.IsNullOrEmpty(state.user.uid) && state.page == AppPage.Explore && !state.accountOpen && !sheetOpen;
         }
 
         public static IReadOnlyList<StickerSummary> Pins(AppState state)

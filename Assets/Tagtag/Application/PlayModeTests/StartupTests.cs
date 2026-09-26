@@ -12,7 +12,7 @@ namespace Tagtag.Tests
     public sealed class StartupTests
     {
         [UnityTest]
-        public IEnumerator EntrySceneRendersHomeOnFirstLaunch()
+        public IEnumerator EntrySceneRendersLoginOnFirstLaunch()
         {
             Application.runInBackground = true;
             yield return SceneManager.LoadSceneAsync("Tagtag", LoadSceneMode.Single);
@@ -22,13 +22,11 @@ namespace Tagtag.Tests
             Assert.That(document, Is.Not.Null, "The entry scene must create its UI document.");
             var root = document.rootVisualElement;
             Assert.That(root, Is.Not.Null);
-            Assert.That(root.childCount, Is.GreaterThan(0), "Startup must render Home, not leave an empty panel.");
-            Assert.That(root.Query<Label>().ToList().Any(label => label.text == "Your sticker book"), Is.True);
-            Assert.That(root.Query<Label>().ToList().Count(label => label.text == "Your next little discovery is out there."), Is.LessThanOrEqualTo(1),
-                "The empty book invitation must not be repeated as a status notice.");
-            var explore = root.Q<Button>("Tab Explore");
-            Assert.That(explore, Is.Not.Null, "Explore must remain a named, keyboard-activatable navigation button.");
-            Assert.That(explore.Query<Label>().ToList().Any(label => label.text == "Explore"), Is.True);
+            Assert.That(root.childCount, Is.GreaterThan(0), "Startup must render login, not leave an empty panel.");
+            Assert.That(root.Q<Button>("Action Continue with Apple"), Is.Not.Null);
+            Assert.That(root.Q<Button>("Action Continue with Google"), Is.Not.Null);
+            Assert.That(root.Q<Button>("Tab Explore"), Is.Null);
+            Assert.That(root.Q("Login video background"), Is.Not.Null);
             var fallback = GameObject.Find("Paper camera fallback")?.GetComponent<Camera>();
             Assert.That(fallback, Is.Not.Null);
             Assert.That(fallback.clearFlags, Is.EqualTo(CameraClearFlags.SolidColor));
@@ -52,7 +50,7 @@ namespace Tagtag.Tests
             document.panelSettings.targetTexture = null;
             Object.Destroy(pixels);
             Object.Destroy(target);
-            Assert.That(lightPixels, Is.GreaterThan(390 * 844 / 2), "Home must render its paper background rather than a black screen.");
+            Assert.That(lightPixels, Is.GreaterThan(390 * 844 / 5), "Login must render its readable foreground rather than a black screen.");
         }
     }
 }

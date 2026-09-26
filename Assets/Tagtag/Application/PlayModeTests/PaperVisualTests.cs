@@ -376,12 +376,6 @@ namespace Tagtag.Tests
             document.panelSettings.colorClearValue = new Color32(218, 225, 222, 255);
             yield return Capture("home-empty");
             Assert.That(document.rootVisualElement.Query<Label>().ToList().Any(label => label.text == "tagtag"), Is.False);
-            Submit("Home Profile");
-            yield return new WaitForSecondsRealtime(.4f);
-            Assert.That(document.rootVisualElement.Q<Button>("Action Continue with Apple"), Is.Not.Null);
-            Submit("Continue exploring");
-            yield return new WaitForSecondsRealtime(.4f);
-            Assert.That(controller.State.page, Is.EqualTo(AppPage.Home));
             Assert.That(document.rootVisualElement.Query<Label>().ToList().Any(label =>
                 label.text == "Find your places, Collect your moments"), Is.True);
             foreach (string caption in new[] { "Previous", "Next", "Explore nearby" })
@@ -462,7 +456,7 @@ namespace Tagtag.Tests
             controller.Notify();
             yield return Capture("sign-in");
 
-            controller.State.accountOpen = false;
+            controller.SignIn("apple");
             controller.Navigate(AppPage.Stick);
             yield return Capture("camera-preparing");
             controller.Camera.CameraPresentation = CameraPresentationState.PermissionDenied;
@@ -522,13 +516,6 @@ namespace Tagtag.Tests
             Assert.That(document.rootVisualElement.panel.focusController.focusedElement, Is.SameAs(noteFocus));
             Assert.That(fields[2].cursorIndex, Is.EqualTo(cursor));
             Assert.That(fields[2].selectIndex, Is.EqualTo(selection));
-            Submit("Sign in to publish");
-            yield return Capture("note-sign-in-return");
-            Assert.That(document.rootVisualElement.Q<TextField>("Your note"), Is.Null,
-                "Sign-in must leave the note sheet before returning to the draft.");
-            controller.SignIn("apple");
-            yield return Capture("note-signed-in-restored");
-            Assert.That(document.rootVisualElement.Q<TextField>("Your note").value, Is.EqualTo(Sticker(0).note));
             controller.Camera.IsTracking = true;
             controller.Camera.HasPlacementPreview = true;
             controller.Camera.HasTrackedPlacement = true;
@@ -576,22 +563,10 @@ namespace Tagtag.Tests
                 Is.SameAs(document.rootVisualElement.Q<Button>("STICK Write note")), "Dismissal returns focus to the trigger.");
 
             controller.SignOut();
-            yield return new WaitForSecondsRealtime(.4f);
-            Submit("Write note");
-            yield return new WaitForSecondsRealtime(.4f);
-            Submit("Sign in to publish");
-            yield return new WaitForSecondsRealtime(.4f);
-            Submit("Continue exploring");
-            yield return new WaitForSecondsRealtime(.4f);
-            controller.Navigate(AppPage.Home);
-            yield return new WaitForSecondsRealtime(.4f);
-            Submit("Home Profile");
-            yield return new WaitForSecondsRealtime(.4f);
+            yield return Capture("sign-out-login");
+            Assert.That(document.rootVisualElement.Q<Button>("Action Continue with Apple"), Is.Not.Null);
+            Assert.That(document.rootVisualElement.Q<PaperSheet>(), Is.Null);
             controller.SignIn("apple");
-            yield return new WaitForSecondsRealtime(.4f);
-            Assert.That(document.rootVisualElement.Q<PaperSheet>(), Is.Null,
-                "An abandoned publish sign-in must not reopen the old sheet during a later sign-in.");
-            Submit("Back");
             yield return new WaitForSecondsRealtime(.4f);
             Submit("Home Profile");
             yield return new WaitForSecondsRealtime(.4f);
@@ -890,6 +865,112 @@ namespace Tagtag.Tests
             { button.Focus(); submit.target = button; button.SendEvent(submit); }
         }
 
+        [UnityTest]
+        public IEnumerator LoginSupportsRetryCompactTextAndReducedMotion()
+        {
+            oldScale = PlayerPrefs.GetFloat("tagtag.textScale", 1f);
+            oldMotion = PlayerPrefs.GetInt("tagtag.reducedMotion", 0);
+            PlayerPrefs.SetFloat("tagtag.textScale", 1.4f);
+            PlayerPrefs.SetInt("tagtag.reducedMotion", 1);
+            controller = new ReviewController();
+            controller.SignOut();
+            host = new GameObject("Login review");
+            host.AddComponent<TagtagAppView>().Initialize(controller);
+            document = host.GetComponent<UIDocument>();
+            target = new RenderTexture(320, 568, 24);
+            target.Create();
+            document.panelSettings.targetTexture = target;
+            yield return Capture("login-compact-large-text");
+            var root = document.rootVisualElement;
+            var apple = root.Q<Button>("Action Continue with Apple");
+            var google = root.Q<Button>("Action Continue with Google");
+            Assert.That(apple, Is.Not.Null);
+            Assert.That(google, Is.Not.Null);
+            Assert.That(root.Q<Button>("Action Continue exploring"), Is.Null);
+            Assert.That(root.Q<Button>("Action Back"), Is.Null);
+            Assert.That(root.Q<Button>("Tab Home"), Is.Null);
+            Assert.That(root.Q(className: "paper-notice"), Is.Null);
+            Assert.That(root.Q("Login header").Query<Label>().ToList().Single().text, Is.EqualTo("Tagtag"));
+            Assert.That(host.GetComponent<UnityEngine.Video.VideoPlayer>(), Is.Null, "Reduced motion must not decode video.");
+            Assert.That(apple.worldBound.width, Is.EqualTo(google.worldBound.width).Within(1f));
+            Assert.That(apple.resolvedStyle.height, Is.GreaterThanOrEqualTo(52));
+            Assert.That(google.worldBound.xMax, Is.LessThanOrEqualTo(root.worldBound.xMax));
+            controller.State.busy = true;
+            controller.State.status = "Opening Apple…";
+            controller.Notify();
+            yield return null; yield return null;
+            Assert.That(apple.enabledInHierarchy, Is.False);
+            Assert.That(root.Q<Label>("Login status").text, Is.EqualTo("Opening Apple…"));
+            controller.State.busy = false;
+            controller.State.error = "Sign-in cancelled. Try again.";
+            controller.Notify();
+            yield return Capture("login-retry");
+            Assert.That(apple.enabledInHierarchy, Is.True);
+            Assert.That(root.Q<Label>("Login status").text, Does.Contain("cancelled"));
+            controller.State.error = "";
+            controller.State.servicesConfigured = false;
+            controller.Notify();
+            yield return null; yield return null;
+            Assert.That(google.enabledInHierarchy, Is.False);
+            Assert.That(root.Q<Label>("Login status").text, Does.Contain("configured"));
+            controller.State.servicesConfigured = true;
+            controller.SignIn("apple");
+            yield return null; yield return null;
+            Assert.That(root.Q("Login video background"), Is.Null);
+            Assert.That(root.Q<Button>("Tab Home"), Is.Not.Null);
+        }
+
+        [UnityTest]
+        public IEnumerator LoginVideoLoopsPausesFallsBackAndReleasesResources()
+        {
+            oldScale = PlayerPrefs.GetFloat("tagtag.textScale", 1f);
+            oldMotion = PlayerPrefs.GetInt("tagtag.reducedMotion", 0);
+            PlayerPrefs.SetFloat("tagtag.textScale", 1f);
+            PlayerPrefs.SetInt("tagtag.reducedMotion", 0);
+            controller = new ReviewController();
+            controller.SignOut();
+            host = new GameObject("Login video review");
+            host.AddComponent<TagtagAppView>().Initialize(controller);
+            document = host.GetComponent<UIDocument>();
+            target = new RenderTexture(390, 844, 24);
+            target.Create();
+            document.panelSettings.targetTexture = target;
+            yield return null; yield return null;
+            var player = host.GetComponent<UnityEngine.Video.VideoPlayer>();
+            Assert.That(player, Is.Not.Null);
+            Assert.That(player.audioOutputMode, Is.EqualTo(UnityEngine.Video.VideoAudioOutputMode.None));
+            float deadline = Time.realtimeSinceStartup + 15f;
+            while ((!player.isPlaying || player.frame < 1) && Time.realtimeSinceStartup < deadline) yield return null;
+            Assert.That(player.isPlaying, Is.True);
+            bool looped = false;
+            player.loopPointReached += _ => looped = true;
+            player.time = player.length - .25;
+            deadline = Time.realtimeSinceStartup + 5f;
+            while (!looped && Time.realtimeSinceStartup < deadline) yield return null;
+            Assert.That(looped, Is.True);
+            var playback = host.GetComponent<LoginBackdrop>();
+            var repaintField = typeof(LoginBackdrop).GetField("repaint", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+            var schedule = repaintField.GetValue(playback);
+            playback.SendMessage("OnApplicationPause", true);
+            Assert.That(player.isPlaying, Is.False);
+            playback.SendMessage("OnApplicationPause", false);
+            yield return null;
+            Assert.That(player.isPlaying, Is.True);
+            Assert.That(repaintField.GetValue(playback), Is.SameAs(schedule), "Resuming must reuse the repaint schedule.");
+            yield return Capture("login-video");
+            LogAssert.Expect(LogType.Warning, "Login background unavailable; using poster. Simulated decoder failure");
+            typeof(LoginBackdrop).GetMethod("PlaybackError", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)
+                .Invoke(playback, new object[] { player, "Simulated decoder failure" });
+            Assert.That(player.isPlaying, Is.False);
+            Assert.That(document.rootVisualElement.Q("Login video background").style.backgroundImage.value.texture, Is.Not.Null);
+            var frame = player.targetTexture;
+            controller.SignIn("google");
+            yield return null; yield return null; yield return null;
+            Assert.That(host.GetComponent<LoginBackdrop>(), Is.Null);
+            Assert.That(host.GetComponent<UnityEngine.Video.VideoPlayer>(), Is.Null);
+            Assert.That(frame == null, Is.True, "Leaving login must release its render texture.");
+        }
+
         private IEnumerator Capture(string name)
         {
             yield return new WaitForSecondsRealtime(.4f);
@@ -959,7 +1040,7 @@ namespace Tagtag.Tests
         private sealed class ReviewController : ITagtagController, INftTransferController
         {
             public readonly ReviewCamera Camera = new ReviewCamera();
-            public AppState State { get; } = new AppState { servicesConfigured = true,
+            public AppState State { get; } = new AppState { servicesConfigured = true, user = new UserSession { uid = "review", displayName = "Aki" },
                 location = new LocationFix { latitude = 35.68, longitude = 139.76, accuracyMeters = 5 } };
             public IArExperience Ar => Camera;
             public IMapExperience Map => null;
@@ -967,8 +1048,8 @@ namespace Tagtag.Tests
             public void Notify() { Changed?.Invoke(); }
             public void Navigate(AppPage page) { State.page = page; if (page == AppPage.Stick) Camera.Enter(); Notify(); }
             public void SetAccountOpen(bool open) { State.accountOpen = open; Notify(); }
-            public void SignIn(string provider) { State.user = new UserSession { uid = "review", displayName = "Aki" }; Notify(); }
-            public void SignOut() { State.user = null; Notify(); }
+            public void SignIn(string provider) { State.user = new UserSession { uid = "review", displayName = "Aki" }; State.accountOpen = false; State.page = AppPage.Home; Notify(); }
+            public void SignOut() { State.user = null; State.accountOpen = true; State.page = AppPage.Home; Notify(); }
             public void RefreshNearby() { }
             public void SelectSticker(string id) { State.selected = State.nearby.Find(s => s.id == id); Notify(); }
             public void StartDiscovery() { Navigate(AppPage.Stick); }
