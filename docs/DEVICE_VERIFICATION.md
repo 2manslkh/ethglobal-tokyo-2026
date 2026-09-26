@@ -805,3 +805,19 @@ and reopen the keyboard, preview, return to Edit, and save to Your Designs.
 Repeat with an imported image and enlarged text; check both crop modes and the
 cutout control. Confirm Photos/Files/camera return correctly and the saved design
 appears in Unity. No phone was installed or physical gestures verified by this task.
+
+### Sticker editor build installed — 2026-09-26
+
+Installed main `0ad5424` (includes editor change `12f9586`) on Dawg., iPhone
+15 Pro Max, using the existing development signing team. Separate ARKit
+preparation, Unity export, signed Debug Xcode build, `devicectl` installation,
+and launch of `com.kenk.tagtag` all succeeded. This build also includes the
+subsequent Home paper-tab and Taggi map-pin changes.
+
+Local evidence: `/tmp/tagtag-sticker-install-prepare.log`,
+`/tmp/tagtag-sticker-install-export.log`, `/tmp/tagtag-sticker-install-xcode.log`,
+`/tmp/tagtag-sticker-phone-install.json`, and
+`/tmp/tagtag-sticker-phone-launch.json`.
+
+Installation and launch are verified. The physical editing/gesture/Save-to-library
+checks listed above still require interaction on the phone.
