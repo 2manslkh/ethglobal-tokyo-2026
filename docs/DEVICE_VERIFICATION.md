@@ -4,9 +4,14 @@
 
 Physical AR verification is pending. `xcrun devicectl list devices` showed both
 available iPhones as unavailable, so no collection tap or sparkle behavior was
-observed on hardware. Unity Play Mode test attempts stopped before the test
-runner because the Unity Licensing Client repeatedly disconnected; no test pass
-is claimed for this change.
+observed on hardware. After restarting a stalled Unity Licensing Client, a clean
+worktree at `8d555d6` passed **9/9 AR Play Mode** tests
+(`/tmp/tagtag-ar-proven-green.xml`) and **25/25 AR Edit Mode** tests
+(`/tmp/tagtag-ar-clean-edit.xml`). Removing the collider fix in that worktree made
+the tap regression fail as expected (`/tmp/tagtag-ar-tap-proven-red.xml`). The
+worktree needed a temporary, uncommitted rename of two conflicting local
+variables in the unrelated `PaperVisualTests.cs` to compile; the main checkout
+still has those compiler errors until that file's owner fixes them.
 
 On a physical iPhone, recover a sticker, move within three metres, and confirm
 the gentle yellow sparkles appear around it without covering the artwork. Tap
