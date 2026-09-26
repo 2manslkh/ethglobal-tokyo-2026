@@ -123,6 +123,70 @@ namespace Tagtag.AR.PlayMode.Tests
         }
 
         [Test]
+        public void RecoveredStickerSparklesRemainVisibleBeforeCollectionRange()
+        {
+            var host = new GameObject("Recovered sparkle cue test");
+            GameObject visual = null;
+            try
+            {
+                var experience = host.AddComponent<ArExperience>();
+                var create = typeof(ArExperience).GetMethod("CreateVisual", BindingFlags.Instance | BindingFlags.NonPublic);
+                Assert.That(create.Invoke(experience, new object[] { "taggi-1" }), Is.True);
+                visual = GameObject.Find("Tracked tagtag sticker");
+                var sparkleType = typeof(ArExperience).Assembly.GetType("Tagtag.AR.StickerSparkles");
+                var sparkles = sparkleType.GetMethod("Attach", BindingFlags.Public | BindingFlags.Static)
+                    .Invoke(null, new object[] { visual });
+                sparkleType.GetMethod("SetVisible", BindingFlags.Public | BindingFlags.Instance)
+                    .Invoke(sparkles, new object[] { false });
+                typeof(ArExperience).GetField("recovered", BindingFlags.Instance | BindingFlags.NonPublic)
+                    .SetValue(experience, true);
+                Assert.That(experience.CanCollect, Is.False);
+
+                var updateCue = typeof(ArExperience).GetMethod("UpdateFoundSparkles", BindingFlags.Instance | BindingFlags.NonPublic);
+                Assert.That(updateCue, Is.Not.Null);
+                updateCue.Invoke(experience, new object[] { true });
+                Assert.That(visual.transform.GetChild(0).gameObject.activeSelf, Is.True);
+            }
+            finally
+            {
+                if (visual != null) Object.DestroyImmediate(visual);
+                Object.DestroyImmediate(host);
+            }
+        }
+
+        [Test]
+        public void RecoveredStickerHitIgnoresUnrelatedForegroundCollider()
+        {
+            var host = new GameObject("Recovered hit test");
+            var blocker = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            GameObject visual = null;
+            try
+            {
+                var experience = host.AddComponent<ArExperience>();
+                var create = typeof(ArExperience).GetMethod("CreateVisual", BindingFlags.Instance | BindingFlags.NonPublic);
+                Assert.That(create.Invoke(experience, new object[] { "taggi-1" }), Is.True);
+                visual = GameObject.Find("Tracked tagtag sticker");
+                visual.transform.position = Vector3.zero;
+                visual.transform.localScale = Vector3.one * 0.2f;
+                blocker.transform.position = new Vector3(0f, 0f, -0.5f);
+                blocker.transform.localScale = Vector3.one * 0.1f;
+                Physics.SyncTransforms();
+
+                var hitSticker = typeof(ArExperience).GetMethod("TryHitSticker", BindingFlags.Instance | BindingFlags.NonPublic);
+                Assert.That(hitSticker, Is.Not.Null);
+                var arguments = new object[] { new Ray(new Vector3(0f, 0f, -1f), Vector3.forward), new RaycastHit() };
+                Assert.That(hitSticker.Invoke(experience, arguments), Is.True);
+                Assert.That(((RaycastHit)arguments[1]).collider.gameObject, Is.SameAs(visual));
+            }
+            finally
+            {
+                if (visual != null) Object.DestroyImmediate(visual);
+                Object.DestroyImmediate(blocker);
+                Object.DestroyImmediate(host);
+            }
+        }
+
+        [Test]
         public void CustomArtworkUsesItsPixelsAndPortraitScale()
         {
             var host = new GameObject("Custom artwork render");

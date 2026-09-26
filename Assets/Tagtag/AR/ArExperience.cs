@@ -365,9 +365,7 @@ namespace Tagtag.AR
             {
                 var visible = tracking && anchor.trackingState == TrackingState.Tracking && (recovered || presetId != null);
                 visual.SetActive(visible);
-                var sparkles = visual.GetComponent<StickerSparkles>();
-                if (sparkles != null)
-                    sparkles.SetVisible(visible && CanCollect && !placementFlow.IsBlocked && !busy);
+                UpdateFoundSparkles(visible);
             }
             if (recovered)
             {
@@ -378,6 +376,12 @@ namespace Tagtag.AR
                 }
                 else HandleRecoveredTap();
             }
+        }
+
+        private void UpdateFoundSparkles(bool stickerVisible)
+        {
+            var sparkles = visual == null ? null : visual.GetComponent<StickerSparkles>();
+            if (sparkles != null) sparkles.SetVisible(stickerVisible && recovered);
         }
 
         private void UpdatePlacementGuidance()
@@ -542,16 +546,31 @@ namespace Tagtag.AR
 
         private void HandleRecoveredTap()
         {
-            if (Input.touchCount != 1 || !CanCollect) return;
+            if (Input.touchCount != 1) return;
             var touch = Input.GetTouch(0);
             if (touch.phase != UnityEngine.TouchPhase.Ended || !placementFlow.Allows(touch.position) ||
                 TouchOnUi(touch.position)) return;
             var ray = camera.ScreenPointToRay(touch.position);
-            if (!Physics.Raycast(ray, out var hit, 3.25f)) return;
-            if (hit.collider == null || hit.collider.gameObject != visual) return;
+            if (!TryHitSticker(ray, out var hit)) return;
+            if (!CanCollect)
+            {
+                SetStatus("Move within three metres of the sticker to collect it.");
+                return;
+            }
             if (!ArGates.CanCollect(IsTracking, recovered, anchor.trackingState == TrackingState.Tracking,
-                Vector3.Distance(camera.transform.position, hit.point), true)) return;
+                Vector3.Distance(camera.transform.position, hit.point), true))
+            {
+                SetStatus("Move within three metres of the sticker to collect it.");
+                return;
+            }
             StickerTapped?.Invoke(recoveredStickerId);
+        }
+
+        private bool TryHitSticker(Ray ray, out RaycastHit hit)
+        {
+            hit = default;
+            var stickerCollider = visual == null ? null : visual.GetComponent<BoxCollider>();
+            return stickerCollider != null && stickerCollider.Raycast(ray, out hit, 10f);
         }
 
         private bool TouchOnUi(Vector2 screenPoint)

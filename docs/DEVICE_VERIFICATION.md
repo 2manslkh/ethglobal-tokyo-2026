@@ -1,5 +1,21 @@
 # Device verification
 
+## Recovered sticker follow-up — 2026-09-26
+
+On Dawg. (iPhone 15 Pro Max), the owner saw the recovered sticker without yellow
+sparkles. In a diagnostic build installed over the existing app, the owner tapped
+the sticker once; tagtag switched to Home and showed “1 sticker collected.” This
+confirms that collection can succeed on the device, but the missing cue and the
+earlier taps without a visible response remained reproducible reports.
+
+The follow-up changes keep sparkles visible whenever the recovered sticker is
+tracked, direct touch raycasts to its box collider, and show a distance hint
+when a visible sticker is tapped outside the three-metre collection range.
+Physical verification of this follow-up build is pending. Recover a new sticker,
+check that sparkles appear before entering collection range, then tap it both
+outside and inside three metres. Confirm the distance hint appears outside range
+and collection opens Home inside range.
+
 ## AR sticker build and device install — 2026-09-26
 
 Built committed source `212da2c` in an isolated worktree, including the AR tap
@@ -36,8 +52,8 @@ still has those compiler errors until that file's owner fixes them.
 On a physical iPhone, recover a sticker, move within three metres, and confirm
 the gentle yellow sparkles appear around it without covering the artwork. Tap
 the sticker from the camera side and confirm collection opens its note. Confirm
-the sparkles stop after collection, when moving out of range, when tracking is
-lost, and when closing STICK. Also confirm camera controls and sheets still block
+the sparkles stop after collection, when tracking is lost, and when closing
+STICK. Also confirm camera controls and sheets still block
 collection taps.
 
 ## STICK capture and note — 2026-09-26
