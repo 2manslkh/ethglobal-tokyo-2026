@@ -122,6 +122,8 @@ namespace Tagtag.UI
                 !hasLocation ? findingLocation ? "Finding your location…" : "Location is unavailable." : "";
             string locationNotice = state != null && !state.servicesConfigured ?
                 "Nearby stickers need a configured service." :
+                hasLocation && state.location.accuracyMeters > 50f ?
+                "Approximate location. Refresh nearby to update your position." :
                 state != null && !hasLocation && !loading &&
                 string.IsNullOrWhiteSpace(state?.error) ?
                 "Location is not ready yet. Try refreshing nearby." : "";
