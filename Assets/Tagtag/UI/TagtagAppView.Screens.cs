@@ -162,10 +162,9 @@ namespace Tagtag.UI
         private VisualElement stickActions;
         private VisualElement cameraSurface;
         private Label stickModeTitle;
-        private Button stickWriteButton;
         private Button stickInventoryButton;
+        private Label stickBookLabel;
         private Button stickCloseButton;
-        private Button stickCancelButton;
         private Button stickRetryButton;
         private Button stickSelectedArtworkButton;
         private string stickSelectedArtworkKey;
@@ -174,8 +173,6 @@ namespace Tagtag.UI
         private Label stickScanLabel;
         private Label stickScanRecovery;
         private VisualElement discoveryStatusHost;
-        private Label noteScanGuidance;
-        private Button noteContinueScanning;
         private readonly PaperSurfaceTap placementTap = new PaperSurfaceTap();
         private readonly PaperSurfaceGesture placementGesture = new PaperSurfaceGesture();
         private Label cameraTitleLabel;
@@ -287,13 +284,9 @@ namespace Tagtag.UI
             stickActions.style.alignItems = Align.Center;
             stickActions.style.justifyContent = Justify.Center;
             stickActions.style.flexWrap = Wrap.Wrap;
-            stickWriteButton = Action(stickActions, "Your Note", () => { sheet = Sheet.Note; QueueRender(); });
-            stickWriteButton.name = "STICK Write note";
-            PaperDottedOutline.Decorate(stickWriteButton, capsule: true);
             stickRetryButton = Action(stickActions, "Retry AR search", controller.StartDiscovery, false);
             stickRetryButton.name = "STICK Retry AR search";
-            stickCancelButton = Action(stickActions, "Cancel placement", controller.CancelPlacement, false);
-            foreach (Button action in new[] { stickWriteButton, stickRetryButton, stickCancelButton })
+            foreach (Button action in new[] { stickRetryButton })
             {
                 action.style.flexGrow = 1f;
                 action.style.flexBasis = Length.Percent(40f);
@@ -319,7 +312,15 @@ namespace Tagtag.UI
             inventoryTarget.style.flexShrink = 0f;
             stickScanProgress = new PaperScanProgress(Paper, Line, Yellow);
             inventoryTarget.Add(stickScanProgress);
-            stickInventoryButton = Action(inventoryTarget, "STICK", controller.OpenCreation);
+            stickInventoryButton = Action(inventoryTarget, "STICK", () =>
+            {
+                if (!PaperFlow.HasPlacementSelection(controller.State)) controller.OpenCreation();
+                else
+                {
+                    captureNoteRequested = true;
+                    controller.CaptureSpot();
+                }
+            });
             stickInventoryButton.name = "STICK Inventory";
             stickInventoryButton.text = "";
             stickInventoryButton.AddToClassList("camera-book-button");
@@ -335,9 +336,9 @@ namespace Tagtag.UI
             bookArt.style.height = 52f;
             bookArt.style.flexShrink = 0f;
             stickInventoryButton.Add(bookArt);
-            Label bookLabel = Text(stickInventoryButton, "STICK", 12, false);
-            bookLabel.pickingMode = PickingMode.Ignore;
-            bookLabel.style.unityTextAlign = TextAnchor.MiddleCenter;
+            stickBookLabel = Text(stickInventoryButton, "STICK", 12, false);
+            stickBookLabel.pickingMode = PickingMode.Ignore;
+            stickBookLabel.style.unityTextAlign = TextAnchor.MiddleCenter;
             stickInventoryButton.tooltip = "Open sticker inventory";
             stickInventoryButton.style.width = 88f;
             stickInventoryButton.style.height = 88f;
@@ -406,9 +407,9 @@ namespace Tagtag.UI
             if (stickActions == null) return;
             IArExperience ar = controller?.Ar;
             bool selected = PaperFlow.HasPlacementSelection(state);
-            discoveryStatusHost.style.display = !selected && state.selected != null &&
-                (state.discoveryLoading || !string.IsNullOrEmpty(state.error) || state.locationSettingsRequired)
-                ? DisplayStyle.Flex : DisplayStyle.None;
+            bool showCameraStatus = selected ? state.capturingSpot || !string.IsNullOrEmpty(state.error) :
+                state.selected != null && (state.discoveryLoading || !string.IsNullOrEmpty(state.error) || state.locationSettingsRequired);
+            discoveryStatusHost.style.display = showCameraStatus ? DisplayStyle.Flex : DisplayStyle.None;
             RefreshRecoveryPreview(state);
             RefreshSelectedArtwork(state);
             PaperStickState placement = PaperFlow.StickPlacement(state, ar?.IsTracking ?? false,
@@ -430,13 +431,20 @@ namespace Tagtag.UI
                 stickScanProgress.SetStage(scanState);
                 stickScanLabel.text = PaperScan.Label(scanState);
             }
-            stickWriteButton.style.display = selected ? DisplayStyle.Flex : DisplayStyle.None;
-            SetDisabled(stickWriteButton, !placement.CanWriteNote);
             stickRetryButton.style.display = PaperFlow.ShowDiscoveryRetry(state) ? DisplayStyle.Flex : DisplayStyle.None;
             SetDisabled(stickRetryButton, state.busy);
-            stickCancelButton.style.display = selected ? DisplayStyle.Flex : DisplayStyle.None;
-            SetDisabled(stickCancelButton, state.busy || (ar?.PlacementBusy ?? false));
-            SetDisabled(stickInventoryButton, state.busy || (ar?.PlacementBusy ?? false));
+            bool canCapture = state.hasPendingPublication || state.hasCapturedSpot ||
+                ar?.ScanState == PlacementScanState.Ready && ar.CanPublish;
+            SetDisabled(stickInventoryButton, state.busy || state.capturingSpot ||
+                (ar?.PlacementBusy ?? false) || selected && !canCapture);
+            stickInventoryButton.tooltip = selected ? "Capture this spot" : "Open sticker inventory";
+            Image inventoryArt = stickInventoryButton.Q<Image>("Taggi holding sticker book");
+            if (inventoryArt != null) inventoryArt.style.display = selected ? DisplayStyle.None : DisplayStyle.Flex;
+            if (stickBookLabel != null)
+            {
+                stickBookLabel.style.fontSize = selected ? 21f : 12f;
+                stickBookLabel.style.unityFont = selected ? SemiboldFont : BodyFont;
+            }
             SetDisabled(stickCloseButton, state.busy && !state.discoveryLoading);
             UpdateCameraInteraction();
         }
@@ -482,26 +490,12 @@ namespace Tagtag.UI
 
         private void RefreshPublish(AppState state)
         {
-            bool needsScan = !state.busy && !state.hasPendingPublication &&
-                controller?.Ar?.HasPlacementPreview == true && controller.Ar.ScanState != PlacementScanState.Ready;
-            if (noteScanGuidance != null && noteScanGuidance.panel != null)
-                noteScanGuidance.style.display = needsScan ? DisplayStyle.Flex : DisplayStyle.None;
-            if (noteContinueScanning != null && noteContinueScanning.panel != null)
-                noteContinueScanning.style.display = needsScan ? DisplayStyle.Flex : DisplayStyle.None;
             if (publishButton != null)
             {
                 publishButton.text = state.busy ? (publicationRequested ? "Publishing…" : "Please wait") :
                     (state.hasPendingPublication ? "Retry publish" : "Publish sticker");
                 SetDisabled(publishButton, !PaperFlow.CanPresentPublish(draftPlace, draftTeaser, draftNote,
-                    controller?.Ar?.CanPublish ?? false, state.busy, state.hasPendingPublication));
-            }
-            if (publishReadinessLabel != null)
-            {
-                var camera = controller?.Ar;
-                publishReadinessLabel.text = PaperFlow.PublishNotice(draftPlace, draftTeaser, draftNote,
-                    camera?.IsTracking ?? false, camera?.HasPlacementPreview ?? false,
-                    camera?.HasTrackedPlacement ?? false, camera?.CanPublish ?? false,
-                    state.busy, state.hasPendingPublication, !string.IsNullOrEmpty(state.selectedDesign));
+                    state.hasCapturedSpot, state.busy, state.hasPendingPublication));
             }
         }
 

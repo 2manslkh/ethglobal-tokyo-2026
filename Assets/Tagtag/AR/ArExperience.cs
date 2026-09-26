@@ -17,7 +17,7 @@ using UnityEngine.XR.ARKit;
 
 namespace Tagtag.AR
 {
-    public sealed class ArExperience : MonoBehaviour, IArExperience, ICustomArtworkAr, IReferencePhotoAr
+    public sealed class ArExperience : MonoBehaviour, IArExperience, IPlacementRevision, ICustomArtworkAr, IReferencePhotoAr
     {
 #if UNITY_IOS && !UNITY_EDITOR
         [DllImport("__Internal")] private static extern int TagtagCameraAuthorizationStatus();
@@ -37,6 +37,7 @@ namespace Tagtag.AR
         public bool PlacementBusy => busy;
         public float PlacementWidthMeters => widthMeters;
         public float PlacementRotationDegrees => twistDegrees;
+        public int PlacementRevision { get; private set; }
         public bool IsTracking => active && !paused && ARSession.state == ARSessionState.SessionTracking &&
             cameraFrameAt > 0 && Time.realtimeSinceStartupAsDouble - cameraFrameAt < 1.5;
         public bool CanPublish => ArGates.CanPublish(IsTracking, HasTrackedPlacement,
@@ -214,6 +215,9 @@ namespace Tagtag.AR
                 !IsTracking || anchor.trackingState != TrackingState.Tracking || placementFlow.IsBlocked ||
                 float.IsNaN(widthMeters) || float.IsInfinity(widthMeters) ||
                 float.IsNaN(rotationDegrees) || float.IsInfinity(rotationDegrees)) return;
+            Vector3 previousPosition = visual.transform.position;
+            float previousWidth = this.widthMeters;
+            float previousRotation = twistDegrees;
             if (screenPoint.HasValue && placementFlow.Allows(screenPoint.Value) &&
                 !TouchOnUi(screenPoint.Value) && TrySurface(screenPoint.Value, out var pose) &&
                 PlacementFlow.TryMoveOnOriginalPlane(new Pose(anchor.transform.position, anchor.transform.rotation),
@@ -222,6 +226,9 @@ namespace Tagtag.AR
             twistDegrees = Mathf.Repeat(rotationDegrees + 180f, 360f) - 180f;
             visual.transform.localScale = ArtworkScale(this.widthMeters);
             visual.transform.localRotation = Quaternion.Euler(0f, twistDegrees, 0f) * Quaternion.Euler(90f, 0f, 0f);
+            if ((visual.transform.position - previousPosition).sqrMagnitude > 0.00000001f ||
+                Mathf.Abs(this.widthMeters - previousWidth) > 0.0001f ||
+                Mathf.Abs(Mathf.DeltaAngle(twistDegrees, previousRotation)) > 0.01f) PlacementRevision++;
             Changed?.Invoke();
         }
 
@@ -492,6 +499,7 @@ namespace Tagtag.AR
                     return;
                 }
                 anchor = result.value;
+                PlacementRevision++;
                 if (!CreateVisual(presetId))
                 {
                     Destroy(anchor.gameObject);
@@ -672,7 +680,7 @@ namespace Tagtag.AR
                     rotation = visual.transform.localRotation,
                     widthMeters = widthMeters
                 });
-                SetStatus("Spatial map captured. Publishing…");
+                SetStatus("Spot captured. Write your note when ready.");
             }
             finally
             {
@@ -998,6 +1006,7 @@ namespace Tagtag.AR
 
         private void ClearPlacement()
         {
+            if (anchor != null || visual != null) PlacementRevision++;
             if (visual != null) Destroy(visual);
             if (material != null) Destroy(material);
             if (anchor != null) Destroy(anchor.gameObject);

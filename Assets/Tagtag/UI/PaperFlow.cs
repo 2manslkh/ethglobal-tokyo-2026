@@ -70,7 +70,7 @@ namespace Tagtag.UI
                 !preview ? "Surface found. Tap it to place " + artwork + "." :
                 "Drag to move. Pinch to resize. Twist to rotate.";
             return new PaperStickState("Place Sticker", guidance,
-                selected && (preview || retry) && state != null && !state.busy && !placementBusy);
+                selected && (state?.hasCapturedSpot == true || retry) && !state.busy && !placementBusy);
         }
         public static bool HasPlacementSelection(AppState state) => state != null &&
             (!string.IsNullOrEmpty(state.selectedPreset) || !string.IsNullOrEmpty(state.selectedDesign));
@@ -91,7 +91,7 @@ namespace Tagtag.UI
             !HasPlacementSelection(state);
         public static bool BlockCameraInteraction(AppState state, bool sheetOpen,
             CameraPresentationState camera, bool tracking = true) => state == null ||
-                state.page != AppPage.Stick || state.accountOpen || state.busy || sheetOpen ||
+                state.page != AppPage.Stick || state.accountOpen || state.busy || state.capturingSpot || sheetOpen ||
                 camera != CameraPresentationState.Live || !tracking;
 
         public static string StatusMessage(AppState state, bool invitationAlreadyShown)
@@ -150,9 +150,7 @@ namespace Tagtag.UI
         public static bool CanPresentPublish(string place, string teaser, string note,
             bool cameraCanPublish, bool busy, bool pending = false)
         {
-            return !busy && (cameraCanPublish || pending) &&
-                !string.IsNullOrWhiteSpace(place) && !string.IsNullOrWhiteSpace(teaser) &&
-                !string.IsNullOrWhiteSpace(note);
+            return !busy && (cameraCanPublish || pending) && !string.IsNullOrWhiteSpace(note);
         }
 
         public static string PublishNotice(string place, string teaser, string note,
@@ -161,24 +159,8 @@ namespace Tagtag.UI
         {
             if (busy) return "Publishing is in progress.";
             if (pending) return "Your saved placement is ready to retry. Location is checked again after you tap.";
-
-            var missing = new List<string>();
-            if (string.IsNullOrWhiteSpace(place)) missing.Add("place");
-            if (string.IsNullOrWhiteSpace(teaser)) missing.Add("clue");
-            if (string.IsNullOrWhiteSpace(note)) missing.Add("note");
-            if (missing.Count > 0)
-            {
-                string needed = missing.Count == 1 ? missing[0] : missing.Count == 2 ?
-                    missing[0] + " and " + missing[1] :
-                    string.Join(", ", missing.GetRange(0, missing.Count - 1).ToArray()) +
-                    ", and " + missing[missing.Count - 1];
-                return "Still needed: " + needed + ".";
-            }
-            if (!tracking) return "Move slowly until AR tracking is stable.";
-            string artwork = customDesign ? "your sticker" : "Taggi";
-            if (!hasPlacement) return "Place " + artwork + " on a tracked surface before publishing.";
-            if (!placementTracked) return "Keep " + artwork + " visible until its surface anchor is tracked.";
-            if (!cameraCanPublish) return "Scan around " + artwork + " from more angles until the spatial map is ready.";
+            if (string.IsNullOrWhiteSpace(note)) return "Add your note before publishing.";
+            if (!cameraCanPublish) return "Capture this spot with STICK before publishing.";
             return "Ready to publish. Location is checked after you tap.";
         }
 
@@ -186,7 +168,6 @@ namespace Tagtag.UI
         {
             return submitted && state != null && !state.busy && !state.hasPendingPublication &&
                 string.IsNullOrEmpty(state.error) && !HasPlacementSelection(state) &&
-                string.IsNullOrEmpty(state.draftPlace) && string.IsNullOrEmpty(state.draftTeaser) &&
                 string.IsNullOrEmpty(state.draftNote);
         }
 
