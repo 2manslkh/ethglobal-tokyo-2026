@@ -26,6 +26,7 @@ namespace Tagtag.UI
         private Button deleteButton;
         private PaperField deleteField;
         private Label walletStatusLabel;
+        private Button walletAddressButton;
         private Label walletPhraseLabel;
         private PaperField walletRecoveryField;
         private string revealedWalletPhrase;
@@ -36,6 +37,8 @@ namespace Tagtag.UI
 
         private void BuildAccount(AppState state)
         {
+            walletStatusLabel = null;
+            walletAddressButton = null;
             VisualElement heading = Row(screenHost);
             heading.style.height = 62f;
             heading.style.paddingLeft = 16f;
@@ -74,7 +77,19 @@ namespace Tagtag.UI
 
         private void RefreshAccount(AppState state)
         {
-            if (walletStatusLabel != null) walletStatusLabel.text = NftPresentation.WalletStatus(state);
+            if (walletStatusLabel != null)
+            {
+                walletStatusLabel.text = NftPresentation.WalletStatus(state);
+                walletStatusLabel.style.display = walletAddressButton != null && state.walletStatus == "ready"
+                    ? DisplayStyle.None : DisplayStyle.Flex;
+            }
+            if (walletAddressButton != null)
+            {
+                walletAddressButton.text = state.walletAddress;
+                walletAddressButton.style.display = state.walletStatus == "ready" &&
+                    !string.IsNullOrEmpty(NftPresentation.WalletExplorerUrl(state.walletAddress))
+                    ? DisplayStyle.Flex : DisplayStyle.None;
+            }
             RefreshNftTransferRows(state);
             if (accountCollectionCount != null) accountCollectionCount.text = CollectionPresentation.OrderedDistinct(state.collection).Count.ToString();
             if (accountAuthoredCount != null) accountAuthoredCount.text = state.authored.Count.ToString();
@@ -93,8 +108,7 @@ namespace Tagtag.UI
             {
                 Divider(content);
                 Text(content, "Your souvenir wallet · Sepolia testnet", 17, true);
-                walletStatusLabel = Text(content, NftPresentation.WalletStatus(state), 13, false, Muted);
-                walletStatusLabel.style.marginTop = 6f;
+                BuildWalletAddress(content, state, 13);
                 Text(content, "New discoveries become transferable NFTs. Tagtag covers minting; private notes stay in your book.", 14, false, Muted).style.marginTop = 6f;
                 Action(content, "Back up or restore wallet", () =>
                 {
@@ -146,12 +160,32 @@ namespace Tagtag.UI
             }, false).style.marginTop = 9f;
         }
 
+        private void BuildWalletAddress(VisualElement content, AppState state, int fontSize)
+        {
+            walletStatusLabel = Text(content, NftPresentation.WalletStatus(state), fontSize, false, Muted);
+            walletStatusLabel.style.marginTop = 6f;
+            walletAddressButton = Action(content, state.walletAddress, () =>
+            {
+                string url = NftPresentation.WalletExplorerUrl(controller.State.walletAddress);
+                if (!string.IsNullOrEmpty(url)) Application.OpenURL(url);
+            }, false);
+            walletAddressButton.name = "Wallet Etherscan address";
+            walletAddressButton.tooltip = "View this address on Sepolia Etherscan";
+            walletAddressButton.userData = fontSize;
+            walletAddressButton.style.fontSize = Mathf.RoundToInt(fontSize * textScale);
+            walletAddressButton.style.whiteSpace = WhiteSpace.Normal;
+            walletAddressButton.style.unityTextAlign = TextAnchor.MiddleLeft;
+            walletAddressButton.style.alignSelf = Align.Stretch;
+            walletAddressButton.style.flexShrink = 1f;
+            walletAddressButton.style.paddingLeft = 10f;
+            walletAddressButton.style.marginTop = 6f;
+        }
+
         private void BuildWallet(VisualElement content, AppState state)
         {
             Text(content, "Your souvenir wallet", 27, true).style.marginTop = 22f;
             Text(content, "Sepolia testnet · NFTs are delivered to this address.", 14, false, Muted).style.marginTop = 5f;
-            walletStatusLabel = Text(content, NftPresentation.WalletStatus(state), 14, false, Muted);
-            walletStatusLabel.style.marginTop = 12f;
+            BuildWalletAddress(content, state, 14);
             if (state.walletStatus == "ready")
             {
                 Text(content, "Your 12 recovery words are the only way to restore this wallet on another phone. Write them down privately and never share them. Anyone with the words can transfer your NFTs.", 15).style.marginTop = 18f;
@@ -174,9 +208,6 @@ namespace Tagtag.UI
                         QueueRender();
                     }, false).style.marginTop = 12f;
                 }
-                string explorer = NftPresentation.WalletExplorerUrl(state.walletAddress);
-                if (!string.IsNullOrEmpty(explorer))
-                    Action(content, "View address on Sepolia", () => Application.OpenURL(explorer), false).style.marginTop = 12f;
             }
             if (state.walletStatus == "needsRecovery" || state.walletStatus == "delayed")
             {

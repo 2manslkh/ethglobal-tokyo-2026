@@ -130,7 +130,17 @@ namespace Tagtag.Tests
             yield return new WaitForSecondsRealtime(.4f);
             controller.SetAccountOpen(true);
             yield return Capture("nft-wallet");
-            Assert.That(document.rootVisualElement.Query<Label>().ToList().Any(label => label.text == controller.State.walletAddress), Is.True);
+            Assert.That(document.rootVisualElement.Query<Button>().ToList().Any(button => button.text == controller.State.walletAddress), Is.True,
+                "The full wallet address should be an action in the account profile.");
+            var addressButton = document.rootVisualElement.Q<Button>("Wallet Etherscan address");
+            controller.State.walletStatus = "pending";
+            controller.Notify();
+            yield return null;
+            Assert.AreEqual(DisplayStyle.None, addressButton.resolvedStyle.display);
+            controller.State.walletStatus = "ready";
+            controller.Notify();
+            yield return null;
+            Assert.AreEqual(DisplayStyle.Flex, addressButton.resolvedStyle.display);
             Submit("Delete account and stickers");
             yield return Capture("nft-transfer-out");
             document.rootVisualElement.Q<TextField>("Delete confirmation").value = "DELETE";
