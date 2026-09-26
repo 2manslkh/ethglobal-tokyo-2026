@@ -17,6 +17,7 @@ const bad = (message) => { throw new ApiError(400, 'invalid_request', message); 
 const denied = () => { throw new ApiError(403, 'forbidden', 'Access denied'); };
 const missing = () => { throw new ApiError(404, 'not_found', 'Sticker unavailable'); };
 const conflict = (message) => { throw new ApiError(409, 'conflict', message); };
+const designExpired = () => { throw new ApiError(409, 'design_expired', 'Design has been removed'); };
 const digest = value => createHash('sha256').update(value).digest('hex');
 const blockedPhrases = ['buy crypto now', 'free money', 'kill yourself', 't.me/', 'http://', 'https://',
     ...String(process.env.TAGTAG_BLOCKED_PHRASES || '').split(',').map(value => value.trim()).filter(Boolean)];
@@ -209,6 +210,7 @@ export function createApi({ adapter, now = () => Math.floor(Date.now() / 1000), 
                     const existing = await tx.get('designs', id);
                     if (existing) {
                         if (existing.ownerId !== user.uid || existing.requestHash !== requestHash) conflict('Operation ID already used');
+                        if (existing.status === 'archived' || existing.status === 'abandoned') designExpired();
                         return;
                     }
                     const quotaId = digest(`design-quota\0${user.uid}\0${day}`);
@@ -223,7 +225,7 @@ export function createApi({ adapter, now = () => Math.floor(Date.now() / 1000), 
                         width, height, imageBytes, status: 'pending', references: 0, revision: 1, createdAt: now() });
                 });
                 const design = await adapter.get('designs', id);
-                if (design.status !== 'pending' && design.status !== 'ready') conflict('Design has been removed');
+                if (design.status !== 'pending' && design.status !== 'ready') designExpired();
                 if (design.status === 'ready') return send(response, 200, { id, uploadUrl: '', uploadHeaders: {} });
                 return send(response, 200, { id, ...(await adapter.signDesignUpload(id)) });
             }

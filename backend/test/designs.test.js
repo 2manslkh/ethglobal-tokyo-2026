@@ -203,10 +203,26 @@ test('abandoned upload keeps its operation ID reserved after cleanup', async () 
         assert.equal(prepared.status, 200);
         f.adapter.uploadDesign(prepared.data.id, image);
         await cleanupAbandoned(f.adapter, 1_004_000);
-        assert.equal((await f.prepare(image)).status, 409);
-        assert.equal((await f.prepare(image, { name: 'Changed' })).status, 409);
+        const expired = await f.prepare(image);
+        assert.equal(expired.status, 409);
+        assert.equal(expired.data.error.code, 'design_expired');
+        const collision = await f.prepare(image, { name: 'Changed' });
+        assert.equal(collision.status, 409);
+        assert.equal(collision.data.error.code, 'conflict');
         assert.equal((await f.call('POST', `/v1/designs/${prepared.data.id}/finalize`)).status, 409);
         assert.equal(await f.adapter.designMetadata(prepared.data.id), null);
+    } finally { await f.close(); }
+});
+
+test('archived design prepare retry identifies expiration without changing its operation', async () => {
+    const f = await fixture();
+    try {
+        const image = await png();
+        const id = await f.create(image);
+        assert.equal((await f.call('DELETE', `/v1/designs/${id}`)).status, 200);
+        const expired = await f.prepare(image);
+        assert.equal(expired.status, 409);
+        assert.equal(expired.data.error.code, 'design_expired');
     } finally { await f.close(); }
 });
 
