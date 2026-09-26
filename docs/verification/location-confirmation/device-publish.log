@@ -1,0 +1,8 @@
+Sep 26 14:56:27 tagtag(UnityFramework)[19326] <Notice>: [Tagtag publish] stage=permission result=done elapsedMs=22
+Sep 26 14:56:27 tagtag(UnityFramework)[19326] <Notice>: [Tagtag publish] stage=map result=done elapsedMs=179
+Sep 26 14:56:30 tagtag(UnityFramework)[19326] <Notice>: [Tagtag publish] stage=location-prepare result=done elapsedMs=3023
+Sep 26 14:56:38 tagtag(UnityFramework)[19326] <Notice>: [Tagtag publish] stage=confirm-location result=done elapsedMs=7394
+Sep 26 14:56:39 tagtag(UnityFramework)[19326] <Notice>: [Tagtag publish] stage=prepare result=done elapsedMs=972
+Sep 26 14:56:43 tagtag(UnityFramework)[19326] <Notice>: [Tagtag publish] stage=upload result=done elapsedMs=4706
+Sep 26 14:56:44 tagtag(UnityFramework)[19326] <Notice>: [Tagtag publish] stage=location-finalize result=done elapsedMs=280
+Sep 26 14:56:45 tagtag(UnityFramework)[19326] <Notice>: [Tagtag publish] stage=finalize result=done elapsedMs=927

@@ -372,11 +372,20 @@ legacy GPS-drift retry blockers plus stale picker seeds were fixed and re-review
 with no remaining actionable blockers.
 
 TestFlight 0.1.0 (1) remains the earlier `01857d3` snapshot and does not contain
-this fallback. Physical indoor publication and subsequent two-device discovery
-remain pending.
+this fallback. Physical map-confirmed publication succeeded in the follow-up below. Subsequent
+two-device discovery remains pending.
 
 Delivered source `90398c8` as a signed Debug build to Dawg. (iPhone 15 Pro Max)
 on 2026-09-26 with `devicectl`; installation succeeded. Automatic launch was
 initially rejected because the phone was locked. After the owner unlocked it,
 `devicectl` launched tagtag successfully. API `tagtag-api-00011-gut` serves 100% traffic after tagged/public health
-and authentication checks. A physical indoor publish has not yet been verified.
+and authentication checks. The physical map-confirmed publication follow-up below succeeded.
+
+Physical follow-up at 14:56 JST: on Dawg., the owner published through the new
+map-confirmation flow. Device logs show permission 22 ms, AR capture 179 ms,
+location acquisition 3,023 ms, map confirmation 7,394 ms (including owner input),
+prepare 972 ms, upload 4,706 ms, final location check 280 ms, and successful
+finalization 927 ms. No location timeout occurred in this attempt. This verifies
+one physical publication; it does not establish performance across environments
+or verify two-device recovery/collection. The filtered stage log is
+[publication stages](verification/location-confirmation/device-publish.log).
