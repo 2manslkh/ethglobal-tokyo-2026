@@ -178,6 +178,7 @@ namespace Tagtag.Services
                 }
             }
             else loginGateActive = false;
+            State.celebrations.SetAccount(State.user?.uid);
             Changed?.Invoke();
         }
         public void SetSuspended(bool value)
@@ -653,6 +654,7 @@ namespace Tagtag.Services
                 location.Stop();
                 FinishPublicationStage(false);
                 Ar.CancelPlacement(); State.status = "Taggi is out there. Your sticker is published!";
+                State.celebrations.Published(State.user.uid, draft.operationId, published.sticker);
             });
         }
         public void CancelPlacement()
@@ -671,19 +673,52 @@ namespace Tagtag.Services
             if (State.busy || !CollectionBook.CanUnlock(recovery, id, Ar.CanCollect, Now)) return;
             if (!RequireAccount()) return;
             var discovered = recovery;
+            int collectionAccount = accountGeneration;
+            string collectionOwner = State.user.uid;
             Run(async () =>
             {
+                bool newCollection = false;
+                if (!State.collection.Any(item => item.id == id))
+                {
+                    State.status = "Checking your sticker book…";
+                    Notify();
+                    try
+                    {
+                        var before = await api.Call<CollectionList>("GET", "/v1/collection", null, await session.Token());
+                        newCollection = StickerCelebrations.IsNewInServerSnapshot(id, before?.items);
+                    }
+                    catch (ApiFailure) { /* Unknown novelty must not block collection or note access. */ }
+                }
+                EnsureCollectionAccount(collectionAccount, collectionOwner);
+                if (recovery != discovered || !CollectionBook.CanUnlock(discovered, id, Ar.CanCollect, Now))
+                    throw new ApiFailure("Move closer and tap the tracked sticker again.");
+                State.status = "Collecting your sticker…";
+                Notify();
                 State.location = await location.Current();
-                if (!CollectionBook.CanUnlock(discovered, id, Ar.CanCollect, Now)) throw new ApiFailure("Move closer and tap the tracked sticker again.");
+                EnsureCollectionAccount(collectionAccount, collectionOwner);
+                if (recovery != discovered || !CollectionBook.CanUnlock(discovered, id, Ar.CanCollect, Now)) throw new ApiFailure("Move closer and tap the tracked sticker again.");
+                string token = await session.Token();
+                EnsureCollectionAccount(collectionAccount, collectionOwner);
+                if (recovery != discovered || !CollectionBook.CanUnlock(discovered, id, Ar.CanCollect, Now))
+                    throw new ApiFailure("Move closer and tap the tracked sticker again.");
                 var result = await api.Call<CollectionResult>("POST", Path(id) + "/collect", new CollectRequest {
-                    discoveryId = discovered.discoveryId, location = State.location }, await session.Token());
+                    discoveryId = discovered.discoveryId, location = State.location }, token);
+                EnsureCollectionAccount(collectionAccount, collectionOwner);
+                bool alreadyCollected = !newCollection || State.collection.Any(item => item.id == result.sticker.id);
                 State.collection.RemoveAll(item => item.id == result.sticker.id);
                 State.collection.Add(result.sticker); State.collection = CollectionBook.Normalize(State.collection);
                 SaveCollection(); State.detail = result.sticker; State.page = AppPage.Home;
                 location.Stop();
                 Ar.Exit(); Map.Hide(); recovery = null; State.status = "A little discovery, now in your book.";
+                State.celebrations.Collected(collectionOwner, discovered.discoveryId, result.sticker, alreadyCollected);
             });
         }
+        private void EnsureCollectionAccount(int generation, string owner)
+        {
+            if (disposed || generation != accountGeneration || session.Current?.uid != owner)
+                throw new OperationCanceledException("Collection ended.");
+        }
+
         public void OpenCollected(string id) { State.detail = State.collection.FirstOrDefault(item => item.id == id); Map.Hide(); Notify(); }
         public void CloseDetail() { State.detail = null; Notify(); }
         public void Report(string id, string reason)

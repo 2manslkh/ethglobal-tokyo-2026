@@ -85,7 +85,6 @@ namespace Tagtag.UI
         private Vector2 bookStart;
         private string pressedStickerId;
         private string lastPresentedDiscoveryId;
-        private string pendingCollectionCommitId;
         private bool publicationRequested;
         private AppPage renderedPage;
         private bool renderedAccountOpen;
@@ -192,7 +191,7 @@ namespace Tagtag.UI
             }
 
             if (mapDirty && MapPresentation.ShouldShow(controller.State,
-                    sheet != Sheet.None || controller.State.creationOpen))
+                    sheet != Sheet.None || controller.State.creationOpen || CelebrationActive))
             {
                 UpdateMapLayout();
             }
@@ -298,10 +297,10 @@ namespace Tagtag.UI
             }
             if (state != null && state.page == AppPage.Stick && state.detail == null)
                 lastPresentedDiscoveryId = null;
-            if (PaperFlow.ShouldAnimateCollection(renderedPage, state, lastPresentedDiscoveryId))
+            if (PaperFlow.ShouldOpenCollectedDetail(renderedPage, state, lastPresentedDiscoveryId) &&
+                state.celebrations.Pending == null)
             {
                 lastPresentedDiscoveryId = state.detail.id;
-                pendingCollectionCommitId = state.detail.id;
                 sheet = Sheet.Collected;
                 sheetStickerId = state.detail.id;
             }
@@ -333,6 +332,8 @@ namespace Tagtag.UI
             }
 
             AppState state = controller.State;
+            state.celebrations.SetAccount(state.user?.uid);
+            if (CelebrationActive) sheet = Sheet.None;
             bool loginRequired = !SignedIn(state);
             statusBarBacking.style.display = loginRequired ? DisplayStyle.None : DisplayStyle.Flex;
             if (loginRequired)
@@ -369,7 +370,7 @@ namespace Tagtag.UI
             {
                 accountScreen = AccountScreen.Overview;
             }
-            MapPresentation.SyncVisibility(state, sheet != Sheet.None || state.creationOpen, controller.Map);
+            MapPresentation.SyncVisibility(state, sheet != Sheet.None || state.creationOpen || CelebrationActive, controller.Map);
             string identity = loginRequired ? "Login" : state.accountOpen ? "Account:" + (accountScreen == AccountScreen.SignIn && SignedIn(state) ? AccountScreen.Overview : accountScreen) : state.page.ToString();
             bool destinationChanged = identity != renderedIdentity;
             if (destinationChanged)
@@ -478,10 +479,11 @@ namespace Tagtag.UI
             }
             else RefreshSheet(state);
 
-            if (MapPresentation.ShouldShow(state, sheet != Sheet.None || state.creationOpen))
+            if (MapPresentation.ShouldShow(state, sheet != Sheet.None || state.creationOpen || CelebrationActive))
             {
                 mapDirty = true;
             }
+            RenderCelebration(state);
             ApplyTextScale();
             UpdateCameraInteraction();
             renderedPage = state.page;
@@ -863,6 +865,7 @@ namespace Tagtag.UI
                 }
             });
             RefreshArtworkNotices();
+            TryRevealCelebration();
         }
 
         private Image Art(VisualElement parent, StickerSummary sticker, float size, bool thumbnail = true)
