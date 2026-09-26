@@ -6,6 +6,7 @@ import { createFirebaseAdapter } from '../src/firebase-adapter.js';
 import { createApi } from '../src/api.js';
 import { privateKeyToAccount } from 'viem/accounts';
 import { runMintWorker } from '../src/mint-worker.js';
+import sharp from 'sharp';
 
 const configured = !!(process.env.FIRESTORE_EMULATOR_HOST && process.env.FIREBASE_AUTH_EMULATOR_HOST && process.env.FIREBASE_STORAGE_EMULATOR_HOST);
 
@@ -27,7 +28,9 @@ test('Firebase emulators exercise Auth verification, Firestore transactions and 
     const adapter = { ...firebase,
         async signUpload(id) { return { uploadUrl: `https://upload.example/${id}`, uploadHeaders: { 'content-type': 'application/octet-stream', 'x-goog-content-length-range': '1,16777216' } }; },
         async mapMetadata() { return { size: 12, contentType: 'application/octet-stream', generation: '1' }; },
-        async finalizeMap() {}, async signDownload(id) { return `https://download.example/${id}`; }, async deleteMap() {}
+        async finalizeMap() {}, async signDownload(id) { return `https://download.example/${id}`; }, async deleteMap() {},
+        async signDesignUpload(id) { return { uploadUrl: `https://upload.example/designs/${id}`, uploadHeaders: { 'content-type': 'image/png', 'x-goog-content-length-range': '1,5242880' } }; },
+        async signDesignRead(id, type) { return `https://download.example/designs/${id}/${type}`; }
     };
     const now = Math.floor(Date.now() / 1000);
     const contractAddress = '0x1234567890123456789012345678901234567890';
@@ -72,8 +75,21 @@ test('Firebase emulators exercise Auth verification, Firestore transactions and 
             async prepareMint() { return { raw: '0xserialized', hash: '0xhash' }; }, async broadcast() {} };
         await runMintWorker({ adapter, chain, now: () => now, workerId: 'emulator' });
         assert.equal((await adapter.get('nftMints', jobs[0].id)).rawTransaction, '0xserialized');
+        const image = await sharp({ create: { width: 24, height: 12, channels: 4, background: '#d0408099' } }).png().toBuffer();
+        const designPrepare = await call('POST', '/v1/designs/prepare', { operationId: randomUUID(), name: 'Emulator art', kind: 'image',
+            imageBytes: image.length, width: 24, height: 12 }, alice.idToken);
+        assert.equal(designPrepare.status, 200);
+        await firebase.bucket.file(`pending-designs/${designPrepare.data.id}`).save(image, { resumable: false, contentType: 'image/png' });
+        const designFinalize = await call('POST', `/v1/designs/${designPrepare.data.id}/finalize`, undefined, alice.idToken);
+        assert.equal(designFinalize.status, 200);
+        const [thumbnail] = await firebase.bucket.file(`designs/${designPrepare.data.id}/thumbnail.png`).download();
+        assert.equal((await sharp(thumbnail).metadata()).width, 24);
+        assert.equal((await call('GET', '/v1/designs', undefined, bob.idToken)).data.items.length, 0);
+        assert.equal((await call('GET', '/v1/designs', undefined, alice.idToken)).data.items[0].id, designPrepare.data.id);
         assert.equal((await call('DELETE', '/v1/account', undefined, alice.idToken)).status, 200);
         assert.equal((await call('GET', '/v1/collection', undefined, bob.idToken)).data.items[0].unavailable, true);
         assert.equal((await firebase.userExists(alice.localId)), false);
+        assert.equal(await firebase.get('designs', designPrepare.data.id), null);
+        assert.equal((await firebase.bucket.file(`designs/${designPrepare.data.id}/thumbnail.png`).exists())[0], false);
     } finally { await new Promise(resolve => server.close(resolve)); }
 });

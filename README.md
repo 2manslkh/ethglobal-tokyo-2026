@@ -95,3 +95,13 @@ This arm64 simulator build retains the native map and identity bridges, and disa
 Automated tests cover book pagination, swipe/tap distinctions, collection ordering, map visibility, AR gates, API authorization, idempotent operations, and failure paths. AR recovery and native sign-in require physical devices. Follow [device verification](docs/DEVICE_VERIFICATION.md); record results before claiming the shared journey works.
 
 An AR tap plus a server discovery session is a gameplay gate, not cryptographic proof of presence. World-map recovery depends on recognizable surroundings. The server never includes full notes in nearby summaries.
+
+## Create stickers
+
+Open **My Stickers** from Home or the STICK inventory. Import a photo/file, make a photo or selfie Polaroid, or open Apple Image Playground on a supported iPhone. The native editor offers full-image or square crop, optional foreground cutout with a white border, and a Polaroid caption. Preview the finished design before saving.
+
+Designs sync to the creator's account and can be placed repeatedly. Collecting someone else's placement adds a book copy, without granting design publication rights. Removing a library design preserves published copies. The four bundled Taggi presets still work. Creation drafts survive failed uploads and sign-in; use **Retry saving sticker** to continue. Source photos stay on the device; only the finished PNG is uploaded.
+
+Image Playground is checked at runtime and has no cloud fallback. Foreground cutout requires iOS 17 or later; imports and Polaroids retain the iOS 15 minimum. Native creation uses PhotosUI, Vision, UIKit, and a Swift Image Playground bridge. The backend uses `sharp` to validate PNG pixels, remove metadata, and generate thumbnails. Limits are 5 MiB/1024 pixels per image, 20 new designs per account per day, and 100 active designs. See [the creation plan](docs/plans/2026-09-26-sticker-creation.md) and [backend API details](backend/README.md).
+
+Deploy backend support and both `designs` Firestore indexes before installing a client with creation enabled. Update the cleanup job to the same backend image. A native image-generation or camera experience still requires physical-device verification; successful compilation does not verify Apple Intelligence availability or camera capture.

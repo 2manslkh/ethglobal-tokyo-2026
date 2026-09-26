@@ -2,6 +2,8 @@ export class MemoryAdapter {
     constructor() {
         this.collections = new Map();
         this.uploads = new Map();
+        this.designUploads = new Map();
+        this.designAssets = new Map();
         this.deletedUsers = new Set();
         this.tail = Promise.resolve();
     }
@@ -40,4 +42,17 @@ export class MemoryAdapter {
     async mapMetadata(id) { return this.uploads.has(id) ? { size: this.uploads.get(id), contentType: 'application/octet-stream' } : null; }
     async finalizeMap(id) { if (!this.uploads.has(id)) throw new Error('Missing map'); }
     async deleteMap(id) { this.uploads.delete(id); }
+    async signDesignUpload(id) { return { uploadUrl: `https://upload.example/designs/${id}`, uploadHeaders: { 'content-type': 'image/png', 'x-goog-content-length-range': '1,5242880' } }; }
+    uploadDesign(id, bytes) { this.designUploads.set(id, Buffer.from(bytes)); }
+    async designMetadata(id) { const bytes = this.designUploads.get(id); return bytes ? { size: bytes.length, contentType: 'image/png', generation: '1' } : null; }
+    async readDesignUpload(id) { return this.designUploads.get(id); }
+    async saveDesignAssets(id, artwork, thumbnail) {
+        if (!this.designAssets.has(id)) this.designAssets.set(id, { artwork: Buffer.from(artwork), thumbnail: Buffer.from(thumbnail) });
+        else if (!this.designAssets.get(id).artwork.equals(artwork)) throw Object.assign(new Error('Design asset already differs'), { code: 'asset_conflict' });
+    }
+    async signDesignRead(id, type) { return `https://download.example/designs/${id}/${type}`; }
+    async deleteDesignAssets(id) { this.designUploads.delete(id); this.designAssets.delete(id); }
+    async cleanupPendingDesign(id) { this.designUploads.delete(id); }
+    async listDesignAssetIds() { return [...this.designAssets.keys()]; }
+    thumbnail(id) { return this.designAssets.get(id)?.thumbnail; }
 }

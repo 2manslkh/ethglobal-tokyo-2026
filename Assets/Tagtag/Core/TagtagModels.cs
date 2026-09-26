@@ -15,6 +15,8 @@ namespace Tagtag
     [Serializable] public class StickerSummary
     {
         public string id, presetId, authorId, authorName, place, teaser;
+        public string designId, artworkUrl, thumbnailUrl;
+        public int artworkWidth, artworkHeight;
         public double latitude, longitude;
         public int revision;
         public long createdAt;
@@ -51,7 +53,7 @@ namespace Tagtag
     }
     [Serializable] public sealed class PlacementDraft
     {
-        public string operationId, presetId, place, teaser, note;
+        public string operationId, presetId, designId, place, teaser, note;
         public LocationFix location;
         public SpatialSnapshot snapshot;
     }
@@ -71,9 +73,24 @@ namespace Tagtag
         public string thirdwebClientId;
         public bool Configured => !string.IsNullOrEmpty(apiBaseUrl) && !string.IsNullOrEmpty(firebaseApiKey);
     }
+    [Serializable] public sealed class StickerDesign
+    {
+        public string id, ownerId, name, kind, artworkUrl, thumbnailUrl;
+        public int width, height, revision;
+        public long createdAt;
+    }
+    public interface ICustomArtworkAr
+    {
+        void SelectArtwork(StickerDesign design, Texture2D texture);
+        void SuspendForCreation(bool suspended);
+    }
     public sealed class AppState
     {
         public AppPage page;
+        public List<StickerDesign> designs = new List<StickerDesign>();
+        public bool creationOpen, designsLoading, hasPendingDesign;
+        public int creationCapabilities;
+        public string selectedDesign = "";
         public UserSession user;
         public LocationFix location;
         public List<CollectedSticker> collection = new List<CollectedSticker>();
@@ -139,6 +156,14 @@ namespace Tagtag
         void SignIn(string provider);
         void SignOut();
         void RefreshNearby();
+        void OpenCreation();
+        void CloseCreation();
+        void CreateSticker(string source);
+        void RefreshDesigns();
+        void SelectDesign(string id);
+        void DeleteDesign(string id);
+        void RetryDesignSave();
+        void RefreshArtwork();
         void SelectSticker(string id);
         void StartDiscovery();
         void SelectPreset(string presetId);

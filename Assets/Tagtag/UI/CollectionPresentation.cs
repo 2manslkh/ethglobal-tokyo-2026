@@ -10,7 +10,8 @@ namespace Tagtag.UI
             return sticker.id + ":" + sticker.revision + ":" + sticker.unavailable + ":" +
                 sticker.collectedAt + ":" + sticker.place + ":" + sticker.teaser + ":" +
                 sticker.authorName + ":" + sticker.note + ":" + sticker.nft?.status + ":" +
-                sticker.nft?.transactionHash + ":" + sticker.nft?.chainId;
+                sticker.nft?.transactionHash + ":" + sticker.nft?.chainId + ":" + sticker.designId + ":" +
+                sticker.artworkUrl + ":" + sticker.thumbnailUrl;
         }
 
         public static List<CollectedSticker> OrderedDistinct(IReadOnlyList<CollectedSticker> source)

@@ -150,8 +150,27 @@ public static class BuildIos
         project.AddFrameworkToProject(framework, "CoreLocation.framework", false);
         project.AddFrameworkToProject(framework, "AuthenticationServices.framework", false);
         project.AddFrameworkToProject(framework, "Security.framework", false);
+        project.AddFrameworkToProject(framework, "PhotosUI.framework", false);
+        project.AddFrameworkToProject(framework, "Photos.framework", false);
+        project.AddFrameworkToProject(framework, "Vision.framework", false);
+        project.AddFrameworkToProject(framework, "CoreImage.framework", false);
+        project.AddFrameworkToProject(framework, "UniformTypeIdentifiers.framework", false);
+        project.AddFrameworkToProject(framework, "ImagePlayground.framework", true);
+        project.SetBuildProperty(framework, "SWIFT_VERSION", "5.0");
+        project.SetBuildProperty(framework, "ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES", "NO");
+        project.SetBuildProperty(main, "ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES", "YES");
         project.SetBuildProperty(main, "DEVELOPMENT_TEAM", "5Y6QUA9GA6");
         project.SetBuildProperty(framework, "CLANG_ENABLE_MODULES", "YES");
+        // Unity copies native .mm plugins, while the Swift shim is stored as a TextAsset.
+        // Compile it into UnityFramework so its C entry points can call the editor.
+        const string swiftName = "TagtagStickerCreationAI.swift";
+        var swiftSource = Path.Combine("Assets/Plugins/iOS", swiftName + ".txt");
+        var swiftDestination = Path.Combine(output, "Libraries/TagtagStickerCreation", swiftName);
+        Directory.CreateDirectory(Path.GetDirectoryName(swiftDestination));
+        File.Copy(swiftSource, swiftDestination, true);
+        var swiftGuid = project.AddFile("Libraries/TagtagStickerCreation/" + swiftName,
+            "Libraries/TagtagStickerCreation/" + swiftName, PBXSourceTree.Source);
+        project.AddFileToBuild(framework, swiftGuid);
         // MapKit lives above Unity's renderer, so bundle the same die-cut artwork for UIKit.
         var mapResources = Path.Combine(output, "TagtagMapResources");
         Directory.CreateDirectory(mapResources);

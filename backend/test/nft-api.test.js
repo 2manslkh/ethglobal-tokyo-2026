@@ -107,6 +107,30 @@ test('default token ID is a decimal uint256 string', async () => {
     } finally { await f.close(); }
 });
 
+test('custom sticker collection retains private artwork and queues only a generic souvenir', async () => {
+    const f = await fixture();
+    try {
+        const id = await f.publish();
+        const sticker = await f.adapter.get('stickers', id);
+        delete sticker.presetId;
+        sticker.designId = 'd'.repeat(64);
+        await f.adapter.set('stickers', id, sticker);
+        const first = await f.collect(id);
+        assert.equal(first.status, 200);
+        assert.equal(first.data.sticker.designId, sticker.designId);
+        assert.ok(first.data.sticker.artworkUrl);
+        assert.equal(first.data.sticker.note, 'Private note');
+        assert.equal(first.data.sticker.nft.status, 'pending');
+        assert.equal((await f.collect(id)).status, 200);
+        const [job, extra] = await f.adapter.query('nftMints');
+        assert.equal(extra, undefined);
+        assert.equal(job.preset, 0);
+        assert.equal(job.designId, undefined);
+        assert.equal(job.artworkUrl, undefined);
+        assert.equal(job.note, undefined);
+    } finally { await f.close(); }
+});
+
 test('collection before wallet binding waits, then binding assigns its immutable recipient', async () => {
     const f = await fixture();
     try {

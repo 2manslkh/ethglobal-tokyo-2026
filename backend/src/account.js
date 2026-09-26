@@ -35,7 +35,16 @@ export async function deleteAccountData(adapter, uid, now = Math.floor(Date.now(
             await adapter.delete('stickers', sticker.id);
         }
     }
-    for (const [name, field] of [['collections', 'userId'], ['blocks', 'userId'], ['reports', 'reporterId'], ['discoveries', 'userId']]) {
+    for (;;) {
+        const designs = await adapter.query('designs', [['ownerId', '==', uid]], 200);
+        if (!designs.length) break;
+        for (const design of designs) {
+            await adapter.deleteDesignAssets(design.id);
+            await adapter.delete('designs', design.id);
+        }
+    }
+    for (const [name, field] of [['collections', 'userId'], ['blocks', 'userId'], ['reports', 'reporterId'], ['discoveries', 'userId'],
+        ['designQuotas', 'userId'], ['designCounts', 'userId']]) {
         for (;;) {
             const entries = await adapter.query(name, [[field, '==', uid]], 200);
             if (!entries.length) break;

@@ -58,6 +58,30 @@ namespace Tagtag.AR.PlayMode.Tests
         }
 
         [Test]
+        public void CustomArtworkUsesItsPixelsAndPortraitScale()
+        {
+            var host = new GameObject("Custom artwork render");
+            var texture = new Texture2D(4, 5, TextureFormat.RGBA32, false);
+            try
+            {
+                var experience = host.AddComponent<ArExperience>();
+                experience.SelectArtwork(new StickerDesign { id = "portrait", width = 4, height = 5 }, texture);
+                var create = typeof(ArExperience).GetMethod("CreateVisual", BindingFlags.Instance | BindingFlags.NonPublic);
+                Assert.That(create.Invoke(experience, new object[] { "design:portrait" }), Is.True);
+                var visual = GameObject.Find("Tracked tagtag sticker");
+                Assert.That(visual.GetComponent<Renderer>().sharedMaterial.mainTexture, Is.SameAs(texture));
+                var scale = typeof(ArExperience).GetMethod("ArtworkScale", BindingFlags.Instance | BindingFlags.NonPublic);
+                Assert.That(scale.Invoke(experience, new object[] { 0.2f }), Is.EqualTo(new Vector3(0.2f, 0.25f, 0.2f)));
+            }
+            finally
+            {
+                var visual = GameObject.Find("Tracked tagtag sticker");
+                if (visual != null) Object.DestroyImmediate(visual);
+                Object.DestroyImmediate(host); Object.DestroyImmediate(texture);
+            }
+        }
+
+        [Test]
         public void MissingArtworkReportsFailureWithoutLeavingAMagentaQuad()
         {
             var host = new GameObject("Missing sticker artwork test");

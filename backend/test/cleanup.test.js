@@ -14,7 +14,7 @@ test('cleanup removes old pending maps and expired sessions but retains publishe
     adapter.upload('live', 12);
     adapter.upload('recent', 12);
     const result = await cleanupAbandoned(adapter, 10000);
-    assert.deepEqual(result, { publications: 1, discoveries: 1, accounts: 0 });
+    assert.deepEqual(result, { publications: 1, designs: 0, discoveries: 1, accounts: 0, orphanAssets: 0 });
     assert.equal(await adapter.get('stickers', 'old'), null);
     assert.equal(await adapter.mapMetadata('old'), null);
     assert.ok(await adapter.get('stickers', 'live'));
@@ -49,4 +49,52 @@ test('account cleanup removes wallet challenge and cancels unsigned mint, retain
     assert.equal((await adapter.get('walletAddresses', '0x1111111111111111111111111111111111111111')).uid, undefined);
     assert.equal((await adapter.get('nftMints', 'unsigned')).state, 'cancelled');
     assert.equal((await adapter.get('nftMints', 'signed')).rawTransaction, '0xabc');
+});
+
+test('cleanup removes abandoned design uploads and releases active slots', async () => {
+    const adapter = new MemoryAdapter();
+    await adapter.set('designs', 'old-design', { id: 'old-design', ownerId: 'alice', status: 'pending', createdAt: 1, references: 0 });
+    await adapter.set('designCounts', 'counter', { id: 'counter', userId: 'alice', active: 1 });
+    adapter.uploadDesign('old-design', Buffer.from('pending'));
+    const result = await cleanupAbandoned(adapter, 10000);
+    assert.equal(result.designs, 1);
+    assert.equal((await adapter.get('designs', 'old-design')).status, 'abandoned');
+    assert.equal(await adapter.designMetadata('old-design'), null);
+    assert.equal((await adapter.get('designCounts', 'counter')).active, 0);
+});
+
+test('account cleanup removes owned designs and their immutable assets', async () => {
+    const adapter = new MemoryAdapter();
+    await adapter.set('accounts', 'alice', { id: 'alice', deleted: true, authDeleted: true, cleaned: false });
+    await adapter.set('designs', 'owned', { id: 'owned', ownerId: 'alice', status: 'ready', references: 1 });
+    await adapter.set('designQuotas', 'daily', { id: 'daily', userId: 'alice', count: 1 });
+    await adapter.set('designCounts', 'counter', { id: 'counter', userId: 'alice', active: 1 });
+    await adapter.saveDesignAssets('owned', Buffer.from('art'), Buffer.from('thumb'));
+    const result = await cleanupAbandoned(adapter, 10000);
+    assert.equal(result.accounts, 1);
+    assert.equal(await adapter.get('designs', 'owned'), null);
+    assert.equal(adapter.thumbnail('owned'), undefined);
+    assert.equal(await adapter.get('designQuotas', 'daily'), null);
+    assert.equal(await adapter.get('designCounts', 'counter'), null);
+});
+
+test('expired publication releases archived design artwork when it was the last reference', async () => {
+    const adapter = new MemoryAdapter();
+    await adapter.set('stickers', 'pending-sticker', { id: 'pending-sticker', authorId: 'alice', designId: 'design', status: 'pending', createdAt: 1 });
+    await adapter.set('designs', 'design', { id: 'design', ownerId: 'alice', status: 'archived', references: 1 });
+    await adapter.saveDesignAssets('design', Buffer.from('art'), Buffer.from('thumb'));
+    await cleanupAbandoned(adapter, 10000);
+    assert.equal((await adapter.get('designs', 'design')).references, 0);
+    assert.equal(adapter.thumbnail('design'), undefined);
+});
+
+test('cleanup sweeps immutable artwork left by finalize after account deletion', async () => {
+    const adapter = new MemoryAdapter();
+    await adapter.saveDesignAssets('orphan', Buffer.from('art'), Buffer.from('thumb'));
+    await adapter.set('designs', 'retained', { id: 'retained', status: 'archived', references: 1 });
+    await adapter.saveDesignAssets('retained', Buffer.from('art'), Buffer.from('thumb'));
+    const result = await cleanupAbandoned(adapter, 10000);
+    assert.equal(result.orphanAssets, 1);
+    assert.equal(adapter.thumbnail('orphan'), undefined);
+    assert.ok(adapter.thumbnail('retained'));
 });

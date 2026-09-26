@@ -10,7 +10,7 @@ namespace Tagtag.AR
         [Serializable] private sealed class MapPin
         {
             public string id;
-            public string presetId;
+            public string presetId, thumbnailUrl;
             public string place;
             public double latitude;
             public double longitude;
@@ -44,7 +44,7 @@ namespace Tagtag.AR
                 var item = stickers[i];
                 pins.items[i] = new MapPin
                 {
-                    id = item.id, presetId = item.presetId, place = item.place,
+                    id = item.id, presetId = item.presetId, thumbnailUrl = item.thumbnailUrl, place = item.place,
                     latitude = item.latitude, longitude = item.longitude
                 };
             }

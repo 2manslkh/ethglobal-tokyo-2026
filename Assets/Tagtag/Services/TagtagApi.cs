@@ -10,9 +10,10 @@ namespace Tagtag.Services
     public sealed class ApiFailure : Exception
     {
         public readonly long Status;
+        public readonly string Code;
         public readonly bool LocationSettingsRequired;
-        public ApiFailure(string message, long status = 0, bool locationSettingsRequired = false) : base(message)
-        { Status = status; LocationSettingsRequired = locationSettingsRequired; }
+        public ApiFailure(string message, long status = 0, bool locationSettingsRequired = false, string code = null) : base(message)
+        { Status = status; LocationSettingsRequired = locationSettingsRequired; Code = code; }
     }
 
     public sealed class TagtagApi
@@ -130,13 +131,15 @@ namespace Tagtag.Services
             while (!operation.isDone) await Task.Yield();
             if (request.result == UnityWebRequest.Result.Success) return;
             string message = "Connection failed. Your draft is safe; please try again.";
+            string code = null;
             try
             {
                 var error = JsonUtility.FromJson<ErrorEnvelope>(request.downloadHandler.text);
                 if (!string.IsNullOrEmpty(error?.error?.message)) message = error.error.message;
+                code = error?.error?.code;
             }
             catch { /* Non-JSON transport errors use the safe local message. */ }
-            throw new ApiFailure(message, request.responseCode);
+            throw new ApiFailure(message, request.responseCode, code: code);
         }
 
         [Serializable] private sealed class ErrorEnvelope { public ErrorBody error; }
@@ -313,7 +316,7 @@ namespace Tagtag.Services
     [Serializable] public sealed class OkResult { public bool ok; }
     [Serializable] public sealed class PrepareRequest
     {
-        public string operationId, presetId, place, teaser, note;
+        public string operationId, presetId, designId, place, teaser, note;
         public LocationFix location;
         public Vector3 position;
         public Quaternion rotation;

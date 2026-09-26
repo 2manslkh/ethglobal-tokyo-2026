@@ -299,3 +299,7 @@ alone does not satisfy them.
 - Record device, scenarios, results, and remaining gaps in
   [device verification](docs/DEVICE_VERIFICATION.md). Do not describe an untested
   camera transition or migrated component as verified.
+
+### Dotted stationery accents
+
+Use inset charcoal dots on featured paper containers and key sticker actions. Rounded rectangles use wider spacing on containers; action capsules use tighter spacing. Avoid decorating both an enclosing container and its inner action. The camera inventory button pairs a 52-point Taggi holding an open sticker book with a live STICK label inside its 88-point circular target. Bottom navigation keeps its star-holding Taggi illustration. Dots and artwork ignore pointer input; existing focus and disabled treatments remain visible.

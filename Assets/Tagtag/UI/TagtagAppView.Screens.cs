@@ -11,6 +11,7 @@ namespace Tagtag.UI
         private VisualElement homeFooter;
         private VisualElement homeInvitation;
         private PaperCollectionCount homeCount;
+        private Button homeCreateButton;
         private readonly PresenterCache homeContents = new PresenterCache();
         private List<CollectedSticker> homeItems = new List<CollectedSticker>();
 
@@ -38,6 +39,10 @@ namespace Tagtag.UI
             homeProfileButton.style.marginLeft = 8f;
             heading.Add(homeProfileButton);
             title.style.marginBottom = 3f;
+            homeCreateButton = Action(page, "Make a sticker", controller.OpenCreation, false);
+            homeCreateButton.name = "Home Make sticker";
+            homeCreateButton.style.alignSelf = Align.FlexStart;
+            homeCreateButton.style.marginBottom = 8f;
             homeCount = new PaperCollectionCount();
             homeCount.style.flexDirection = FlexDirection.Row;
             homeCount.style.alignItems = Align.Center;
@@ -81,10 +86,12 @@ namespace Tagtag.UI
         private void RefreshHome(AppState state)
         {
             if (homeBook == null) return;
+            if (homeCreateButton != null) SetDisabled(homeCreateButton, state.busy);
             List<CollectedSticker> items = CollectionPresentation.OrderedDistinct(state.collection);
             int page = BookPaging.ClampPage(bookPage, items.Count);
-            string key = page + ":" + items.Count + ":" + SignedIn(state);
-            foreach (var item in items) key += ":" + item.id + ":" + item.revision + ":" + item.unavailable;
+            string key = page + ":" + items.Count + ":" + state.user?.uid;
+            foreach (var item in items) key += ":" + item.id + ":" + item.revision + ":" +
+                item.unavailable + ":" + item.designId + ":" + item.thumbnailUrl;
             if (!homeContents.NeedsRefresh(key)) return;
             bookPage = page;
             homeItems = items;
@@ -121,7 +128,7 @@ namespace Tagtag.UI
                         if (evt.keyCode != KeyCode.Return && evt.keyCode != KeyCode.Space) return;
                         OpenCollected(id); evt.StopPropagation();
                     });
-                    Image image = Art(cell, item.presetId, textScale > 1.2f ? 78f : 67f);
+                    Image image = Art(cell, item, textScale > 1.2f ? 78f : 67f);
                     image.style.maxWidth = Length.Percent(95);
                     image.style.maxHeight = Length.Percent(92);
                     image.style.opacity = item.unavailable ? .4f : 1f;
@@ -130,6 +137,7 @@ namespace Tagtag.UI
             if (items.Count == 0)
             {
                 homeInvitation = Column(homeBook);
+                PaperDottedOutline.Decorate(homeInvitation, container: true);
                 homeInvitation.style.position = Position.Absolute;
                 homeInvitation.style.left = 12f;
                 homeInvitation.style.right = 12f;
@@ -298,6 +306,7 @@ namespace Tagtag.UI
             if (explorePreviewContents.NeedsRefresh(key))
             {
                 explorePreview.Clear();
+                PaperDottedOutline.Decorate(explorePreview, container: true);
                 if (selected == null)
                 {
                     exploreEmptyTitle = Text(explorePreview, "", 19, true);
@@ -311,7 +320,7 @@ namespace Tagtag.UI
                 {
                     VisualElement titleRow = Row(explorePreview);
                     titleRow.style.alignItems = Align.Center;
-                    Art(titleRow, selected.presetId, 68f);
+                    Art(titleRow, selected, 68f);
                     VisualElement words = Column(titleRow);
                     words.style.flexGrow = 1f;
                     words.style.marginLeft = 12f;
@@ -340,7 +349,8 @@ namespace Tagtag.UI
         private void UpdateMapLayout()
         {
             mapDirty = false;
-            if (controller?.Map == null || !MapPresentation.ShouldShow(controller.State, sheet != Sheet.None) ||
+            if (controller?.Map == null || !MapPresentation.ShouldShow(controller.State,
+                    sheet != Sheet.None || controller.State.creationOpen) ||
                 controller.State.location == null || mapRegion == null || root == null || root.layout.width <= 0f || root.layout.height <= 0f) return;
             Rect bounds = mapRegion.worldBound;
             float x = bounds.xMin / root.layout.width * Screen.width;
@@ -487,8 +497,25 @@ namespace Tagtag.UI
             stickActions = Row(dock);
             stickActions.style.alignItems = Align.Center;
             stickActions.style.justifyContent = Justify.SpaceBetween;
-            stickInventoryButton = Action(stickActions, "STICK", () => { sheet = Sheet.Picker; QueueRender(); });
+            stickInventoryButton = Action(stickActions, "STICK", controller.OpenCreation);
             stickInventoryButton.name = "STICK Inventory";
+            stickInventoryButton.text = "";
+            stickInventoryButton.AddToClassList("camera-book-button");
+            stickInventoryButton.Insert(0, new PaperDottedOutline(true));
+            var bookArt = new Image
+            {
+                image = Resources.Load<Texture2D>("Tagtag/Navigation/stick-book"),
+                scaleMode = ScaleMode.ScaleToFit,
+                pickingMode = PickingMode.Ignore,
+                name = "Taggi holding sticker book"
+            };
+            bookArt.style.width = 52f;
+            bookArt.style.height = 52f;
+            bookArt.style.flexShrink = 0f;
+            stickInventoryButton.Add(bookArt);
+            Label bookLabel = Text(stickInventoryButton, "STICK", 12, false);
+            bookLabel.pickingMode = PickingMode.Ignore;
+            bookLabel.style.unityTextAlign = TextAnchor.MiddleCenter;
             stickInventoryButton.tooltip = "Open sticker inventory";
             stickInventoryButton.style.width = 88f;
             stickInventoryButton.style.height = 88f;
@@ -505,6 +532,7 @@ namespace Tagtag.UI
             actions.style.marginLeft = 10f;
             stickWriteButton = Action(actions, "Write note", () => { sheet = Sheet.Note; QueueRender(); });
             stickWriteButton.name = "STICK Write note";
+            PaperDottedOutline.Decorate(stickWriteButton, capsule: true);
             stickRetryButton = Action(actions, "Retry AR search", controller.StartDiscovery, false);
             stickRetryButton.name = "STICK Retry AR search";
             stickCancelButton = Action(actions, "Cancel placement", controller.CancelPlacement, false);
@@ -516,14 +544,14 @@ namespace Tagtag.UI
         {
             if (stickActions == null) return;
             IArExperience ar = controller?.Ar;
-            bool selected = !string.IsNullOrEmpty(state.selectedPreset);
+            bool selected = PaperFlow.HasPlacementSelection(state);
             PaperStickState placement = PaperFlow.StickPlacement(state, ar?.IsTracking ?? false,
                 ar?.HasPlacementSurface ?? false, ar?.HasPlacementPreview ?? false,
                 ar?.PlacementBusy ?? false);
             stickModeTitle.text = selected ? placement.Title : state.selected != null ? "Find sticker" : "STICK";
             stickPlacementGuidanceLabel.text = selected ? placement.Guidance : state.selected != null ?
                 PaperFlow.DiscoveryGuidance(state.selected) :
-                "Open your stickers, choose Taggi, then place it on a surface.";
+                "Open your stickers, choose one, then place it on a surface.";
             stickWriteButton.style.display = selected ? DisplayStyle.Flex : DisplayStyle.None;
             SetDisabled(stickWriteButton, !placement.CanWriteNote);
             stickRetryButton.style.display = PaperFlow.ShowDiscoveryRetry(state) ? DisplayStyle.Flex : DisplayStyle.None;
@@ -569,7 +597,7 @@ namespace Tagtag.UI
                 publishReadinessLabel.text = PaperFlow.PublishNotice(draftPlace, draftTeaser, draftNote,
                     camera?.IsTracking ?? false, camera?.HasPlacementPreview ?? false,
                     camera?.HasTrackedPlacement ?? false, camera?.CanPublish ?? false,
-                    state.busy, state.hasPendingPublication);
+                    state.busy, state.hasPendingPublication, !string.IsNullOrEmpty(state.selectedDesign));
             }
         }
 
