@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using NUnit.Framework;
 using Tagtag.UI;
 using UnityEngine;
@@ -20,6 +21,137 @@ namespace Tagtag.Tests
         private RenderTexture target;
         private float oldScale;
         private int oldMotion;
+
+        [UnityTest]
+        public IEnumerator LocationSettingsRecoveryPreservesTheNoteAndShowsPublishProgress()
+        {
+            oldScale = PlayerPrefs.GetFloat("tagtag.textScale", 1f);
+            oldMotion = PlayerPrefs.GetInt("tagtag.reducedMotion", 0);
+            PlayerPrefs.SetFloat("tagtag.textScale", 1f);
+            PlayerPrefs.SetInt("tagtag.reducedMotion", 1);
+            controller = new ReviewController();
+            controller.State.user = new UserSession { uid = "review", displayName = "Aki" };
+            controller.SelectPreset("taggi-1");
+            controller.Camera.HasPlacementPreview = true;
+            controller.Navigate(AppPage.Stick);
+            host = new GameObject("Location settings review");
+            host.AddComponent<TagtagAppView>().Initialize(controller);
+            document = host.GetComponent<UIDocument>();
+            target = new RenderTexture(390, 844, 24);
+            target.Create();
+            document.panelSettings.targetTexture = target;
+            yield return new WaitForSecondsRealtime(.4f);
+            Submit("STICK Write note");
+            yield return new WaitForSecondsRealtime(.4f);
+            var note = document.rootVisualElement.Q<TextField>("Your note");
+            note.value = "A quiet spot beside the river.";
+            controller.State.error = "Turn on Precise Location for tagtag in Settings, then try again. Your draft is safe.";
+            controller.State.locationSettingsRequired = true;
+            controller.Notify();
+            yield return Capture("publish-precise-location-settings");
+            var settings = document.rootVisualElement.Q<PaperSheet>().Q<Button>("Open location settings");
+            Assert.That(settings, Is.Not.Null, "Precision permission failure needs an actionable Settings control.");
+            Assert.That(settings.resolvedStyle.display, Is.Not.EqualTo(DisplayStyle.None));
+            Assert.That(settings.enabledInHierarchy, Is.True);
+            Assert.That(document.rootVisualElement.Q<TextField>("Your note"), Is.SameAs(note));
+            Assert.That(note.value, Is.EqualTo("A quiet spot beside the river."));
+            controller.State.locationSettingsRequired = false;
+            controller.State.error = "";
+            controller.State.status = "Uploading sticker…";
+            note.Focus();
+            note.SelectRange(2, 8);
+            yield return null;
+            controller.State.busy = true;
+            controller.Notify();
+            yield return Capture("publish-upload-progress");
+            Assert.That(settings.resolvedStyle.display, Is.EqualTo(DisplayStyle.None));
+            Assert.That(document.rootVisualElement.Q<PaperSheet>().Query<Label>().ToList().Any(label => label.text == "Uploading sticker…"), Is.True);
+            Assert.That(document.rootVisualElement.Q<Button>("Action Publish sticker").enabledInHierarchy, Is.False);
+            Assert.That(note.enabledInHierarchy, Is.False, "An in-flight publication must retain its submitted draft.");
+            controller.State.busy = false;
+            controller.Notify();
+            yield return null;
+            yield return null;
+            Assert.That(note.enabledInHierarchy, Is.True);
+            Assert.That(note.value, Is.EqualTo("A quiet spot beside the river."));
+            Assert.That(note.cursorIndex, Is.EqualTo(2));
+            Assert.That(note.selectIndex, Is.EqualTo(8));
+        }
+
+        [UnityTest]
+        public IEnumerator ButtonPointerStatesKeepBordersAndContentsStationary()
+        {
+            oldScale = PlayerPrefs.GetFloat("tagtag.textScale", 1f);
+            oldMotion = PlayerPrefs.GetInt("tagtag.reducedMotion", 0);
+            PlayerPrefs.SetFloat("tagtag.textScale", 1f);
+            PlayerPrefs.SetInt("tagtag.reducedMotion", 1);
+            controller = new ReviewController();
+            host = new GameObject("Button state review");
+            host.AddComponent<TagtagAppView>().Initialize(controller);
+            document = host.GetComponent<UIDocument>();
+            target = new RenderTexture(390, 844, 24);
+            target.Create();
+            document.panelSettings.targetTexture = target;
+            document.panelSettings.clearColor = true;
+            document.panelSettings.colorClearValue = new Color32(255, 254, 250, 255);
+            yield return null;
+            var app = document.rootVisualElement;
+            Assert.That(app.ClassListContains("paper-app"), Is.True);
+            var sampleHost = new VisualElement { name = "Button state samples" };
+            sampleHost.style.position = Position.Absolute;
+            sampleHost.style.left = 20f;
+            sampleHost.style.right = 20f;
+            sampleHost.style.top = 70f;
+            sampleHost.style.backgroundColor = Color.white;
+            app.Add(sampleHost);
+            var samples = new List<Button>
+            {
+                new PaperButton("", null), new PaperButton("", null, PaperButtonKind.Primary),
+                new PaperButton("", null, PaperButtonKind.Quiet),
+                new PaperButton("", null, PaperButtonKind.Destructive),
+                new PaperSelection("", true, null), new PaperButton("", null)
+            };
+            samples[5].AddToClassList("auth-provider-apple");
+            for (int i = 0; i < samples.Count; i++)
+            {
+                Button button = samples[i];
+                button.name = "Button state sample " + i;
+                button.style.height = 64f;
+                button.style.flexDirection = FlexDirection.Row;
+                button.style.alignItems = Align.Center;
+                button.style.justifyContent = Justify.Center;
+                button.Add(new Image { name = "Sample artwork", image = Resources.Load<Texture2D>("Tagtag/Presets/taggi-1"),
+                    style = { width = 30f, height = 30f } });
+                button.Add(new Label("Stable label") { name = "Sample caption", style = { marginLeft = 8f } });
+                sampleHost.Add(button);
+            }
+            yield return Capture("buttons-default");
+            var pseudo = typeof(VisualElement).GetProperty("pseudoStates", BindingFlags.Instance | BindingFlags.NonPublic);
+            Assert.That(pseudo, Is.Not.Null, "Fixture must exercise the actual USS pseudo states.");
+            foreach (Button button in samples)
+            {
+                Rect art = button.Q<Image>("Sample artwork").worldBound;
+                Rect caption = button.Q<Label>("Sample caption").worldBound;
+                float border = button.resolvedStyle.borderLeftWidth;
+                Assert.That(border, Is.Zero, button.name + " should be borderless.");
+                object original = pseudo.GetValue(button);
+                foreach (string state in new[] { "Hover", "Hover, Active", "Hover, Active, Focus", "Focus" })
+                {
+                    long flags = Convert.ToInt64(original) | Convert.ToInt64(Enum.Parse(pseudo.PropertyType, state));
+                    pseudo.SetValue(button, Enum.ToObject(pseudo.PropertyType, flags));
+                    yield return new WaitForSecondsRealtime(.15f);
+                    Assert.That(button.resolvedStyle.borderLeftWidth, Is.EqualTo(border), button.name + " " + state + " adds an outline");
+                    Assert.That(button.Q<Image>("Sample artwork").worldBound, Is.EqualTo(art), button.name + " " + state + " moves artwork");
+                    Assert.That(button.Q<Label>("Sample caption").worldBound, Is.EqualTo(caption), button.name + " " + state + " moves caption");
+                }
+                pseudo.SetValue(button, original);
+            }
+            foreach (string state in new[] { "Hover", "Hover, Active, Focus", "Focus" })
+            {
+                foreach (Button button in samples) pseudo.SetValue(button, Enum.Parse(pseudo.PropertyType, state));
+                yield return Capture(state == "Hover" ? "buttons-hover" : state == "Focus" ? "buttons-focused" : "buttons-pressed");
+            }
+        }
 
         [UnityTest]
         public IEnumerator CameraInventoryFlowUsesFullScreenAndExplicitPlacement()
@@ -138,6 +270,21 @@ namespace Tagtag.Tests
             document.panelSettings.clearColor = true;
             document.panelSettings.colorClearValue = new Color32(218, 225, 222, 255);
             yield return Capture("home-empty");
+            Assert.That(document.rootVisualElement.Query<Label>().ToList().Any(label =>
+                label.text == "Find your places, Collect your moments"), Is.True);
+            foreach (string caption in new[] { "Sign in", "Previous", "Next", "Explore nearby" })
+            {
+                var button = document.rootVisualElement.Query<Button>().ToList().First(item => item.text == caption);
+                var textSize = button.MeasureTextSize(caption, 0, VisualElement.MeasureMode.Undefined,
+                    0, VisualElement.MeasureMode.Undefined);
+                Assert.That(button.contentRect.width + 1f, Is.GreaterThanOrEqualTo(textSize.x),
+                    caption + " must have room for a readable label.");
+            }
+            var collectedNumber = document.rootVisualElement.Q<Label>("home-collected-number");
+            var collectedCaption = document.rootVisualElement.Q<Label>("home-collected-label");
+            Assert.That(collectedNumber, Is.Not.Null);
+            Assert.That(collectedNumber.text, Is.EqualTo("0"));
+            Assert.That(collectedNumber.resolvedStyle.fontSize, Is.GreaterThan(collectedCaption.resolvedStyle.fontSize * 1.5f));
             var brand = document.rootVisualElement.Query<Label>().ToList().First(label => label.text == "tagtag");
             Assert.That(brand.resolvedStyle.unityFont, Is.SameAs(Resources.Load<Font>("Tagtag/Fonts/ShadowsIntoLight")));
             foreach (var label in document.rootVisualElement.Query<Label>(className: "nav-label").ToList())
@@ -153,6 +300,8 @@ namespace Tagtag.Tests
             for (int i = 0; i < 21; i++) controller.State.collection.Add(Sticker(i));
             controller.Notify();
             yield return Capture("home-populated");
+            Assert.That(document.rootVisualElement.Q<Label>("home-collected-number"), Is.SameAs(collectedNumber));
+            Assert.That(collectedNumber.text, Is.EqualTo("21"));
 
             var bookCell = document.rootVisualElement.Query<VisualElement>().ToList().First(e => e.userData as string == "review-0");
             bookCell.Focus();
@@ -244,15 +393,17 @@ namespace Tagtag.Tests
             yield return Capture("note-busy-error");
             Assert.That(document.rootVisualElement.Query<TextField>().ToList()[2], Is.SameAs(fields[2]), "Status updates must keep the mounted field.");
             Assert.That(fields[2].value, Is.EqualTo(Sticker(0).note));
-            Assert.That(document.rootVisualElement.panel.focusController.focusedElement, Is.SameAs(noteFocus));
-            Assert.That(fields[2].cursorIndex, Is.EqualTo(cursor));
-            Assert.That(fields[2].selectIndex, Is.EqualTo(selection));
+            Assert.That(fields[2].enabledInHierarchy, Is.False, "Publication locks editing without replacing the draft field.");
+            // Unity clears active selection when disabled; verify its restoration after the operation.
             Assert.That(document.rootVisualElement.Q<PaperSheet>().Scroll.scrollOffset, Is.EqualTo(noteScroll));
             controller.State.busy = false;
             controller.State.error = "";
             controller.Notify();
-            yield return null;
-            yield return null;
+            yield return new WaitForSecondsRealtime(.1f);
+            Assert.That(fields[2].enabledInHierarchy, Is.True);
+            Assert.That(document.rootVisualElement.panel.focusController.focusedElement, Is.SameAs(noteFocus));
+            Assert.That(fields[2].cursorIndex, Is.EqualTo(cursor));
+            Assert.That(fields[2].selectIndex, Is.EqualTo(selection));
             Submit("Sign in to publish");
             yield return Capture("note-sign-in-return");
             Assert.That(document.rootVisualElement.Q<TextField>("Your note"), Is.Null,
@@ -404,6 +555,19 @@ namespace Tagtag.Tests
             compactAdjustments.value = false;
             Submit("STICK Inventory");
             yield return Capture("inventory-compact-largest-reduced-motion");
+            Submit("Close");
+            yield return new WaitForSecondsRealtime(.4f);
+            Submit("STICK Write note");
+            controller.State.error = "Turn on Precise Location for tagtag in Settings, then try again. Your draft is safe.";
+            controller.State.locationSettingsRequired = true;
+            controller.Notify();
+            yield return Capture("publish-settings-compact-largest");
+            var settingsSheet = document.rootVisualElement.Q<PaperSheet>();
+            var compactSettings = settingsSheet.Q<Button>("Open location settings");
+            settingsSheet.Scroll.ScrollTo(compactSettings);
+            yield return Capture("publish-settings-compact-scrolled");
+            Assert.That(compactSettings.worldBound.yMax, Is.LessThanOrEqualTo(document.rootVisualElement.worldBound.yMax));
+            Assert.That(compactSettings.worldBound.yMin, Is.GreaterThanOrEqualTo(settingsSheet.worldBound.yMin));
         }
 
         private void Submit(string title)
