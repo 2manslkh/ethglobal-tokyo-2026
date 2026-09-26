@@ -1,5 +1,26 @@
 # Device verification
 
+## Sepolia NFT test build — 2026-09-27
+
+The NFT-enabled build targets the zero-traffic `nft-candidate` API revision in
+`tagtag-tokyo-2026` and uses Thirdweb client ID
+`639af3b16477c0bb4b73b8e163eb0397`. Unity iOS Edit Mode passed **255/255**
+(`/private/tmp/tagtag-nft-tokyo-edit-green.xml`). Separate ARKit preparation,
+Unity iOS export, and signed Xcode Debug/iphoneos build succeeded. CoreDevice
+installed the app over the existing installation on **Dawg., iPhone 15 Pro Max**
+and launched `com.kenk.tagtag`; both commands exited 0. The app is at
+`Build/DerivedDataNftTokyo/Build/Products/Debug-iphoneos/tagtag.app`.
+
+This verifies installation and launch, not wallet creation or minting. Thirdweb
+custom JWT settings have been requested from the owner but are not confirmed
+saved. CoreDevice later timed out initializing, so no screenshot or interaction
+was captured. After the phone is reconnected and unlocked, verify the wallet
+address in Settings, a new in-app collection, the queued mint, a successful
+worker run, the finalized Sepolia receipt and token owner/URI, and a retry of
+the same collection without another token. Record the actual addresses,
+transaction and token ID here. The [rollout record](NFT_TOKYO_ROLLOUT.md)
+contains the deployed contract and worker details.
+
 ## Faster collection with approximate location — 2026-09-26
 
 On the particle build, the owner confirmed sparkles appeared and a tap within

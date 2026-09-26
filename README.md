@@ -12,7 +12,7 @@ Apple or Google sign-in is required to enter the app. Returning authenticated se
 
 ## Stack
 
-Unity `6000.5.5f1`, UI Toolkit, AR Foundation/ARKit, native MapKit and AuthenticationServices, Firebase Authentication, Firestore, private Cloud Storage, and a Node.js API on Cloud Run. Collections can automatically mint transferable ERC-721 souvenirs on Ethereum Sepolia through Thirdweb embedded wallets and a backend mint worker. NFT rollout is disabled until configured and verified; existing book entries are not backfilled. The next rollout uses [isolated NFT staging](docs/NFT_STAGING.md) and Firebase-hosted public artwork. See [NFT setup](docs/NFT_SETUP.md), the [contract](contracts/README.md), [PRODUCT.md](PRODUCT.md), and [API contract](docs/plans/tagtag-api-contract.md).
+Unity `6000.5.5f1`, UI Toolkit, AR Foundation/ARKit, native MapKit and AuthenticationServices, Firebase Authentication, Firestore, private Cloud Storage, and a Node.js API on Cloud Run. Collections can automatically mint transferable ERC-721 souvenirs on Ethereum Sepolia through Thirdweb embedded wallets and a backend mint worker. Existing book entries are not backfilled. The current rollout uses the existing `tagtag-tokyo-2026` project, with [public NFT metadata](https://tagtag-tokyo-2026.web.app/nft/v1/taggi-1.json), a deployed Sepolia contract, a zero-traffic API candidate, and a manually verified mint worker; live app mint acceptance is pending. See the [Tokyo rollout record](docs/NFT_TOKYO_ROLLOUT.md), [NFT setup](docs/NFT_SETUP.md), the [contract](contracts/README.md), [PRODUCT.md](PRODUCT.md), and [API contract](docs/plans/tagtag-api-contract.md).
 
 ## Development
 
