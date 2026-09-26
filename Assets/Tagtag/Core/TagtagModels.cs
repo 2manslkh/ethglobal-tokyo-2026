@@ -71,6 +71,7 @@ namespace Tagtag
         public CollectedSticker detail;
         public string status = "", error = "", selectedPreset = "", draftPlace = "", draftTeaser = "", draftNote = "";
         public bool busy, nearbyLoading, accountOpen, servicesConfigured, hasPendingPublication;
+        public bool locationSettingsRequired;
     }
     public interface IArExperience
     {
