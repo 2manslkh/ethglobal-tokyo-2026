@@ -1,5 +1,23 @@
 # Device verification
 
+## Faster collection with approximate location — 2026-09-26
+
+On the particle build, the owner confirmed sparkles appeared and a tap within
+three metres changed the status to “Collecting your sticker…”. Collection then
+waited and ended with “Location accuracy is still low.” The client now requests
+a fresh fix using the same 5,000 m accuracy allowance as AR recovery, and the
+API accepts distance within the reported accuracy plus 100 m. The API returns
+`isNew`, eliminating the client’s collection-list request before collection.
+
+Backend tests passed 84/84 with one emulator-only skip
+(`/tmp/tagtag-collect-location-green2.log`). Device location Edit Mode tests
+passed 22/22 (`/tmp/tagtag-collect-location-edit.xml`), including immediate
+return of a fresh 2,000.149 m fix. ARKit preparation, Unity iOS export, and
+automatically signed Xcode Debug/iphoneos build succeeded. Logs:
+`/tmp/tagtag-collect-accuracy-{prepare,export,xcode}.log`. The new API revision
+is live; iPhone installation and physical collection verification are pending
+because Dawg. disconnected before installation.
+
 ## Sticker particles and camera tap — 2026-09-26
 
 After the prior build, the owner reported that yellow sparkles appeared, but

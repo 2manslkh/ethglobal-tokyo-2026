@@ -50,6 +50,18 @@ Billing uses SGD. On 2026-09-26, at the user's request, the project alert budget
 - Cleanup execution `tagtag-cleanup-fqg5g` completed successfully.
 - Firebase emulator test passed against Auth, Firestore, and Storage; see [device verification](DEVICE_VERIFICATION.md) for app-level evidence and pending hardware checks.
 
+## Collection location tolerance rollout
+
+Revision `tagtag-api-00021-git` is serving 100% of API traffic. Collection now
+accepts a fresh measured fix up to 5,000 m accuracy when its distance from the
+sticker is within the measured accuracy plus 100 m, matching AR recovery.
+Collection still requires a valid discovery ID. The response includes `isNew`
+to remove a collection-list request from the client tap path. The backend suite
+passed 84 tests with one emulator-only skip. At zero traffic and after promotion,
+health returned 200, unauthenticated collection returned 401, and a fresh
+5,000 m approximate nearby request returned 200. Authenticated live collection
+was not exercised. Logs: `/tmp/tagtag-collect-accuracy-{deploy,promote}.log`.
+
 ## Explore accuracy rollout
 
 On 2026-09-26, revision `tagtag-api-00005-sos` was built from the browse-location fix and checked at zero traffic before promotion to 100%. Nearby requests with fresh synthetic coordinates and 75, 2,000.149, and 5,000-metre accuracy returned 200. A 5,001-metre fix and a stale fix returned 400. Health returned 200 and unauthenticated collection returned 401. After promotion, the public app URL passed the 2,000.149/5,000-metre success and excessive/stale rejection checks again. No test stickers were published. Client regression and pending hardware checks are recorded in [Explore location verification](verification/explore-location.md).
