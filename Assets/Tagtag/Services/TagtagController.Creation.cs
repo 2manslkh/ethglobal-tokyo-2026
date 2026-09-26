@@ -28,6 +28,7 @@ namespace Tagtag.Services
         private void RestoreDesigns()
         {
             StickerArtwork.SetAccount(State.user?.uid);
+            State.designError = "";
             State.designs = designs.Read(State.user?.uid).ToList();
             State.hasPendingDesign = designs.ReadDraft(State.user?.uid) != null;
         }
@@ -35,6 +36,7 @@ namespace Tagtag.Services
         {
             if (State.busy || nativeCreationOpen) return;
             State.creationOpen = true; State.accountOpen = false; State.detail = null;
+            State.designError = "";
             State.creationCapabilities = creation.Capabilities;
             Map.Hide(); CancelNearby(true); Notify();
             if (State.user != null) RefreshDesigns();
@@ -48,8 +50,8 @@ namespace Tagtag.Services
         {
             if (State.busy || nativeCreationOpen || (source != "import" && source != "ai" && source != "polaroid")) return;
             if (State.hasPendingDesign)
-            { State.error = "Save your pending sticker before creating another."; Notify(); return; }
-            State.creationOpen = true; State.error = "";
+            { State.designError = "Save your pending sticker before creating another."; Notify(); return; }
+            State.creationOpen = true; State.designError = "";
             nativeCreationOpen = true;
             (Ar as ICustomArtworkAr)?.SuspendForCreation(true);
             location.Stop();
@@ -69,10 +71,10 @@ namespace Tagtag.Services
                         if (System.IO.Path.GetFileName(System.IO.Path.GetDirectoryName(image.path)) == "StickerCreations")
                             try { File.Delete(image.path); } catch { }
                     }
-                    catch { State.error = "This device could not save the sticker. Please try again."; Notify(); return; }
+                    catch { State.designError = "This device could not save the sticker. Please try again."; Notify(); return; }
                     RetryDesignSave();
                 }
-                else if (image.status != "cancelled") State.error = image.error ?? "Sticker creation is unavailable.";
+                else if (image.status != "cancelled") State.designError = image.error ?? "Sticker creation is unavailable.";
                 Notify();
             });
         }
@@ -80,7 +82,7 @@ namespace Tagtag.Services
         {
             if (State.busy || !State.hasPendingDesign) return;
             if (!RequireAccount()) { State.status = "Your sticker is saved on this phone. Sign in to sync it."; Notify(); return; }
-            Run(SaveCreatedDesign);
+            Run(SaveCreatedDesign, designOperation: true);
         }
         private async Task SaveCreatedDesign()
         {
@@ -131,13 +133,14 @@ namespace Tagtag.Services
         {
             if (State.busy || State.designsLoading || State.user == null) return;
             StickerArtwork.Retry();
-            Run(SyncDesigns);
+            Run(SyncDesigns, designOperation: true);
         }
         private async Task SyncDesigns()
         {
             if (State.user == null) return;
             string owner = State.user.uid;
             int version = accountGeneration;
+            State.designError = "";
             State.designsLoading = true; Notify();
             try
             {
@@ -147,6 +150,11 @@ namespace Tagtag.Services
                 foreach (var design in State.designs) StickerArtwork.Authorize(design.id);
                 designs.Save(owner, State.designs.ToArray());
             }
+            catch (Exception error)
+            {
+                if (!disposed && version == accountGeneration && State.user?.uid == owner)
+                    State.designError = error is ApiFailure ? error.Message : "My Stickers could not refresh. Please try again.";
+            }
             finally { State.designsLoading = false; }
         }
         public void SelectDesign(string id)
@@ -154,37 +162,48 @@ namespace Tagtag.Services
             if (State.busy || nativeCreationOpen) return;
             var design = State.designs.FirstOrDefault(item => item.id == id && item.ownerId == State.user?.uid);
             if (design == null || !(Ar is ICustomArtworkAr custom)) return;
+            string owner = State.user.uid;
+            int version = accountGeneration;
             Run(async () =>
             {
                 State.status = "Opening sticker artwork…"; Notify();
                 var texture = await StickerArtwork.Load(design.id, design.artworkUrl);
-                if (disposed) return;
+                EnsureDesignAccount(owner, version);
                 if (texture == null) throw new ApiFailure("Artwork could not load. Refresh My Stickers and try again.");
                 string previous = State.selectedDesign;
                 State.selectedDesign = design.id;
-                if (!SaveEditableDraft("", State.draftPlace, State.draftTeaser, State.draftNote))
-                { State.selectedDesign = previous; throw new ApiFailure(State.error); }
-                if (pendingDraft != null && !ClearPublication())
-                { State.selectedDesign = previous; throw new ApiFailure(State.error); }
+                if (!SaveEditableDraft("", State.draftPlace, State.draftTeaser, State.draftNote, true))
+                { State.selectedDesign = previous; throw new ApiFailure(State.designError); }
+                if (pendingDraft != null && !ClearPublication(true))
+                { State.selectedDesign = previous; throw new ApiFailure(State.designError); }
                 State.selectedPreset = ""; recovery = null; State.selected = null;
                 State.creationOpen = false; State.accountOpen = false; State.page = AppPage.Stick;
                 Map.Hide(); Ar.Enter(); custom.SelectArtwork(design, texture); location.Prewarm();
                 State.status = "Find a surface for your sticker.";
-            });
+            }, designOperation: true);
         }
         public void DeleteDesign(string id)
         {
             if (State.busy || State.user == null || !State.designs.Any(item => item.id == id && item.ownerId == State.user.uid)) return;
+            string owner = State.user.uid;
+            int version = accountGeneration;
             Run(async () =>
             {
                 await api.Call<OkResult>("DELETE", "/v1/designs/" + Uri.EscapeDataString(id), null, await session.Token());
-                State.designs.RemoveAll(item => item.id == id); designs.Save(State.user.uid, State.designs.ToArray());
+                EnsureDesignAccount(owner, version);
                 if (State.selectedDesign == id)
                 {
-                    State.selectedDesign = ""; Ar.CancelPlacement(); ClearPublication(); editablePublications.Remove(State.user.uid);
+                    Ar.CancelPlacement();
+                    if (!ClearPublication(true)) throw new ApiFailure(State.designError);
+                    try { editablePublications.Remove(owner); }
+                    catch { throw new ApiFailure("This device could not remove the saved draft. Please retry."); }
+                    State.selectedDesign = "";
                 }
+                var remaining = State.designs.Where(item => item.id != id).ToList();
+                designs.Save(owner, remaining.ToArray());
+                State.designs = remaining;
                 State.status = "Removed from My Stickers. Published copies remain available.";
-            });
+            }, designOperation: true);
         }
         private async void RestoreSelectedArtwork()
         {
@@ -195,7 +214,7 @@ namespace Tagtag.Services
             var texture = await StickerArtwork.Load(id, design.artworkUrl);
             if (disposed || accountGeneration != version || State.selectedDesign != id || State.page != AppPage.Stick) return;
             if (texture != null) custom.SelectArtwork(design, texture);
-            else { State.error = "Artwork could not load. Open My Stickers and refresh."; Notify(); }
+            else { State.designError = "Artwork could not load. Open My Stickers and refresh."; Notify(); }
         }
     }
 }

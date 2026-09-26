@@ -167,7 +167,7 @@ namespace Tagtag.Services
         {
             if (State.busy) return;
             CancelNearby();
-            State.busy = true; State.error = ""; Notify();
+            State.busy = true; State.error = ""; State.designError = ""; Notify();
             identity.SignIn(provider, configuration, credential =>
             {
                 accountGeneration++;
@@ -184,7 +184,14 @@ namespace Tagtag.Services
                     blockedAuthors = localBlocks.Read(State.user.uid); ApplyBlocks();
                     State.status = "You're signed in. Welcome to tagtag.";
                     await SyncAccount();
-                    if (State.hasPendingDesign) await SaveCreatedDesign();
+                    if (State.hasPendingDesign)
+                    {
+                        try { await SaveCreatedDesign(); }
+                        catch (Exception error)
+                        {
+                            State.designError = error is ApiFailure ? error.Message : "Your sticker is saved on this phone. Please retry the upload.";
+                        }
+                    }
                 });
             }, message => { State.busy = false; State.error = message; Notify(); });
         }
@@ -199,7 +206,7 @@ namespace Tagtag.Services
             blockedAuthors.Clear(); State.collection.Clear(); State.authored.Clear(); State.detail = null; State.selected = null;
             Ar.CancelPlacement(); pendingDraft = null; State.hasPendingPublication = false;
             State.draftNote = State.draftTeaser = State.draftPlace = State.selectedPreset = State.selectedDesign = "";
-            State.status = "Signed out."; State.error = ""; State.locationSettingsRequired = false; Notify();
+            State.status = "Signed out."; State.error = ""; State.designError = ""; State.locationSettingsRequired = false; Notify();
         }
         public void RefreshNearby() => RefreshNearby(false);
 
@@ -624,7 +631,7 @@ namespace Tagtag.Services
             State.draftTeaser = editable.teaser ?? "";
             State.draftNote = editable.note ?? "";
         }
-        private bool SaveEditableDraft(string presetId, string place, string teaser, string note)
+        private bool SaveEditableDraft(string presetId, string place, string teaser, string note, bool designOperation = false)
         {
             if (State.user == null) return true;
             try
@@ -635,14 +642,20 @@ namespace Tagtag.Services
             }
             catch
             {
-                State.error = "This device could not save your draft. Try again before publishing.";
+                if (designOperation) State.designError = "This device could not save your draft. Try again before publishing.";
+                else State.error = "This device could not save your draft. Try again before publishing.";
                 return false;
             }
         }
-        private bool ClearPublication()
+        private bool ClearPublication(bool designOperation = false)
         {
             try { publications.Remove(State.user?.uid); }
-            catch { State.error = "This device could not remove the saved draft."; return false; }
+            catch
+            {
+                if (designOperation) State.designError = "This device could not remove the saved draft.";
+                else State.error = "This device could not remove the saved draft.";
+                return false;
+            }
             pendingDraft = null; State.hasPendingPublication = false;
             return true;
         }
@@ -681,27 +694,30 @@ namespace Tagtag.Services
             if (suspended || generation != publicationGeneration)
                 throw new ApiFailure("Publishing was interrupted. Return to STICK and try again.");
         }
-        private async void Run(Func<Task> work, bool preserveForegroundError = false)
+        private async void Run(Func<Task> work, bool preserveForegroundError = false, bool designOperation = false)
         {
             if (State.busy || disposed) return;
             CancelNearby(true);
             bool preserveError = preserveForegroundError &&
                 (!string.IsNullOrEmpty(State.error) || State.locationSettingsRequired);
             State.busy = true;
-            if (!preserveError) { State.error = ""; State.locationSettingsRequired = false; }
+            if (designOperation) State.designError = "";
+            else if (!preserveError) { State.error = ""; State.locationSettingsRequired = false; }
             int generation = accountGeneration; Notify();
             try { await work(); }
             catch (Exception error)
             {
                 if (!disposed && generation == accountGeneration)
                 {
-                    if (publicationStage != null)
+                    if (!designOperation && publicationStage != null)
                     {
                         FinishPublicationStage(true);
                         State.status = pendingDraft == null ? "Publishing stopped. Try again when you're ready." :
                             "Your draft is saved. Try publishing again.";
                     }
-                    if (!preserveError)
+                    if (designOperation)
+                        State.designError = error is ApiFailure ? error.Message : "Something went wrong. Please try again.";
+                    else if (!preserveError)
                     {
                         State.error = error is ApiFailure ? error.Message : "Something went wrong. Please try again.";
                         State.locationSettingsRequired = error is ApiFailure failure && failure.LocationSettingsRequired;
@@ -710,7 +726,7 @@ namespace Tagtag.Services
             }
             finally
             {
-                if (publicationStage != null) FinishPublicationStage(true);
+                if (!designOperation && publicationStage != null) FinishPublicationStage(true);
                 if (!disposed)
                 {
                     State.busy = false;

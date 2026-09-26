@@ -422,6 +422,7 @@ namespace Tagtag.Services.Tests
             public event Action Changed { add { } remove { } }
             public event Action<string> StickerTapped { add { } remove { } }
             public CameraPresentationState CameraPresentation => CameraPresentationState.Live;
+            public PlacementScanState ScanState => PlacementScanState.Ready;
             public bool IsTracking => true;
             public bool CanPublish => CanPublishEnabled;
             public bool CanCollect => false;

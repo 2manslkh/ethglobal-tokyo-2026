@@ -123,6 +123,45 @@ namespace Tagtag.Services.Tests
             Assert.That(controller.State.error, Is.Empty);
         }
 
+        [Test]
+        public void DesignRefreshFailurePreservesWriteNoteAndPendingDraftState()
+        {
+            controller.Dispose();
+            controller = new TagtagController(new ServiceConfiguration
+                { apiBaseUrl = "http://invalid.test", firebaseApiKey = "test" },
+                new Camera(), new Map(), new Identity { StoredSession = ValidSession });
+            controller.Navigate(AppPage.Stick);
+            controller.State.draftNote = "Keep this unfinished note";
+            controller.State.hasPendingDesign = true;
+            controller.State.error = "Existing note guidance";
+
+            controller.RefreshDesigns();
+
+            Assert.That(controller.State.designError, Does.Contain("secure HTTPS address"));
+            Assert.That(controller.State.error, Is.EqualTo("Existing note guidance"));
+            Assert.That(controller.State.draftNote, Is.EqualTo("Keep this unfinished note"));
+            Assert.That(controller.State.hasPendingDesign, Is.True);
+            Assert.That(controller.State.designsLoading, Is.False);
+            Assert.That(controller.State.busy, Is.False);
+        }
+
+        [Test]
+        public void CreationFailureDoesNotReplaceWriteNoteError()
+        {
+            controller.Dispose();
+            controller = new TagtagController(new ServiceConfiguration(), new Camera(), new Map(), new Identity(),
+                stickerCreation: new FailedCreation());
+            controller.State.error = "Existing note guidance";
+            controller.State.draftNote = "Keep this note";
+
+            controller.CreateSticker("ai");
+
+            Assert.That(controller.State.designError, Is.EqualTo("Creation unavailable for this test."));
+            Assert.That(controller.State.error, Is.EqualTo("Existing note guidance"));
+            Assert.That(controller.State.draftNote, Is.EqualTo("Keep this note"));
+            Assert.That(controller.State.hasPendingDesign, Is.False);
+        }
+
         private static string ValidSession => JsonUtility.ToJson(new UserSession
         { uid = "nearby-test", idToken = "test-token", refreshToken = "test-refresh", expiresAt = DateTimeOffset.UtcNow.ToUnixTimeSeconds() + 3600 });
 
@@ -131,6 +170,7 @@ namespace Tagtag.Services.Tests
             public event Action Changed { add { } remove { } }
             public event Action<string> StickerTapped { add { } remove { } }
             public CameraPresentationState CameraPresentation => CameraPresentationState.Inactive;
+            public PlacementScanState ScanState => PlacementScanState.FindingSurface;
             public bool IsTracking => false;
             public bool CanPublish => false;
             public bool CanCollect => false;
@@ -165,6 +205,14 @@ namespace Tagtag.Services.Tests
             public void StoreSession(string value) { }
             public string LoadSession() => StoredSession;
             public void ClearSession() { }
+        }
+
+        private sealed class FailedCreation : IStickerCreation
+        {
+            public int Capabilities => 0;
+            public void Open(string source, Action<CreatedStickerImage> completed) =>
+                completed(new CreatedStickerImage { status = "error", error = "Creation unavailable for this test." });
+            public void Cancel() { }
         }
     }
 }
