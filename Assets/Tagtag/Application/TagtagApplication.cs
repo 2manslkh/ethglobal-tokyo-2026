@@ -28,7 +28,11 @@ namespace Tagtag
             gameObject.AddComponent<TagtagAppView>().Initialize(controller);
             controller.Start();
         }
-        private void OnApplicationPause(bool paused) { if (!paused) controller?.Resume(); }
+        private void OnApplicationPause(bool paused)
+        {
+            controller?.SetSuspended(paused);
+            if (!paused) controller?.Resume();
+        }
         private void OnDestroy() { controller?.Dispose(); }
     }
 }
