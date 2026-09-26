@@ -40,6 +40,18 @@ namespace Tagtag.AR.Tests
         }
 
         [Test]
+        public void ScanStageUsesTrackingSurfaceAnchorAndMapWithoutSheetVisibility()
+        {
+            Assert.That(PlacementFlow.ScanState(false, true, false, false, false), Is.EqualTo(PlacementScanState.FindingSurface));
+            Assert.That(PlacementFlow.ScanState(true, false, false, false, false), Is.EqualTo(PlacementScanState.FindingSurface));
+            Assert.That(PlacementFlow.ScanState(true, true, false, false, false), Is.EqualTo(PlacementScanState.SurfaceReady));
+            Assert.That(PlacementFlow.ScanState(true, true, true, true, false), Is.EqualTo(PlacementScanState.Placed));
+            Assert.That(PlacementFlow.ScanState(true, true, true, true, true), Is.EqualTo(PlacementScanState.Ready));
+            Assert.That(PlacementFlow.ScanState(false, true, true, true, true), Is.EqualTo(PlacementScanState.FindingSurface));
+            Assert.That(PlacementFlow.ScanState(true, true, true, false, true), Is.EqualTo(PlacementScanState.FindingSurface));
+        }
+
+        [Test]
         public void DragMovesAlongTheOriginalPlaneOnly()
         {
             var original = new Pose(Vector3.zero, Quaternion.identity);

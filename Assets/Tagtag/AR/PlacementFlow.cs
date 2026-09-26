@@ -27,6 +27,14 @@ namespace Tagtag.AR
             return selected && tracking && !busy && !hasPreview && !blocked;
         }
 
+        public static PlacementScanState ScanState(bool tracking, bool surface, bool hasPlacement,
+            bool anchorTracking, bool mapReady)
+        {
+            if (!tracking || (hasPlacement && !anchorTracking)) return PlacementScanState.FindingSurface;
+            if (hasPlacement) return mapReady ? PlacementScanState.Ready : PlacementScanState.Placed;
+            return surface ? PlacementScanState.SurfaceReady : PlacementScanState.FindingSurface;
+        }
+
         public static bool TryMoveOnOriginalPlane(Pose original, Pose hit, out Vector3 position)
         {
             position = default;

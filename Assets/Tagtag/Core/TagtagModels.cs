@@ -6,6 +6,7 @@ namespace Tagtag
 {
     public enum AppPage { Home, Stick, Explore }
     public enum CameraPresentationState { Inactive, Preparing, Live, PermissionDenied, Unavailable, Interrupted, Failed }
+    public enum PlacementScanState { FindingSurface, SurfaceReady, Placed, Ready }
     [Serializable] public sealed class LocationFix
     {
         public double latitude, longitude;
@@ -98,7 +99,7 @@ namespace Tagtag
         public List<StickerSummary> authored = new List<StickerSummary>();
         public StickerSummary selected;
         public CollectedSticker detail;
-        public string status = "", error = "", selectedPreset = "", draftPlace = "", draftTeaser = "", draftNote = "";
+        public string status = "", error = "", designError = "", selectedPreset = "", draftPlace = "", draftTeaser = "", draftNote = "";
         public bool busy, nearbyLoading, accountOpen, servicesConfigured, hasPendingPublication;
         public bool locationSettingsRequired;
         public bool nftEnabled;
@@ -111,6 +112,7 @@ namespace Tagtag
         event Action Changed;
         event Action<string> StickerTapped;
         CameraPresentationState CameraPresentation { get; }
+        PlacementScanState ScanState { get; }
         bool IsTracking { get; }
         bool CanPublish { get; }
         bool CanCollect { get; }

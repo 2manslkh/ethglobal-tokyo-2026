@@ -28,6 +28,8 @@ namespace Tagtag.AR
         public event Action<string> StickerTapped;
         public string Status { get; private set; } = "Open STICK to scan a surface.";
         public CameraPresentationState CameraPresentation => presentation.State;
+        public PlacementScanState ScanState => PlacementFlow.ScanState(IsTracking, HasPlacementSurface,
+            anchor != null && visual != null, HasTrackedPlacement, MapReady);
         public bool HasPlacementSurface { get; private set; }
         public bool HasPlacementPreview => !recovered && anchor != null && visual != null;
         public bool PlacementBusy => busy;
@@ -55,10 +57,13 @@ namespace Tagtag.AR
         private ARAnchor anchor;
         private readonly List<ARRaycastHit> hits = new List<ARRaycastHit>();
         private readonly PlacementFlow placementFlow = new PlacementFlow();
-        private readonly Dictionary<TrackableId, LineRenderer> surfaceOutlines = new Dictionary<TrackableId, LineRenderer>();
-        private readonly List<TrackableId> removedOutlines = new List<TrackableId>();
-        private Material outlineMaterial;
-        private Texture2D outlineTexture;
+        private readonly Dictionary<TrackableId, SurfaceHatch> surfaceHatches = new Dictionary<TrackableId, SurfaceHatch>();
+        private readonly List<TrackableId> removedHatches = new List<TrackableId>();
+        private readonly PlaneHatchMesh hatchMeshBuilder = new PlaneHatchMesh();
+        private readonly Plane[] frustumPlanes = new Plane[6];
+        private Material hatchMaterial;
+        private bool hatchMaterialChecked;
+        private PlacementScanState observedScanState;
         private float nextSurfaceUpdate;
         private InputAction positionInput;
         private InputAction rotationInput;
@@ -296,11 +301,15 @@ namespace Tagtag.AR
             var tracking = IsTracking;
             var mapped = MapReady;
             var anchorTracking = anchor != null && anchor.trackingState == TrackingState.Tracking;
-            if (tracking != wasTracking || mapped != wasMapped || anchorTracking != wasAnchorTracking)
+            UpdatePlacementGuidance();
+            var scanState = ScanState;
+            if (tracking != wasTracking || mapped != wasMapped || anchorTracking != wasAnchorTracking ||
+                scanState != observedScanState)
             {
                 wasTracking = tracking;
                 wasMapped = mapped;
                 wasAnchorTracking = anchorTracking;
+                observedScanState = scanState;
                 Changed?.Invoke();
             }
             if (anchor != null && visual != null)
@@ -308,7 +317,6 @@ namespace Tagtag.AR
                 var visible = tracking && anchor.trackingState == TrackingState.Tracking && (recovered || presetId != null);
                 visual.SetActive(visible);
             }
-            UpdatePlacementGuidance();
             if (recovered)
             {
                 if (!IsTracking || anchor == null || anchor.trackingState != TrackingState.Tracking)
@@ -324,58 +332,76 @@ namespace Tagtag.AR
         {
             var show = PlacementFlow.ShouldOutline(active && !paused && presetId != null && !recovered,
                 IsTracking, busy, HasPlacementPreview, placementFlow.IsBlocked);
-            if (!show || planes == null || camera == null)
+            var scan = active && !paused && presetId != null && !recovered && IsTracking && anchor == null;
+            if (!scan || planes == null || camera == null)
             {
-                foreach (var line in surfaceOutlines.Values) if (line != null) line.enabled = false;
+                foreach (var hatch in surfaceHatches.Values) if (hatch.Renderer != null) hatch.Renderer.enabled = false;
                 SetSurfaceAvailable(false);
                 return;
             }
+            if (!show)
+                foreach (var hatch in surfaceHatches.Values) if (hatch.Renderer != null) hatch.Renderer.enabled = false;
             if (Time.unscaledTime < nextSurfaceUpdate) return;
             nextSurfaceUpdate = Time.unscaledTime + 0.1f;
-            if (outlineMaterial == null)
+            if (!hatchMaterialChecked)
             {
-                var template = Resources.Load<Material>("Tagtag/AR/DeviceSticker");
-                if (template == null || template.shader == null || !template.shader.isSupported)
-                { SetSurfaceAvailable(false); return; }
-                outlineTexture = new Texture2D(1, 1, TextureFormat.RGBA32, false);
-                outlineTexture.SetPixel(0, 0, new Color(1f, 0.824f, 0.188f, 0.9f));
-                outlineTexture.Apply();
-                outlineMaterial = new Material(template);
-                outlineMaterial.mainTexture = outlineTexture;
+                hatchMaterialChecked = true;
+                hatchMaterial = Resources.Load<Material>("Tagtag/AR/PlaneHatch");
+                if (hatchMaterial == null || hatchMaterial.shader == null || !hatchMaterial.shader.isSupported)
+                {
+                    Debug.LogError("[TagtagAR] Plane hatch material is unavailable.");
+                    hatchMaterial = null;
+                }
             }
-            removedOutlines.Clear();
-            removedOutlines.AddRange(surfaceOutlines.Keys);
+            removedHatches.Clear();
+            removedHatches.AddRange(surfaceHatches.Keys);
             var visible = false;
-            var frustum = GeometryUtility.CalculateFrustumPlanes(camera);
+            GeometryUtility.CalculateFrustumPlanes(camera, frustumPlanes);
             foreach (var plane in planes.trackables)
             {
                 if (plane.trackingState != TrackingState.Tracking || plane.subsumedBy != null ||
                     plane.boundary.Length < 3) continue;
-                removedOutlines.Remove(plane.trackableId);
-                if (!surfaceOutlines.TryGetValue(plane.trackableId, out var line) || line == null)
+                if (!surfaceHatches.TryGetValue(plane.trackableId, out var hatch) || hatch.Renderer == null)
                 {
-                    line = Child("Placement surface outline", plane.transform).AddComponent<LineRenderer>();
-                    line.useWorldSpace = false;
-                    line.loop = true;
-                    line.widthMultiplier = 0.006f;
-                    line.sharedMaterial = outlineMaterial;
-                    line.numCornerVertices = 3;
-                    line.shadowCastingMode = ShadowCastingMode.Off;
-                    line.receiveShadows = false;
-                    surfaceOutlines[plane.trackableId] = line;
+                    var hatchObject = Child("Placement surface hatch", plane.transform);
+                    var filter = hatchObject.AddComponent<MeshFilter>();
+                    filter.sharedMesh = new Mesh { name = "Placement surface polygon" };
+                    filter.sharedMesh.MarkDynamic();
+                    var renderer = hatchObject.AddComponent<MeshRenderer>();
+                    renderer.sharedMaterial = hatchMaterial;
+                    renderer.shadowCastingMode = ShadowCastingMode.Off;
+                    renderer.receiveShadows = false;
+                    hatch = new SurfaceHatch(hatchObject, filter.sharedMesh, renderer);
+                    surfaceHatches[plane.trackableId] = hatch;
                 }
-                line.positionCount = plane.boundary.Length;
-                for (var index = 0; index < plane.boundary.Length; index++)
-                    line.SetPosition(index, new Vector3(plane.boundary[index].x, 0.003f, plane.boundary[index].y));
-                line.enabled = true;
-                visible |= GeometryUtility.TestPlanesAABB(frustum, line.bounds);
+                removedHatches.Remove(plane.trackableId);
+                var valid = hatchMeshBuilder.Rebuild(plane.boundary, hatch.Mesh);
+                var inView = valid && GeometryUtility.TestPlanesAABB(frustumPlanes, hatch.Renderer.bounds);
+                hatch.Renderer.enabled = show && hatchMaterial != null && inView;
+                visible |= inView;
             }
-            foreach (var id in removedOutlines)
+            foreach (var id in removedHatches)
             {
-                if (surfaceOutlines[id] != null) Destroy(surfaceOutlines[id].gameObject);
-                surfaceOutlines.Remove(id);
+                var hatch = surfaceHatches[id];
+                if (hatch.Object != null) Destroy(hatch.Object);
+                if (hatch.Mesh != null) Destroy(hatch.Mesh);
+                surfaceHatches.Remove(id);
             }
             SetSurfaceAvailable(visible);
+        }
+
+        private sealed class SurfaceHatch
+        {
+            public readonly GameObject Object;
+            public readonly Mesh Mesh;
+            public readonly MeshRenderer Renderer;
+
+            public SurfaceHatch(GameObject hatchObject, Mesh mesh, MeshRenderer renderer)
+            {
+                Object = hatchObject;
+                Mesh = mesh;
+                Renderer = renderer;
+            }
         }
 
         private void SetSurfaceAvailable(bool available)
@@ -390,10 +416,18 @@ namespace Tagtag.AR
 
         private void DisposePlacementGuidance()
         {
-            foreach (var line in surfaceOutlines.Values) if (line != null) Destroy(line.gameObject);
-            surfaceOutlines.Clear();
-            if (outlineMaterial != null) Destroy(outlineMaterial);
-            if (outlineTexture != null) Destroy(outlineTexture);
+            ClearSurfaceHatches();
+        }
+
+        private void ClearSurfaceHatches()
+        {
+            foreach (var hatch in surfaceHatches.Values)
+            {
+                if (hatch.Renderer != null) hatch.Renderer.enabled = false;
+                if (hatch.Object != null) Destroy(hatch.Object);
+                if (hatch.Mesh != null) Destroy(hatch.Mesh);
+            }
+            surfaceHatches.Clear();
         }
 
         private async void PlaceAnchor(Pose pose)
@@ -902,7 +936,7 @@ namespace Tagtag.AR
             ClearPlacement();
             recovered = false;
             recoveredStickerId = null;
-            foreach (var line in surfaceOutlines.Values) if (line != null) line.enabled = false;
+            ClearSurfaceHatches();
             SetSurfaceAvailable(false);
             nextSurfaceUpdate = 0f;
         }
