@@ -42,7 +42,7 @@ Unity configuration adds `nftEnabled` (default false) and `thirdwebClientId` (pu
 
 Admin custom claim `admin:true`: report list and moderation actions; agent may define private admin wire details and document under backend.
 
-Defaults: location ≤30s old; publication prepare/finalize accept accuracy ≤100m automatically; map-confirmed publications accept measured accuracy ≤5000m as described below; nearby and recovery accept ≤5000m; recovery within measured accuracy + 100m of placement; collection requires ≤50m accuracy and proximity within 100m; note ≤2000 chars, teaser ≤180, place ≤80; 5 publications/user/day; bounded nearby results (100). Never return coordinates/notes/tokens in request logs. Maps private in bucket. Presets have no uploads from end users. Published original persists after collection. Backend agent adds tests with injected adapters and emulator integration where available.
+Defaults: location ≤30s old; publication prepare/finalize accept accuracy ≤100m automatically; map-confirmed publications accept measured accuracy ≤5000m as described below; nearby and recovery accept ≤5000m; recovery within measured accuracy + 100m of placement; collection requires ≤50m accuracy and proximity within 100m; note ≤2000 chars, teaser ≤180, place ≤80; 100 publications/user/day; bounded nearby results (100). Never return coordinates/notes/tokens in request logs. Maps private in bucket. Presets have no uploads from end users. Published original persists after collection. Backend agent adds tests with injected adapters and emulator integration where available.
 
 ## Ownership and coordination
 

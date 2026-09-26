@@ -120,7 +120,7 @@ Firestore collections:
 | `designQuotas` | Per-user UTC-day design creation counts |
 | `designCounts` | Per-user active design count |
 
-The nearby response maps only public summary fields. Publication operation IDs and collection IDs are deterministic per user, so retries do not duplicate them. A retry can use a fresh location within 100 m of its first placement; the original coordinate stays fixed. Text bounds are in the shared API contract. The built-in filter rejects configured spam or abuse phrases; add comma-separated phrases with `TAGTAG_BLOCKED_PHRASES` at deployment.
+Each user may prepare up to 100 new publications per UTC day (including unfinished attempts); retries of the same operation do not consume another slot. The nearby response maps only public summary fields. Publication operation IDs and collection IDs are deterministic per user, so retries do not duplicate them. A retry can use a fresh location within 100 m of its first placement; the original coordinate stays fixed. Text bounds are in the shared API contract. The built-in filter rejects configured spam or abuse phrases; add comma-separated phrases with `TAGTAG_BLOCKED_PHRASES` at deployment.
 
 ### Custom designs
 

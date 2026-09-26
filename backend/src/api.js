@@ -406,7 +406,7 @@ export function createApi({ adapter, now = () => Math.floor(Date.now() / 1000), 
                     if (hasDesign && (!design || design.status !== 'ready' || design.ownerId !== user.uid)) denied();
                     const quotaId = digest(`${user.uid}\0${day}`);
                     const quota = await tx.get('quotas', quotaId);
-                    if ((quota?.count ?? 0) >= 10) throw new ApiError(429, 'quota_exceeded', 'Daily publication limit reached');
+                    if ((quota?.count ?? 0) >= 100) throw new ApiError(429, 'quota_exceeded', 'Daily publication limit reached');
                     await tx.set('quotas', quotaId, { id: quotaId, userId: user.uid, day, count: (quota?.count ?? 0) + 1 });
                     if (design) await tx.set('designs', design.id, { ...design, references: (design.references || 0) + 1 });
                     await tx.set('stickers', id, { id, authorId: user.uid, authorName: String(user.name || 'Explorer').slice(0, 80),

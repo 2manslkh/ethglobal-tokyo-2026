@@ -38,7 +38,7 @@ NFT minting is implemented but disabled in the committed app configuration. No N
 
 The `tagtag-cleanup` Cloud Run job runs `node src/cleanup.js` with one task, 512 MiB, one CPU, a ten-minute timeout, and one retry. Cloud Scheduler `tagtag-cleanup-daily` invokes it with OAuth at 04:00 Asia/Tokyo. It removes abandoned uploads and expired discovery sessions and resumes account-data cleanup.
 
-The API has zero minimum instances and one maximum instance. Per-instance request limits, a ten-publication daily user quota, 16 MiB maps, and bounded queries reduce accidental use. The publication quota counts newly prepared publications, including unfinished attempts, and resets at 00:00 UTC. Per-instance request limits reset on instance restart. These limits are not a guaranteed spending cap.
+The API has zero minimum instances and one maximum instance. Per-instance request limits, a 100-publication daily user quota, 16 MiB maps, and bounded queries reduce accidental use. The publication quota counts newly prepared publications, including unfinished attempts, and resets at 00:00 UTC. Per-instance request limits reset on instance restart. These limits are not a guaranteed spending cap.
 
 Billing uses SGD. On 2026-09-26, at the user's request, the project alert budget was changed from S$10 to **S$1/month**, retaining 10%, 50%, and 100% alerts to default billing recipients (S$0.10, S$0.50, and S$1). Budget ID: `4f874738-d088-4cab-bafe-a072c22e93e5`. Alerts do not shut down services or change the billing-enabled project quota blocking staging.
 
