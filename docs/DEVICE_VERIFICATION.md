@@ -565,3 +565,18 @@ source settings were unchanged. No device installation or live NFT/provider
 result is claimed. Deployment remains pending at the user's request after the
 billing-enabled project quota blocked staging. See [full evidence](verification/nft-staging/README.md)
 and [remaining setup](NFT_STAGING.md).
+
+## Main installation — 2026-09-26
+
+Built main commit `e637252` with Unity 6000.5.5f1, using separate ARKit
+preparation and iOS export invocations. The automatically signed Debug Xcode
+build succeeded, and `codesign --verify --deep --strict` passed for
+`com.kenk.tagtag`. Logs are `/private/tmp/tagtag-main-prepare.log`,
+`/private/tmp/tagtag-main-export.log`, and `/private/tmp/tagtag-main-xcode.log`.
+
+Installed on Dawg. (iPhone 15 Pro Max, iOS 26.6.1) using `devicectl` and
+launched successfully. Installation and launch results are recorded locally in
+`/private/tmp/tagtag-main-install.json` and `/private/tmp/tagtag-main-launch.json`.
+This verifies build, signing, installation, and launch; it does not verify a
+complete AR, authentication, or NFT journey. NFT staging deployment remains
+pending.
