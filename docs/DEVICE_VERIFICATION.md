@@ -1,5 +1,23 @@
 # Device verification
 
+## AR sticker build and device install — 2026-09-26
+
+Built committed source `212da2c` in an isolated worktree, including the AR tap
+and sparkle changes. ARKit preparation, Unity iOS export, and automatically signed
+Xcode Debug/iphoneos build succeeded with team `5Y6QUA9GA6` and bundle
+`com.kenk.tagtag`. The build worktree had only a temporary rename of two
+conflicting test-local variables in `PaperVisualTests.cs` to allow Unity script
+compilation; it did not change app behavior or the main checkout.
+
+CoreDevice installed the app over the existing installation on **Dawg., iPhone
+15 Pro Max, iOS 26.6.1**, without uninstalling. Install exited **0**. Launch
+remains pending because CoreDevice reported the phone was locked on two attempts.
+No physical AR tap or sparkle result is claimed yet.
+
+Logs: `/tmp/tagtag-ar-deploy-{prepare,export,xcode,install}.log` and
+`/tmp/tagtag-ar-deploy-launch{,-retry}.log`. The signed app is at
+`/private/tmp/tagtag-ar-device/Build/DerivedData/Build/Products/Debug-iphoneos/tagtag.app`.
+
 ## AR sticker tap and sparkles — 2026-09-26
 
 Physical AR verification is pending. `xcrun devicectl list devices` showed both
