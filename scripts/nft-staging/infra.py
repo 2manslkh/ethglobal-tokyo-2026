@@ -6,6 +6,7 @@ No command reads secret payloads. `plan` and `validate` never contact Google Clo
 
 import argparse
 import json
+import os
 import re
 import shlex
 import subprocess
@@ -25,6 +26,7 @@ SCHEDULER = 'tagtag-nft-scheduler'
 RPC_SECRET = 'tagtag-staging-sepolia-rpc-url'
 SIGNER_SECRET = 'tagtag-staging-sepolia-signer'
 ROOT = Path(__file__).resolve().parents[2]
+PRODUCTION_CONFIG = 'Assets/Resources/Tagtag/ServiceConfiguration.json'
 
 
 def command(*parts):
@@ -48,6 +50,13 @@ def load_config(path):
     key = config.get('firebase_api_key')
     if not isinstance(key, str) or not re.fullmatch(r'AIza[A-Za-z0-9_-]{12,}', key):
         raise ValueError('firebase_api_key must be the staging Firebase web API key')
+    baseline = subprocess.run(['git', 'show', f'HEAD:{PRODUCTION_CONFIG}'], cwd=ROOT,
+                              capture_output=True, text=True, check=True)
+    production_key = json.loads(baseline.stdout).get('firebaseApiKey')
+    if not isinstance(production_key, str) or not production_key:
+        raise ValueError('Committed production Firebase API key is unavailable for offline comparison')
+    if key == production_key:
+        raise ValueError('firebase_api_key is the committed production Firebase API key')
     if type(config.get('nft_enabled')) is not bool:
         raise ValueError('nft_enabled must be true or false')
     if str(config.get('nft_chain_id', '11155111')) != '11155111':
@@ -77,7 +86,7 @@ def render_plan(config):
         account(name) for name in (API_ACCOUNT, CLEANUP, MINT, SCHEDULER))
     image = f'{REGION}-docker.pkg.dev/{PROJECT}/tagtag-nft/backend:staging'
     common = (f'GOOGLE_CLOUD_PROJECT={PROJECT},TAGTAG_MAP_BUCKET={BUCKET},'
-              f'FIREBASE_API_KEY={config["firebase_api_key"]},'
+              'FIREBASE_API_KEY=${TAGTAG_STAGING_FIREBASE_API_KEY},'
               f'FIREBASE_AUTH_DOMAIN={PROJECT}.firebaseapp.com')
     nft = 'NFT_ENABLED=false,NFT_CHAIN_ID=11155111'
     if enabled:
@@ -85,10 +94,12 @@ def render_plan(config):
                f'NFT_CONTRACT_ADDRESS={config["nft_contract_address"]},'
                f'NFT_WALLET_DOMAIN={config["nft_wallet_domain"]}')
     lines = ['#!/usr/bin/env bash', 'set -euo pipefail',
-             '# This plan is scoped to one staging project. Apply runs a read-only preflight first.']
+             '# This plan is scoped to one staging project. Apply runs a read-only preflight first.',
+             f'TAGTAG_STAGING_COMMON_ENV="{common}"']
     lines.append(command('gcloud', 'services', 'enable', 'run.googleapis.com', 'cloudbuild.googleapis.com',
                          'artifactregistry.googleapis.com', 'firestore.googleapis.com',
                          'identitytoolkit.googleapis.com', 'iamcredentials.googleapis.com',
+                         'apikeys.googleapis.com',
                          'secretmanager.googleapis.com', 'cloudscheduler.googleapis.com',
                          f'--project={PROJECT}'))
 
@@ -141,24 +152,24 @@ def render_plan(config):
     lines.append(command('gcloud', 'builds', 'submit', 'backend', f'--tag={image}', f'--project={PROJECT}'))
     lines.append(command('gcloud', 'run', 'deploy', API, f'--image={image}', f'--region={REGION}',
                          f'--project={PROJECT}', f'--service-account={api_account}',
-                         '--min-instances=0', '--max-instances=1', '--allow-unauthenticated',
-                         f'--set-env-vars={common},{nft}', '--clear-secrets', '--quiet'))
+                         '--min-instances=0', '--max-instances=1', '--allow-unauthenticated') +
+                 f' --set-env-vars="${{TAGTAG_STAGING_COMMON_ENV}},{nft}" --clear-secrets --quiet')
     lines.append(command('gcloud', 'run', 'jobs', 'deploy', CLEANUP, f'--image={image}',
                          f'--region={REGION}', f'--project={PROJECT}',
                          f'--service-account={cleanup_account}', '--tasks=1', '--parallelism=1',
-                         '--max-retries=0', '--command=node', '--args=src/cleanup.js',
-                         f'--set-env-vars={common}', '--clear-secrets', '--quiet'))
+                         '--max-retries=0', '--command=node', '--args=src/cleanup.js') +
+                 ' --set-env-vars="${TAGTAG_STAGING_COMMON_ENV}" --clear-secrets --quiet')
     mint_parts = ['gcloud', 'run', 'jobs', 'deploy', MINT, f'--image={image}',
                   f'--region={REGION}', f'--project={PROJECT}', f'--service-account={mint_account}',
                   '--tasks=1', '--parallelism=1', '--max-retries=0', '--task-timeout=10m',
-                  '--command=node', '--args=src/mint-worker.js',
-                  f'--set-env-vars={common},{nft}']
+                  '--command=node', '--args=src/mint-worker.js']
     if enabled:
         mint_parts.append(f'--set-secrets=NFT_SIGNER_PRIVATE_KEY={SIGNER_SECRET}:{config["signer_secret_version"]},'
                           f'NFT_RPC_URL={RPC_SECRET}:{config["rpc_secret_version"]}')
     else:
         mint_parts.append('--clear-secrets')
-    lines.append(command(*mint_parts, '--quiet'))
+    lines.append(command(*mint_parts) +
+                 f' --set-env-vars="${{TAGTAG_STAGING_COMMON_ENV}},{nft}" --quiet')
     for job in (CLEANUP, MINT):
         lines.append(command('gcloud', 'run', 'jobs', 'add-iam-policy-binding', job,
                              f'--member=serviceAccount:{scheduler_account}',
@@ -205,10 +216,31 @@ def existing_mint_job():
                              f'--region={REGION}', f'--project={PROJECT}', '--format=json'],
                             cwd=ROOT, capture_output=True, text=True, check=False)
     if result.returncode:
-        if 'NOT_FOUND' in result.stderr or 'not found' in result.stderr.lower():
+        missing = rf'^ERROR: \(gcloud\.run\.jobs\.describe\) Cannot find job \[{re.escape(MINT)}\]\.?(?:\s*)$'
+        if re.search(missing, result.stderr, re.MULTILINE):
             return None
+        if 'PERMISSION_DENIED' in result.stderr:
+            raise ValueError('Cannot inspect existing mint job: permission denied; disabled deploy is refused')
+        if 'SERVICE_DISABLED' in result.stderr or 'has not been used in project' in result.stderr:
+            raise ValueError('Cannot inspect existing mint job: Cloud Run API is disabled; '
+                             'enable run.googleapis.com on staging before preflight')
         raise ValueError('Cannot inspect existing mint job; disabled deploy is refused')
     return json.loads(result.stdout)
+
+
+def verify_staging_api_key(key):
+    result = subprocess.run(['gcloud', 'services', 'api-keys', 'lookup', key,
+                             f'--project={PROJECT}', '--format=json'], cwd=ROOT,
+                            capture_output=True, text=True, check=False)
+    if result.returncode:
+        if 'SERVICE_DISABLED' in result.stderr or 'has not been used in project' in result.stderr:
+            raise ValueError('Staging API Keys API is disabled; enable apikeys.googleapis.com '
+                             'on staging before preflight')
+        raise ValueError('Firebase API key lookup failed; check staging API Keys API access')
+    metadata = json.loads(result.stdout)
+    parent = f'projects/{PROJECT_NUMBER}/locations/global'
+    if metadata.get('parent') != parent or not metadata.get('name', '').startswith(f'{parent}/keys/'):
+        raise ValueError('Firebase API key does not belong to staging')
 
 
 def nft_flags(value):
@@ -235,6 +267,7 @@ def preflight(config):
     projects = read_json('firebase', 'projects:list', '--json')
     if PROJECT not in {item.get('projectId') for item in projects.get('result', [])}:
         raise ValueError('Staging project has not been added to Firebase')
+    verify_staging_api_key(config['firebase_api_key'])
     if not config['nft_enabled']:
         mint_job = existing_mint_job()
         if mint_job is not None and set(nft_flags(mint_job)) != {'false'}:
@@ -298,7 +331,8 @@ def main():
                 print('Staging project and billing preflight passed')
             else:
                 subprocess.run(['bash', '-euo', 'pipefail'], input=render_plan(config),
-                               text=True, cwd=ROOT, check=True)
+                               text=True, cwd=ROOT, check=True,
+                               env={**os.environ, 'TAGTAG_STAGING_FIREBASE_API_KEY': config['firebase_api_key']})
     except (OSError, ValueError, json.JSONDecodeError, subprocess.CalledProcessError) as error:
         print(f'Infrastructure tooling stopped: {error}', file=sys.stderr)
         return 1
