@@ -111,8 +111,7 @@ namespace Tagtag.UI
             SetDisabled(appleSignInButton, state.busy || !state.servicesConfigured);
             SetDisabled(googleSignInButton, state.busy || !state.servicesConfigured);
             string message = !state.servicesConfigured ? "Sign-in is unavailable until the service is configured." :
-                !string.IsNullOrEmpty(state.error) ? state.error : state.busy ?
-                (string.IsNullOrEmpty(state.status) ? "Signing in…" : state.status) : "";
+                !string.IsNullOrEmpty(state.error) ? state.error : "";
             loginMessage.text = message;
             loginMessage.style.display = string.IsNullOrEmpty(message) ? DisplayStyle.None : DisplayStyle.Flex;
         }

@@ -224,7 +224,7 @@ and Terms & Conditions links below the buttons open in-app sheets with Close
 controls. Only the policy sheet content scrolls; the login screen itself has no
 scroll view. Fit compact screens and enlarged text within safe areas. No Back,
 guest continuation, tab bar, extra sign-in explanation, or idle status card.
-Errors and progress appear inline.
+Sign-in errors appear inline; opening a provider does not add progress text.
 
 ### Home
 

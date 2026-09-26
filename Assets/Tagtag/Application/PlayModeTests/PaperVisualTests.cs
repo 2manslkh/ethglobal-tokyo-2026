@@ -924,7 +924,8 @@ namespace Tagtag.Tests
             controller.Notify();
             yield return null; yield return null;
             Assert.That(apple.enabledInHierarchy, Is.False);
-            Assert.That(root.Q<Label>("Login status").text, Is.EqualTo("Opening Apple…"));
+            Assert.That(root.Q<Label>("Login status").resolvedStyle.display, Is.EqualTo(DisplayStyle.None),
+                "Opening the sign-in provider must not add small progress text.");
             controller.State.busy = false;
             controller.State.error = "Sign-in cancelled. Try again.";
             controller.Notify();
