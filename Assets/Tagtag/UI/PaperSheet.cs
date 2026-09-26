@@ -32,6 +32,11 @@ namespace Tagtag.UI
             Grip=new VisualElement{name="sheet-grip"};Grip.AddToClassList("sheet-grip");Add(Grip);
             var handle=new VisualElement{pickingMode=PickingMode.Ignore};handle.AddToClassList("drawer-handle");Grip.Add(handle);
             var heading = new VisualElement(); heading.AddToClassList("sheet-heading"); Add(heading);
+            if (title == "My Stickers" || title == "Your stickers")
+            {
+                PaperDottedOutline.Decorate(heading, container: true);
+                heading.AddToClassList("sticker-sheet-heading");
+            }
             var titleLabel = new Label(title); titleLabel.AddToClassList("sheet-title"); heading.Add(titleLabel);
             if (!string.IsNullOrEmpty(dismissLabel)) heading.Add(new PaperButton(dismissLabel, Dismiss, PaperButtonKind.Quiet));
             Scroll=new ScrollView{verticalScrollerVisibility=ScrollerVisibility.Hidden,horizontalScrollerVisibility=ScrollerVisibility.Hidden};

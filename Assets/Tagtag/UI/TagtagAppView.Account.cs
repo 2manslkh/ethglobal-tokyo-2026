@@ -408,6 +408,7 @@ namespace Tagtag.UI
             Text(content, "Make a sticker, or choose one to leave at a place.", 16, false, Muted).style.marginBottom = 12f;
             Text(content, "Make a sticker", 21, true);
             creationImportButton = Action(content, "Choose a photo or file", () => controller.CreateSticker("import"));
+            PaperDottedOutline.Decorate(creationImportButton);
             creationImportButton.style.marginTop = 10f;
             creationImportNotice = Text(content, "", 13, false, Muted);
             creationCameraButton = Action(content, "Make a Polaroid", () => controller.CreateSticker("polaroid"), false);
@@ -425,6 +426,7 @@ namespace Tagtag.UI
                 if (SignedIn(controller.State)) controller.RetryDesignSave();
                 else OpenSignIn();
             }, false);
+            PaperDottedOutline.Decorate(creationRetryButton, capsule: true);
             creationRetryButton.style.alignSelf = Align.FlexStart;
             creationRetryButton.style.marginTop = 6f;
             Divider(content);
@@ -452,6 +454,7 @@ namespace Tagtag.UI
                         controller.SelectPreset(preset);
                     });
                 choice.name = "Inventory " + presetName;
+                PaperDottedOutline.Decorate(choice);
                 choice.tooltip = "Select " + presetName;
                 choice.style.width = Length.Percent(48f);
                 choice.style.minHeight = textScale > 1.2f ? 158f : 142f;
@@ -551,6 +554,7 @@ namespace Tagtag.UI
                 {
                     controller.SelectDesign(designId);
                 });
+                PaperDottedOutline.Decorate(choose);
                 details.Add(choose);
                 choose.style.alignSelf = Align.Stretch;
                 choose.style.width = Length.Percent(100f);
@@ -615,6 +619,7 @@ namespace Tagtag.UI
             {
                 Text(content, "Sign in to publish. Your draft will stay here.", 14, false, Muted).style.marginTop = 12f;
                 sheetSubmitButton = Action(content, "Sign in to publish", OpenSignIn);
+                PaperDottedOutline.Decorate(sheetSubmitButton, capsule: true);
             }
             else
             {
@@ -626,6 +631,7 @@ namespace Tagtag.UI
                     controller.SetDraft(draftPlace, draftTeaser, draftNote);
                     controller.Publish();
                 });
+                PaperDottedOutline.Decorate(publishButton, capsule: true);
                 publishButton.style.marginTop = 14f;
                 publishReadinessLabel = Text(content, "", 13, false, Muted);
                 publishReadinessLabel.name = "Publish readiness";

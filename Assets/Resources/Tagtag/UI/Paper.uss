@@ -78,3 +78,10 @@
 .paper-app .paper-button.camera-close { width:48px; height:48px; min-width:48px; min-height:48px; margin:0 10px 0 0; padding:0; border-radius:24px; }
 .paper-app .camera-title-sticker { background-color:#fffefa; min-height:48px; padding:10px 14px; justify-content:center; flex-shrink:0; }
 .paper-app .camera-guidance-notice { background-color:#fffefa; margin-top:8px; padding:8px 10px; border-radius:8px; }
+
+/* Dotted stationery accents share geometry while controls retain native picking. */
+.paper-app .paper-die-cut { border-radius:14px; }
+.paper-app .sticker-sheet-heading { padding:12px 14px; margin-left:12px; margin-right:12px; }
+.paper-app .paper-button.camera-book-button { flex-direction:column; align-items:center; justify-content:center; padding-top:6px; padding-bottom:6px; background-color:#fffefa; }
+.paper-app .paper-button.camera-book-button:hover { background-color:#f2f0e9; }
+.paper-app .paper-button.camera-book-button:active,.paper-app .paper-button.camera-book-button:focus { background-color:#dfdcd1; }

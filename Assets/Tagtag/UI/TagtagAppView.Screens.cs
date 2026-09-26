@@ -137,6 +137,7 @@ namespace Tagtag.UI
             if (items.Count == 0)
             {
                 homeInvitation = Column(homeBook);
+                PaperDottedOutline.Decorate(homeInvitation, container: true);
                 homeInvitation.style.position = Position.Absolute;
                 homeInvitation.style.left = 12f;
                 homeInvitation.style.right = 12f;
@@ -305,6 +306,7 @@ namespace Tagtag.UI
             if (explorePreviewContents.NeedsRefresh(key))
             {
                 explorePreview.Clear();
+                PaperDottedOutline.Decorate(explorePreview, container: true);
                 if (selected == null)
                 {
                     exploreEmptyTitle = Text(explorePreview, "", 19, true);
@@ -497,6 +499,23 @@ namespace Tagtag.UI
             stickActions.style.justifyContent = Justify.SpaceBetween;
             stickInventoryButton = Action(stickActions, "STICK", controller.OpenCreation);
             stickInventoryButton.name = "STICK Inventory";
+            stickInventoryButton.text = "";
+            stickInventoryButton.AddToClassList("camera-book-button");
+            stickInventoryButton.Insert(0, new PaperDottedOutline(true));
+            var bookArt = new Image
+            {
+                image = Resources.Load<Texture2D>("Tagtag/Navigation/stick-book"),
+                scaleMode = ScaleMode.ScaleToFit,
+                pickingMode = PickingMode.Ignore,
+                name = "Taggi holding sticker book"
+            };
+            bookArt.style.width = 52f;
+            bookArt.style.height = 52f;
+            bookArt.style.flexShrink = 0f;
+            stickInventoryButton.Add(bookArt);
+            Label bookLabel = Text(stickInventoryButton, "STICK", 12, false);
+            bookLabel.pickingMode = PickingMode.Ignore;
+            bookLabel.style.unityTextAlign = TextAnchor.MiddleCenter;
             stickInventoryButton.tooltip = "Open sticker inventory";
             stickInventoryButton.style.width = 88f;
             stickInventoryButton.style.height = 88f;
@@ -513,6 +532,7 @@ namespace Tagtag.UI
             actions.style.marginLeft = 10f;
             stickWriteButton = Action(actions, "Write note", () => { sheet = Sheet.Note; QueueRender(); });
             stickWriteButton.name = "STICK Write note";
+            PaperDottedOutline.Decorate(stickWriteButton, capsule: true);
             stickRetryButton = Action(actions, "Retry AR search", controller.StartDiscovery, false);
             stickRetryButton.name = "STICK Retry AR search";
             stickCancelButton = Action(actions, "Cancel placement", controller.CancelPlacement, false);
