@@ -11,6 +11,16 @@ earlier taps without a visible response remained reproducible reports.
 The follow-up changes keep sparkles visible whenever the recovered sticker is
 tracked, direct touch raycasts to its box collider, and show a distance hint
 when a visible sticker is tapped outside the three-metre collection range.
+The two new AR Play Mode tests passed (`/tmp/tagtag-tap-followup-targeted.xml`).
+The full headless AR run passed 9/11; two graphics readback checks failed with
+uniform grey pixels in that run (`/tmp/tagtag-tap-followup-green3.xml`), while
+they passed in the preceding run. Unity ARKit preparation, iOS export, and
+automatically signed Xcode Debug/iphoneos build succeeded from source `70561f8`
+with the test-only compiler fix later committed as `e6b308c`. CoreDevice
+installed the resulting app over the existing installation on Dawg. and
+launched `com.kenk.tagtag`; both commands exited 0. Logs:
+`/tmp/tagtag-sticker-final-{prepare2,export,xcode,install,launch}.log`.
+
 Physical verification of this follow-up build is pending. Recover a new sticker,
 check that sparkles appear before entering collection range, then tap it both
 outside and inside three metres. Confirm the distance hint appears outside range
