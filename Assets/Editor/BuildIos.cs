@@ -255,9 +255,9 @@ public static class BuildIos
         // MapKit lives above Unity's renderer, so bundle the same die-cut artwork for UIKit.
         var mapResources = Path.Combine(output, "TagtagMapResources");
         Directory.CreateDirectory(mapResources);
-        for (var pose = 1; pose <= 4; pose++)
+        foreach (var presetId in StickerPresets.Ids)
         {
-            var filename = "taggi-" + pose + ".png";
+            var filename = presetId + ".png";
             File.Copy(Path.Combine("Assets/Resources/Tagtag/Presets", filename), Path.Combine(mapResources, filename), true);
             var resourceGuid = project.AddFile("TagtagMapResources/" + filename, "TagtagMapResources/" + filename, PBXSourceTree.Source);
             project.AddFileToBuild(main, resourceGuid);

@@ -12,6 +12,15 @@ static void Record(BOOL passed, NSString *message) {
 static void Check(BOOL condition, NSString *message) {
     if (!condition) @throw [NSException exceptionWithName:@"MapOverlapFailure" reason:message userInfo:nil];
 }
+static void CheckPresetArtwork() {
+    NSData *fallback = UIImagePNGRepresentation(TagtagPinImage(@"missing-preset", 0, nil));
+    for (NSUInteger pose = 1; pose <= 12; pose++) {
+        NSString *preset = [NSString stringWithFormat:@"taggi-%lu", (unsigned long)pose];
+        NSData *rendered = UIImagePNGRepresentation(TagtagPinImage(preset, 0, nil));
+        Check(rendered && ![rendered isEqualToData:fallback],
+            [NSString stringWithFormat:@"Map pin must display %@ artwork instead of the photo fallback.", preset]);
+    }
+}
 static void ShowPins(NSUInteger count) {
     NSMutableArray *items = [NSMutableArray new];
     for (NSUInteger index = 0; index < count; index++)
@@ -154,6 +163,8 @@ static void RunStep(NSUInteger stage, NSUInteger attempts = 0) {
     testHost = self.window.rootViewController.view;
     TagtagMapSetReducedMotion(true);
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 250 * NSEC_PER_MSEC), dispatch_get_main_queue(), ^{
+        @try { CheckPresetArtwork(); }
+        @catch (NSException *exception) { Record(NO, exception.reason); return; }
         if ([NSProcessInfo.processInfo.arguments containsObject:@"--review"]) {
             ShowPins(2); TapCluster(); Record(YES, @"Review ready");
         } else CheckLocalArtworkPin();

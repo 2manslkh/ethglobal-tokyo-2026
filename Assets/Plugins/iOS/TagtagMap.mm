@@ -116,9 +116,7 @@ static UIImage *TagtagPinImage(NSString *presetId, NSUInteger count, UIImage *cu
             CGSize textSize = [label sizeWithAttributes:style];
             [label drawAtPoint:CGPointMake((size.width - textSize.width) / 2, (46 - textSize.height) / 2) withAttributes:style];
         } else {
-            NSSet *presets = [NSSet setWithArray:@[@"taggi-1", @"taggi-2", @"taggi-3", @"taggi-4"]];
-            NSString *resource = [presets containsObject:presetId] ? presetId : nil;
-            UIImage *art = customArt ?: (resource ? [UIImage imageNamed:[resource stringByAppendingPathExtension:@"png"]] : nil);
+            UIImage *art = customArt ?: (presetId.length ? [UIImage imageNamed:[presetId stringByAppendingPathExtension:@"png"]] : nil);
             if (art) {
                 CGFloat scale = MIN(48 / art.size.width, 48 / art.size.height);
                 CGSize fitted = CGSizeMake(art.size.width * scale, art.size.height * scale);
