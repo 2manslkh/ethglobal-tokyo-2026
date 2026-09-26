@@ -45,7 +45,6 @@ namespace Tagtag.Services
         private bool pendingPlacementStale;
         private string capturedArtwork;
         private int captureGeneration;
-        private const string DefaultPlace = "Sticker spot";
         private const string DefaultTeaser = "Find this sticker to read its note";
         private int accountGeneration;
         private int publicationGeneration;
@@ -541,7 +540,6 @@ namespace Tagtag.Services
         public void SetDraft(string place, string teaser, string note)
         {
             if (disposed || State.busy) return;
-            place = string.IsNullOrWhiteSpace(place) ? DefaultPlace : place;
             teaser = string.IsNullOrWhiteSpace(teaser) ? DefaultTeaser : teaser;
             // Preserve the operation ID only while the payload stays the same.
             if (State.draftPlace != place || State.draftTeaser != teaser || State.draftNote != note)
@@ -645,6 +643,8 @@ namespace Tagtag.Services
             if (pendingDraft == null && !CurrentCapture) { State.error = "Capture this spot with STICK before publishing."; Notify(); return; }
             if (string.IsNullOrWhiteSpace(State.draftNote))
             { State.error = "Add your note before publishing."; Notify(); return; }
+            if (string.IsNullOrWhiteSpace(State.draftPlace))
+            { State.error = "Add a title before publishing."; Notify(); return; }
             int operationGeneration = publicationGeneration;
             int operationAccount = accountGeneration;
             Run(async () =>
@@ -1042,12 +1042,12 @@ namespace Tagtag.Services
         }
         private void ResetNewDraftMetadata()
         {
-            State.draftPlace = DefaultPlace;
+            State.draftPlace = "";
             State.draftTeaser = DefaultTeaser;
         }
         private void FillMissingPublicMetadata()
         {
-            if (string.IsNullOrWhiteSpace(State.draftPlace)) State.draftPlace = DefaultPlace;
+            if (string.IsNullOrWhiteSpace(State.draftPlace)) State.draftPlace = "";
             if (string.IsNullOrWhiteSpace(State.draftTeaser)) State.draftTeaser = DefaultTeaser;
         }
         private bool ClearPublication(bool designOperation = false)

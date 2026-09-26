@@ -430,7 +430,7 @@ namespace Tagtag.Tests
             Submit("STICK Inventory");
             yield return Capture("camera-note-after-placement");
             Assert.That(document.rootVisualElement.Q<TextField>("Your note"), Is.Not.Null);
-            Assert.That(document.rootVisualElement.Q<PaperField>("Place"), Is.Null);
+            Assert.That(document.rootVisualElement.Q<PaperField>("Title"), Is.Not.Null);
             Assert.That(document.rootVisualElement.Q<PaperField>("Clue"), Is.Null);
             Assert.That(controller.CaptureCount, Is.EqualTo(2));
             Assert.That(controller.Camera.InteractionBlocked, Is.True);
@@ -628,33 +628,38 @@ namespace Tagtag.Tests
             Submit("STICK Inventory");
             yield return Capture("note-empty-disabled");
             var fields = document.rootVisualElement.Query<TextField>().ToList();
-            Assert.That(fields.Count, Is.EqualTo(1));
-            Assert.That(document.rootVisualElement.Q<PaperField>("Place"), Is.Null);
+            Assert.That(fields.Count, Is.EqualTo(2));
+            var title = document.rootVisualElement.Q<PaperField>("Title");
+            Assert.That(title, Is.Not.Null);
             Assert.That(document.rootVisualElement.Q<PaperField>("Clue"), Is.Null);
-            fields[0].value = Sticker(0).note;
-            fields[0].Focus();
-            fields[0].SelectRange(5, 16);
+            title.value = "Garden wall";
+            var note = document.rootVisualElement.Q<TextField>("Your note");
+            note.value = Sticker(0).note;
+            note.Focus();
+            note.SelectRange(5, 16);
             yield return Capture("note-long-focused");
             var noteFocus = document.rootVisualElement.panel.focusController.focusedElement;
             var noteScroll = document.rootVisualElement.Q<PaperSheet>().Scroll.scrollOffset;
-            int cursor = fields[0].cursorIndex, selection = fields[0].selectIndex;
+            int cursor = note.cursorIndex, selection = note.selectIndex;
             controller.State.busy = true;
             controller.State.error = "The connection was interrupted. Your draft is still here.";
             controller.Notify();
             yield return Capture("note-busy-error");
-            Assert.That(document.rootVisualElement.Query<TextField>().ToList()[0], Is.SameAs(fields[0]), "Status updates must keep the mounted field.");
-            Assert.That(fields[0].value, Is.EqualTo(Sticker(0).note));
-            Assert.That(fields[0].enabledInHierarchy, Is.False, "Publication locks editing without replacing the draft field.");
+            Assert.That(document.rootVisualElement.Q<TextField>("Your note"), Is.SameAs(note), "Status updates must keep the mounted field.");
+            Assert.That(note.value, Is.EqualTo(Sticker(0).note));
+            Assert.That(note.enabledInHierarchy, Is.False, "Publication locks editing without replacing the draft field.");
+            Assert.That(title.enabledInHierarchy, Is.False);
             // Unity clears active selection when disabled; verify its restoration after the operation.
             Assert.That(document.rootVisualElement.Q<PaperSheet>().Scroll.scrollOffset, Is.EqualTo(noteScroll));
             controller.State.busy = false;
             controller.State.error = "";
             controller.Notify();
             yield return new WaitForSecondsRealtime(.1f);
-            Assert.That(fields[0].enabledInHierarchy, Is.True);
+            Assert.That(note.enabledInHierarchy, Is.True);
+            Assert.That(title.enabledInHierarchy, Is.True);
             Assert.That(document.rootVisualElement.panel.focusController.focusedElement, Is.SameAs(noteFocus));
-            Assert.That(fields[0].cursorIndex, Is.EqualTo(cursor));
-            Assert.That(fields[0].selectIndex, Is.EqualTo(selection));
+            Assert.That(note.cursorIndex, Is.EqualTo(cursor));
+            Assert.That(note.selectIndex, Is.EqualTo(selection));
             controller.Camera.IsTracking = true;
             controller.Camera.HasPlacementPreview = true;
             controller.Camera.HasTrackedPlacement = true;
@@ -665,7 +670,7 @@ namespace Tagtag.Tests
             var publishButton = document.rootVisualElement.Q<Button>("Action Publish sticker");
             Assert.That(publishButton.enabledInHierarchy, Is.False);
             Assert.That(document.rootVisualElement.Q<Label>("Publish readiness"), Is.Null,
-                "The note sheet contains only the note field and its actions.");
+                "The title and note fields share the same publish action.");
             yield return Capture("publish-readiness-map-blocked");
             controller.Camera.CanPublish = true;
             controller.State.hasCapturedSpot = true;
@@ -674,6 +679,7 @@ namespace Tagtag.Tests
             yield return null;
             Assert.That(publishButton.enabledInHierarchy, Is.True,
                 "A captured snapshot with a note must enable Publish sticker without live scan tracking.");
+            Assert.That(controller.State.draftPlace, Is.EqualTo("Garden wall"));
             Submit("Publish sticker");
             Submit("Publish sticker");
             Assert.That(controller.PublishCount, Is.EqualTo(1), "Repeated activation in one frame must publish once.");

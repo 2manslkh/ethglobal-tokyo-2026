@@ -150,7 +150,8 @@ namespace Tagtag.UI
         public static bool CanPresentPublish(string place, string teaser, string note,
             bool cameraCanPublish, bool busy, bool pending = false)
         {
-            return !busy && (cameraCanPublish || pending) && !string.IsNullOrWhiteSpace(note);
+            return !busy && (cameraCanPublish || pending) &&
+                !string.IsNullOrWhiteSpace(place) && !string.IsNullOrWhiteSpace(note);
         }
 
         public static string PublishNotice(string place, string teaser, string note,
@@ -158,8 +159,9 @@ namespace Tagtag.UI
             bool busy, bool pending, bool customDesign = false)
         {
             if (busy) return "Publishing is in progress.";
-            if (pending) return "Your saved placement is ready to retry. Location is checked again after you tap.";
             if (string.IsNullOrWhiteSpace(note)) return "Add your note before publishing.";
+            if (string.IsNullOrWhiteSpace(place)) return "Add a title before publishing.";
+            if (pending) return "Your saved placement is ready to retry. Location is checked again after you tap.";
             if (!cameraCanPublish) return "Capture this spot with STICK before publishing.";
             return "Ready to publish. Location is checked after you tap.";
         }

@@ -636,6 +636,8 @@ namespace Tagtag.UI
 
         private void BuildNoteSheet(VisualElement content, AppState state)
         {
+            DraftField(content, "Title", draftPlace, 80, false, value => draftPlace = value,
+                "Give your sticker a name people can see on the map.");
             DraftField(content, "Your note", draftNote, 2000, true, value => draftNote = value,
                 "Unlocked only when someone taps your sticker in AR.");
             if (!SignedIn(state))
@@ -706,7 +708,7 @@ namespace Tagtag.UI
                 }
             }
 
-            foreach (string name in new[] { "Your note" })
+            foreach (string name in new[] { "Title", "Your note" })
             {
                 PaperField field = sheetView.Q<PaperField>(name);
                 if (field != null && field.enabledSelf != !state.busy) field.SetEnabled(!state.busy);

@@ -76,10 +76,15 @@ namespace Tagtag.Services.Tests
                 Assert.That(camera.CaptureCount, Is.EqualTo(1));
                 Assert.That(controller.State.hasCapturedSpot, Is.True);
                 Assert.That(controller.State.hasPendingPublication, Is.False);
-                Assert.That(controller.State.draftPlace, Is.EqualTo("Sticker spot"));
+                Assert.That(controller.State.draftPlace, Is.Empty);
                 Assert.That(controller.State.draftTeaser, Is.EqualTo("Find this sticker to read its note"));
 
-                controller.SetDraft(controller.State.draftPlace, controller.State.draftTeaser, "A private note");
+                controller.SetDraft("", controller.State.draftTeaser, "A private note");
+                controller.Publish();
+                Assert.That(controller.State.error, Is.EqualTo("Add a title before publishing."));
+                Assert.That(controller.State.hasPendingPublication, Is.False);
+                controller.SetDraft("My hallway", controller.State.draftTeaser, "A private note");
+                Assert.That(controller.State.draftPlace, Is.EqualTo("My hallway"));
                 Assert.That(controller.State.hasCapturedSpot, Is.True, "Editing text must retain the captured map and photo.");
                 controller.State.error = "Old publish failure";
                 controller.State.locationSettingsRequired = true;
@@ -191,7 +196,7 @@ namespace Tagtag.Services.Tests
         }
 
         [Test]
-        public void CancelledFirstPlacementStartsSecondDraftWithPublicDefaults()
+        public void CancelledFirstPlacementStartsSecondDraftWithoutATitle()
         {
             var identity = new Identity();
             var controller = new TagtagController(new ServiceConfiguration(), new Camera(), new Map(), identity,
@@ -202,7 +207,7 @@ namespace Tagtag.Services.Tests
                 controller.SetDraft("Old place", "Old teaser", "Private words");
                 controller.CancelPlacement();
                 controller.SelectPreset("taggi-2");
-                Assert.That(controller.State.draftPlace, Is.EqualTo("Sticker spot"));
+                Assert.That(controller.State.draftPlace, Is.Empty);
                 Assert.That(controller.State.draftTeaser, Is.EqualTo("Find this sticker to read its note"));
                 Assert.That(controller.State.draftNote, Is.Empty);
             }
@@ -238,7 +243,7 @@ namespace Tagtag.Services.Tests
         }
 
         [Test]
-        public void PartialLegacyEditableDraftGetsOnlyMissingPublicDefaults()
+        public void PartialLegacyEditableDraftKeepsMissingTitleAndFillsTeaser()
         {
             var identity = new Identity();
             var editable = new EditablePublication(System.IO.Path.Combine(Application.persistentDataPath, "editable-publications"));
@@ -248,7 +253,7 @@ namespace Tagtag.Services.Tests
                 deviceLocation: new DeviceLocation(new TrackingLocationRuntime()));
             try
             {
-                Assert.That(controller.State.draftPlace, Is.EqualTo("Sticker spot"));
+                Assert.That(controller.State.draftPlace, Is.Empty);
                 Assert.That(controller.State.draftTeaser, Is.EqualTo("Keep this public teaser"));
                 Assert.That(controller.State.draftNote, Is.EqualTo("Private note"));
             }
