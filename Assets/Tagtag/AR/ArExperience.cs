@@ -35,8 +35,9 @@ namespace Tagtag.AR
         public float PlacementRotationDegrees => twistDegrees;
         public bool IsTracking => active && !paused && ARSession.state == ARSessionState.SessionTracking &&
             cameraFrameAt > 0 && Time.realtimeSinceStartupAsDouble - cameraFrameAt < 1.5;
-        public bool CanPublish => ArGates.CanPublish(IsTracking, anchor != null && anchor.trackingState == TrackingState.Tracking,
+        public bool CanPublish => ArGates.CanPublish(IsTracking, HasTrackedPlacement,
             MapReady, visual != null && anchor != null, busy);
+        public bool HasTrackedPlacement => anchor != null && anchor.trackingState == TrackingState.Tracking;
         public bool CanCollect => ArGates.CanCollect(IsTracking, recovered, anchor != null && anchor.trackingState == TrackingState.Tracking,
             camera == null || visual == null ? float.PositiveInfinity : Vector3.Distance(camera.transform.position, visual.transform.position), true);
 

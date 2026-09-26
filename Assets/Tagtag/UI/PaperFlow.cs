@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+
 namespace Tagtag.UI
 {
     public enum CameraRecovery { None, Retry, Settings }
@@ -149,6 +151,32 @@ namespace Tagtag.UI
             return !busy && (cameraCanPublish || pending) &&
                 !string.IsNullOrWhiteSpace(place) && !string.IsNullOrWhiteSpace(teaser) &&
                 !string.IsNullOrWhiteSpace(note);
+        }
+
+        public static string PublishNotice(string place, string teaser, string note,
+            bool tracking, bool hasPlacement, bool placementTracked, bool cameraCanPublish,
+            bool busy, bool pending)
+        {
+            if (busy) return "Publishing is in progress.";
+            if (pending) return "Your saved placement is ready to retry. Location is checked again after you tap.";
+
+            var missing = new List<string>();
+            if (string.IsNullOrWhiteSpace(place)) missing.Add("place");
+            if (string.IsNullOrWhiteSpace(teaser)) missing.Add("clue");
+            if (string.IsNullOrWhiteSpace(note)) missing.Add("note");
+            if (missing.Count > 0)
+            {
+                string needed = missing.Count == 1 ? missing[0] : missing.Count == 2 ?
+                    missing[0] + " and " + missing[1] :
+                    string.Join(", ", missing.GetRange(0, missing.Count - 1).ToArray()) +
+                    ", and " + missing[missing.Count - 1];
+                return "Still needed: " + needed + ".";
+            }
+            if (!tracking) return "Move slowly until AR tracking is stable.";
+            if (!hasPlacement) return "Place Taggi on a tracked surface before publishing.";
+            if (!placementTracked) return "Keep Taggi visible until its surface anchor is tracked.";
+            if (!cameraCanPublish) return "Scan around Taggi from more angles until the spatial map is ready.";
+            return "Ready to publish. Location is checked after you tap.";
         }
 
         public static bool ShouldClearPublishedDraft(bool submitted, AppState state)

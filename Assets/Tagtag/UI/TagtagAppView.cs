@@ -37,6 +37,7 @@ namespace Tagtag.UI
         private VisualElement cameraCover;
         private Label cameraTrackingLabel;
         private Button publishButton;
+        private Label publishReadinessLabel;
         private Button homeProfileButton;
         private PaperNavigationMotion navigationMotion = new PaperNavigationMotion();
         private string renderedIdentity;
@@ -332,6 +333,7 @@ namespace Tagtag.UI
                 cameraCover = null;
                 cameraTrackingLabel = null;
                 publishButton = null;
+                publishReadinessLabel = null;
                 homeProfileButton = null;
                 homeBook = null;
                 homeFooter = null;
@@ -392,6 +394,7 @@ namespace Tagtag.UI
                     sheetDetailHost = null;
                     sheetSubmitButton = null;
                     publishButton = null;
+                    publishReadinessLabel = null;
                     reportChoices.Clear();
                     statusLabel = screenStatusLabel;
                     statusNotice = screenStatusNotice;

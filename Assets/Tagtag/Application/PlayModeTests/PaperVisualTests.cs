@@ -424,10 +424,32 @@ namespace Tagtag.Tests
             controller.SignIn("apple");
             yield return Capture("note-signed-in-restored");
             Assert.That(document.rootVisualElement.Q<TextField>("Your note").value, Is.EqualTo(Sticker(0).note));
+            controller.Camera.IsTracking = true;
+            controller.Camera.HasPlacementPreview = true;
+            controller.Camera.HasTrackedPlacement = true;
+            controller.Camera.CanPublish = false;
+            controller.Notify();
+            yield return null;
+            var publishButton = document.rootVisualElement.Q<Button>("Action Publish sticker");
+            var publishReadiness = document.rootVisualElement.Q<Label>("Publish readiness");
+            Assert.That(publishButton.enabledInHierarchy, Is.False);
+            Assert.That(publishReadiness.text,
+                Is.EqualTo("Scan around Taggi from more angles until the spatial map is ready."));
+            var noteSheet = document.rootVisualElement.Q<PaperSheet>();
+            noteSheet.Scroll.ScrollTo(publishReadiness);
+            yield return null;
+            yield return null;
+            Assert.That(publishReadiness.worldBound.yMin, Is.GreaterThanOrEqualTo(noteSheet.Scroll.worldBound.yMin));
+            Assert.That(publishReadiness.worldBound.yMax, Is.LessThanOrEqualTo(noteSheet.Scroll.worldBound.yMax + 1f));
+            yield return Capture("publish-readiness-map-blocked");
             controller.Camera.CanPublish = true;
             controller.Notify();
             yield return null;
             yield return null;
+            Assert.That(publishButton.enabledInHierarchy, Is.True,
+                "A completed draft with a publishable AR placement must enable Publish sticker.");
+            Assert.That(publishReadiness.text,
+                Is.EqualTo("Ready to publish. Location is checked after you tap."));
             Submit("Publish sticker");
             Submit("Publish sticker");
             Assert.That(controller.PublishCount, Is.EqualTo(1), "Repeated activation in one frame must publish once.");
@@ -672,6 +694,7 @@ namespace Tagtag.Tests
             public bool CanCollect => false;
             public bool HasPlacementSurface { get; set; }
             public bool HasPlacementPreview { get; set; }
+            public bool HasTrackedPlacement { get; set; }
             public bool PlacementBusy { get; set; }
             public float PlacementWidthMeters { get; private set; } = .2f;
             public float PlacementRotationDegrees { get; private set; }

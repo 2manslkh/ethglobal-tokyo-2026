@@ -555,11 +555,21 @@ namespace Tagtag.UI
 
         private void RefreshPublish(AppState state)
         {
-            if (publishButton == null) return;
-            publishButton.text = state.busy ? (publicationRequested ? "Publishing…" : "Please wait") :
-                (state.hasPendingPublication ? "Retry publish" : "Publish sticker");
-            SetDisabled(publishButton, !PaperFlow.CanPresentPublish(draftPlace, draftTeaser, draftNote,
-                controller?.Ar?.CanPublish ?? false, state.busy, state.hasPendingPublication));
+            if (publishButton != null)
+            {
+                publishButton.text = state.busy ? (publicationRequested ? "Publishing…" : "Please wait") :
+                    (state.hasPendingPublication ? "Retry publish" : "Publish sticker");
+                SetDisabled(publishButton, !PaperFlow.CanPresentPublish(draftPlace, draftTeaser, draftNote,
+                    controller?.Ar?.CanPublish ?? false, state.busy, state.hasPendingPublication));
+            }
+            if (publishReadinessLabel != null)
+            {
+                var camera = controller?.Ar;
+                publishReadinessLabel.text = PaperFlow.PublishNotice(draftPlace, draftTeaser, draftNote,
+                    camera?.IsTracking ?? false, camera?.HasPlacementPreview ?? false,
+                    camera?.HasTrackedPlacement ?? false, camera?.CanPublish ?? false,
+                    state.busy, state.hasPendingPublication);
+            }
         }
 
         private PaperField DraftField(VisualElement parent, string label, string value, int maxLength,

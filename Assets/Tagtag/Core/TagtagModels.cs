@@ -83,6 +83,7 @@ namespace Tagtag
         bool CanCollect { get; }
         bool HasPlacementSurface { get; }
         bool HasPlacementPreview { get; }
+        bool HasTrackedPlacement { get; }
         bool PlacementBusy { get; }
         float PlacementWidthMeters { get; }
         float PlacementRotationDegrees { get; }

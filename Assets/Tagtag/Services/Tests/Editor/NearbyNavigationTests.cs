@@ -136,6 +136,7 @@ namespace Tagtag.Services.Tests
             public bool CanCollect => false;
             public bool HasPlacementSurface => false;
             public bool HasPlacementPreview => false;
+            public bool HasTrackedPlacement => false;
             public bool PlacementBusy => false;
             public float PlacementWidthMeters => .2f;
             public float PlacementRotationDegrees => 0f;

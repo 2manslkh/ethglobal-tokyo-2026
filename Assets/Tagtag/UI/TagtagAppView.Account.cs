@@ -331,6 +331,7 @@ namespace Tagtag.UI
             reportChoices.Clear();
             sheetSubmitButton = null;
             publishButton = null;
+            publishReadinessLabel = null;
             sheetDetailHost = null;
             if (sheet == Sheet.Picker) BuildPickerSheet(content, state);
             else if (sheet == Sheet.Note) BuildNoteSheet(content, state);
@@ -439,9 +440,10 @@ namespace Tagtag.UI
                     controller.Publish();
                 });
                 publishButton.style.marginTop = 14f;
-                if (state.hasPendingPublication)
-                    Text(content, "Your saved placement is ready to retry. Your note is still here.", 13, false, Muted);
-                else Text(content, "Publishing is available once tracking and your location are ready.", 13, false, Muted);
+                publishReadinessLabel = Text(content, "", 13, false, Muted);
+                publishReadinessLabel.name = "Publish readiness";
+                publishReadinessLabel.style.marginTop = 8f;
+                RefreshPublish(state);
             }
         }
 
@@ -626,6 +628,7 @@ namespace Tagtag.UI
             sheetAuthorId = null;
             sheetView = null;
             publishButton = null;
+            publishReadinessLabel = null;
             QueueRender();
         }
     }
