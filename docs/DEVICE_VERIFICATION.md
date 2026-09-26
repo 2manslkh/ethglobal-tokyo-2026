@@ -1,5 +1,26 @@
 # Device verification
 
+## Closing a loading AR search — 2026-09-26
+
+Source `034236e` keeps X enabled during discovery loading. Closing cancels the
+active search and releases navigation immediately; late GPS, recovery-map and
+artwork completions cannot re-enter AR or release a newer search’s action lock.
+Other foreground actions retain their existing close protection.
+
+- Reproduced before the fix: closing during GPS wait remained on STICK instead of
+  Home (`/tmp/tagtag-discovery-close-red.xml`).
+- Edit Mode: **211/211 passed**, `/tmp/tagtag-discovery-close-edit.xml`, including
+  cancellation during GPS, late map success/failure and starting a new search.
+- Mounted UI: **1/1 passed**, `/tmp/tagtag-discovery-close-play.xml`; the X control
+  is enabled during discovery and returns to Explore when activated.
+- Separate ARKit preparation, iOS export and signed Debug build succeeded.
+  Installed over the existing app on Dawg. (iPhone 15 Pro Max), and launched it;
+  CoreDevice installation and launch both exited 0.
+- Logs: `/tmp/tagtag-discovery-close-{prepare,export,signed,install,launch}.log`.
+
+Physical tapping and real GPS/map-download timing remain to be verified by the
+owner. Installation and launch do not establish physical interaction acceptance.
+
 ## Sign-in status text — 2026-09-26
 
 Removed provider-opening progress text from login while preserving error and
