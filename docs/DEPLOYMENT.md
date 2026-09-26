@@ -129,3 +129,27 @@ The `tagtag-cleanup` job now uses the exact API image digest
 Its command, environment and runtime identity are unchanged; no manual cleanup
 execution was triggered. No error-severity logs were returned for the new API
 revision during the post-promotion check.
+
+## Approximate AR recovery — 2026-09-26
+
+Deployed backend commit `d50cd93` (source archive from `d6653ce`) with Cloud
+Build `b4c2b984-65c2-4ab6-8456-bc33656691d9`. Revision
+`tagtag-api-00012-l95` uses image digest
+`sha256:823d1e70045660b5b60e8b0c529505a0bd30a03da91a6a58ea1917479cd068a2`.
+Traffic was explicitly promoted from `tagtag-api-taggi12-4437920` to 100% on
+this revision; service readiness and the traffic allocation were verified.
+Existing runtime configuration and NFT settings were preserved.
+
+After promotion, the production app URL returned `200 {"ok":true}` for
+`GET /health`, and unauthenticated recovery returned `401`. No test accounts or
+stickers were created. Authenticated recovery on a physical device remains
+pending; these probes verify readiness and the authentication boundary, not
+visual relocalization. The local backend suite passed 84 tests with one emulator
+test skipped, and all 242 Unity Edit Mode tests passed. See
+[device verification](DEVICE_VERIFICATION.md#approximate-ar-recovery--2026-09-26).
+
+Recovery now accepts a fresh fix with accuracy ≤5000 m and distance to the
+sticker ≤measured accuracy + 100 m. Collection retains its 50 m accuracy and
+100 m proximity checks. Signed iPhone integration and installation are owned
+by the concurrent STICK coordinator. Rollback, if needed, targets the prior
+`tagtag-api-taggi12-4437920` revision.
