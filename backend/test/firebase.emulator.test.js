@@ -1,9 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createServer } from 'node:http';
-import { randomUUID } from 'node:crypto';
+import { randomBytes, randomUUID } from 'node:crypto';
 import { createFirebaseAdapter } from '../src/firebase-adapter.js';
 import { createApi } from '../src/api.js';
+import { privateKeyToAccount } from 'viem/accounts';
+import { runMintWorker } from '../src/mint-worker.js';
 
 const configured = !!(process.env.FIRESTORE_EMULATOR_HOST && process.env.FIREBASE_AUTH_EMULATOR_HOST && process.env.FIREBASE_STORAGE_EMULATOR_HOST);
 
@@ -28,7 +30,10 @@ test('Firebase emulators exercise Auth verification, Firestore transactions and 
         async finalizeMap() {}, async signDownload(id) { return `https://download.example/${id}`; }, async deleteMap() {}
     };
     const now = Math.floor(Date.now() / 1000);
-    const server = createServer(createApi({ adapter, now: () => now }));
+    const contractAddress = '0x1234567890123456789012345678901234567890';
+    const tokenId = '123456789';
+    const server = createServer(createApi({ adapter, now: () => now,
+        nft: { enabled: true, chainId: 11155111, contractAddress, domain: 'tagtag.example', tokenId: () => tokenId } }));
     await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
     const base = `http://127.0.0.1:${server.address().port}`;
     async function call(method, path, body, token) {
@@ -51,6 +56,22 @@ test('Firebase emulators exercise Auth verification, Firestore transactions and 
         assert.equal(recovery.status, 200);
         const collected = await call('POST', `/v1/stickers/${prepared.data.id}/collect`, { location, discoveryId: recovery.data.discoveryId }, bob.idToken);
         assert.equal(collected.data.sticker.note, 'Private note');
+        assert.equal(collected.data.sticker.nft.status, 'pending');
+        const account = privateKeyToAccount(`0x${randomBytes(32).toString('hex')}`);
+        const challenge = await call('POST', '/v1/wallet/challenge', { address: account.address }, bob.idToken);
+        assert.equal(challenge.status, 200);
+        const signature = await account.signMessage({ message: challenge.data.message });
+        const bound = await call('POST', '/v1/wallet/bind', { challengeId: challenge.data.challengeId, signature }, bob.idToken);
+        assert.equal(bound.data.address, account.address);
+        const jobs = await adapter.query('nftMints', [['userId', '==', bob.localId], ['state', '==', 'queued']], 10);
+        assert.equal(jobs.length, 1);
+        assert.equal(jobs[0].recipient, account.address);
+        const chain = { signerAddress() { return '0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'; },
+            targetContractAddress() { return contractAddress; },
+            async chainId() { return 11155111; }, async pendingNonce() { return 3; },
+            async prepareMint() { return { raw: '0xserialized', hash: '0xhash' }; }, async broadcast() {} };
+        await runMintWorker({ adapter, chain, now: () => now, workerId: 'emulator' });
+        assert.equal((await adapter.get('nftMints', jobs[0].id)).rawTransaction, '0xserialized');
         assert.equal((await call('DELETE', '/v1/account', undefined, alice.idToken)).status, 200);
         assert.equal((await call('GET', '/v1/collection', undefined, bob.idToken)).data.items[0].unavailable, true);
         assert.equal((await firebase.userExists(alice.localId)), false);
