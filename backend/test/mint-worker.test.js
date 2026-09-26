@@ -63,6 +63,20 @@ test('finalized successful receipt and contract state confirm mint', async () =>
     assert.equal((await f.adapter.get('nftMints', 'one')).state, 'confirmed');
 });
 
+test('mined receipt waits for finality without rebroadcasting or delaying', async () => {
+    const f = fixture();
+    await f.seed();
+    await f.run();
+    f.chain.confirmed.set('0xhash7', { status: 'success', blockNumber: 101n });
+    f.chain.broadcast = async () => { throw new Error('nonce too low'); };
+    f.advance(31);
+    await f.run();
+    const job = await f.adapter.get('nftMints', 'one');
+    assert.equal(job.state, 'submitted');
+    assert.equal(job.nextAttemptAt, now + 61);
+    assert.equal(job.lastError, '');
+});
+
 test('unsigned removed content cancels, while signed content still reconciles', async () => {
     const f = fixture();
     await f.seed();

@@ -86,13 +86,17 @@ export async function runMintWorker({ adapter, chain, now = () => Math.floor(Dat
                 try {
                     const receipt = await chain.receipt(job.transactionHash);
                     const canonical = receipt?.blockHash ? await chain.blockHash(receipt.blockNumber) === receipt.blockHash : true;
-                    if (receipt && canonical && receipt.blockNumber <= await chain.finalizedBlockNumber()) {
-                        if (receipt.status === 'success') {
-                            if (!await chain.tokenExists(job.tokenId)) throw new Error('Finalized mint token missing');
-                            await fencedUpdate(job, { state: 'confirmed', confirmedAt: now() });
+                    if (receipt && canonical) {
+                        if (receipt.blockNumber <= await chain.finalizedBlockNumber()) {
+                            if (receipt.status === 'success') {
+                                if (!await chain.tokenExists(job.tokenId)) throw new Error('Finalized mint token missing');
+                                await fencedUpdate(job, { state: 'confirmed', confirmedAt: now(), lastError: '' });
+                            } else {
+                                await fencedUpdate(job, { state: 'delayed', rawTransaction: '',
+                                    nextAttemptAt: now() + RETRY_SECONDS, lastError: 'transaction_reverted' });
+                            }
                         } else {
-                            await fencedUpdate(job, { state: 'delayed', rawTransaction: '',
-                                nextAttemptAt: now() + RETRY_SECONDS, lastError: 'transaction_reverted' });
+                            await fencedUpdate(job, { state: 'submitted', nextAttemptAt: now() + 30, lastError: '' });
                         }
                     } else {
                         await chain.broadcast(job.rawTransaction);
