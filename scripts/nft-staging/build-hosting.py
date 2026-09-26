@@ -9,14 +9,14 @@ PRESETS = ROOT / "Assets/Resources/Tagtag/Presets"
 ORIGIN = "https://tagtag-nft-staging-2026.web.app"
 
 
-def build(output):
+def build(output, origin=ORIGIN):
     files = {}
     for pose in range(1, 5):
         files[Path(f"nft/v1/images/taggi-{pose}.png")] = (PRESETS / f"taggi-{pose}.png").read_bytes()
         metadata = {
             "name": f"Taggi pose {pose}",
             "description": "A Taggi discovery souvenir from tagtag.",
-            "image": f"{ORIGIN}/nft/v1/images/taggi-{pose}.png",
+            "image": f"{origin}/nft/v1/images/taggi-{pose}.png",
         }
         files[Path(f"nft/v1/taggi-{pose}.json")] = (json.dumps(metadata, indent=2) + "\n").encode()
     # Validate every existing file before writing anything. A new release needs
@@ -34,6 +34,7 @@ def build(output):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", type=Path, default=ROOT / "hosting/nft-public")
+    parser.add_argument("--origin", default=ORIGIN)
     args = parser.parse_args()
-    build(args.output)
+    build(args.output, args.origin)
     print(f"Verified eight public NFT files in {args.output}")

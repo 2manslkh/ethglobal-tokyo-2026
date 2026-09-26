@@ -12,6 +12,14 @@ spec.loader.exec_module(hosting)
 
 
 class HostingTests(unittest.TestCase):
+    def test_selected_project_metadata_uses_its_public_image_urls(self):
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory)
+            hosting.build(output, origin="https://tagtag-tokyo-2026.web.app")
+            metadata = json.loads((output / "nft/v1/taggi-1.json").read_text())
+            self.assertEqual(metadata["image"],
+                             "https://tagtag-tokyo-2026.web.app/nft/v1/images/taggi-1.png")
+
     def test_public_metadata_resolves_to_exact_bundled_artwork(self):
         with tempfile.TemporaryDirectory() as directory:
             output = Path(directory)
