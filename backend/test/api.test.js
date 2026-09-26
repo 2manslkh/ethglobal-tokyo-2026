@@ -288,8 +288,8 @@ test('blocked author is hidden from nearby and recovery; quota caps daily public
         await f.call('POST', '/v1/blocks', { authorId: 'alice' }, 'bob');
         assert.equal((await f.call('POST', '/v1/nearby', { location: fix() }, 'bob')).data.items.length, 0);
         assert.equal((await f.call('POST', `/v1/stickers/${id}/recover`, { location: fix() }, 'bob')).status, 403);
-        for (let n = 2; n <= 5; n++) await f.publish('alice', `op-${n}`);
-        assert.equal((await f.call('POST', '/v1/publications/prepare', draft('op-six'))).status, 429);
+        for (let n = 2; n <= 10; n++) await f.publish('alice', `op-${n}`);
+        assert.equal((await f.call('POST', '/v1/publications/prepare', draft('op-eleven'))).status, 429);
     } finally { await f.close(); }
 });
 
