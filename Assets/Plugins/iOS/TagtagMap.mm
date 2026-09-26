@@ -8,6 +8,7 @@
 @interface TagtagPin : NSObject <MKAnnotation>
 @property(nonatomic, copy) NSString *stickerId;
 @property(nonatomic, copy) NSString *presetId;
+@property(nonatomic, copy) NSString *thumbnailUrl;
 @property(nonatomic, copy) NSString *title;
 @property(nonatomic) CLLocationCoordinate2D coordinate;
 @end
@@ -23,7 +24,7 @@ static TagtagMapDelegate *tagtagDelegate;
 
 static BOOL tagtagReducedMotion;
 
-static UIImage *TagtagPinImage(NSString *presetId, NSUInteger count) {
+static UIImage *TagtagPinImage(NSString *presetId, NSUInteger count, UIImage *customArt) {
     const BOOL cluster = count > 0;
     CGSize size = cluster ? CGSizeMake(50, 50) : CGSizeMake(56, 60);
     UIGraphicsImageRenderer *renderer = [[UIGraphicsImageRenderer alloc] initWithSize:size];
@@ -43,9 +44,17 @@ static UIImage *TagtagPinImage(NSString *presetId, NSUInteger count) {
             [label drawAtPoint:CGPointMake((size.width - textSize.width) / 2, (46 - textSize.height) / 2) withAttributes:style];
         } else {
             NSSet *presets = [NSSet setWithArray:@[@"taggi-1", @"taggi-2", @"taggi-3", @"taggi-4"]];
-            NSString *resource = [presets containsObject:presetId] ? presetId : @"taggi-1";
-            UIImage *art = [UIImage imageNamed:[resource stringByAppendingPathExtension:@"png"]];
-            [art drawInRect:CGRectMake(4, 2, 48, 48)];
+            NSString *resource = [presets containsObject:presetId] ? presetId : nil;
+            UIImage *art = customArt ?: (resource ? [UIImage imageNamed:[resource stringByAppendingPathExtension:@"png"]] : nil);
+            if (art) {
+                CGFloat scale = MIN(48 / art.size.width, 48 / art.size.height);
+                CGSize fitted = CGSizeMake(art.size.width * scale, art.size.height * scale);
+                [art drawInRect:CGRectMake(4 + (48 - fitted.width) / 2, 2 + (48 - fitted.height) / 2, fitted.width, fitted.height)];
+            } else {
+                [[UIColor colorWithWhite:1 alpha:1] setFill];
+                [[UIBezierPath bezierPathWithRoundedRect:CGRectMake(7, 5, 42, 42) cornerRadius:10] fill];
+                [[UIImage systemImageNamed:@"photo"] drawInRect:CGRectMake(16, 14, 24, 24)];
+            }
         }
     }];
 }
@@ -72,7 +81,23 @@ static UIImage *TagtagPinImage(NSString *presetId, NSUInteger count) {
     view.canShowCallout = NO;
     view.clusteringIdentifier = cluster ? nil : @"tagtag-nearby";
     NSUInteger count = cluster ? ((MKClusterAnnotation *)annotation).memberAnnotations.count : 0;
-    view.image = TagtagPinImage(cluster ? nil : ((TagtagPin *)annotation).presetId, count);
+    view.image = TagtagPinImage(cluster ? nil : ((TagtagPin *)annotation).presetId, count, nil);
+    if (!cluster) {
+        TagtagPin *pin = (TagtagPin *)annotation;
+        NSURL *url = pin.thumbnailUrl.length ? [NSURL URLWithString:pin.thumbnailUrl] : nil;
+        if ([url.scheme isEqualToString:@"https"]) {
+            __weak MKAnnotationView *weakView = view;
+            NSURLRequest *request = [NSURLRequest requestWithURL:url cachePolicy:NSURLRequestReloadIgnoringLocalCacheData timeoutInterval:20];
+            [[[NSURLSession sharedSession] dataTaskWithRequest:request completionHandler:^(NSData *data, NSURLResponse *response, NSError *error) {
+                if (error || data.length > 5 * 1024 * 1024 || ((NSHTTPURLResponse *)response).statusCode != 200) return;
+                UIImage *art = [UIImage imageWithData:data];
+                if (!art || art.size.width > 1024 || art.size.height > 1024) return;
+                dispatch_async(dispatch_get_main_queue(), ^{
+                    if (weakView.annotation == pin) weakView.image = TagtagPinImage(nil, 0, art);
+                });
+            }] resume];
+        }
+    }
     view.centerOffset = CGPointMake(0, -view.image.size.height / 2);
     view.accessibilityLabel = cluster ? [NSString stringWithFormat:@"%lu stickers", (unsigned long)count] : annotation.title;
     return view;
@@ -126,7 +151,8 @@ extern "C" void TagtagMapShow(float x, float y, float width, float height,
         if (!CLLocationCoordinate2DIsValid(point)) continue;
         TagtagPin *pin = [TagtagPin new];
         pin.stickerId = item[@"id"];
-        pin.presetId = item[@"presetId"];
+        pin.presetId = [item[@"presetId"] isKindOfClass:NSString.class] ? item[@"presetId"] : nil;
+        pin.thumbnailUrl = [item[@"thumbnailUrl"] isKindOfClass:NSString.class] ? item[@"thumbnailUrl"] : nil;
         pin.title = [item[@"place"] isKindOfClass:NSString.class] ? item[@"place"] : @"Sticker";
         pin.coordinate = point;
         [tagtagMap addAnnotation:pin];
