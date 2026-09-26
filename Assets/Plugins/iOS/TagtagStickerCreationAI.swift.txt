@@ -1,0 +1,83 @@
+import Foundation
+import UIKit
+import ImagePlayground
+
+@_silgen_name("TagtagStickerCreationAIFinished")
+private func nativeFinished(_ path: UnsafePointer<CChar>?)
+
+@_silgen_name("TagtagStickerCreationAICancelled")
+private func nativeCancelled()
+
+@available(iOS 18.1, *)
+@MainActor
+private final class PlaygroundSession: NSObject, ImagePlaygroundViewController.Delegate {
+    private var controller: ImagePlaygroundViewController?
+
+    func present(from presenter: UIViewController) {
+        let controller = ImagePlaygroundViewController()
+        controller.delegate = self
+        controller.modalPresentationStyle = .fullScreen
+        self.controller = controller
+        presenter.present(controller, animated: true)
+    }
+
+    func cancel() {
+        controller?.dismiss(animated: true) {
+            activeSession = nil
+        }
+    }
+
+    func imagePlaygroundViewController(_ imagePlaygroundViewController: ImagePlaygroundViewController,
+                                       didCreateImageAt imageURL: URL) {
+        let path = imageURL.path
+        imagePlaygroundViewController.dismiss(animated: true) {
+            path.withCString { nativeFinished($0) }
+            activeSession = nil
+        }
+    }
+
+    func imagePlaygroundViewControllerDidCancel(_ imagePlaygroundViewController: ImagePlaygroundViewController) {
+        imagePlaygroundViewController.dismiss(animated: true) {
+            nativeCancelled()
+            activeSession = nil
+        }
+    }
+}
+
+@MainActor private var activeSession: AnyObject?
+
+@_cdecl("TagtagStickerCreationAIAvailable")
+public func tagtagStickerCreationAIAvailable() -> Int32 {
+    if #available(iOS 18.1, *) {
+        return ImagePlaygroundViewController.isAvailable ? 1 : 0
+    }
+    return 0
+}
+
+@_cdecl("TagtagStickerCreationAIOpen")
+public func tagtagStickerCreationAIOpen(_ presenter: UnsafeMutableRawPointer?) {
+    DispatchQueue.main.async {
+        guard let presenter,
+              let viewController = Unmanaged<UIViewController>.fromOpaque(presenter).takeUnretainedValue() as UIViewController?,
+              activeSession == nil else {
+            nativeCancelled()
+            return
+        }
+        if #available(iOS 18.1, *), ImagePlaygroundViewController.isAvailable {
+            let session = PlaygroundSession()
+            activeSession = session
+            session.present(from: viewController)
+        } else {
+            nativeCancelled()
+        }
+    }
+}
+
+@_cdecl("TagtagStickerCreationAICancel")
+public func tagtagStickerCreationAICancel() {
+    DispatchQueue.main.async {
+        if #available(iOS 18.1, *), let session = activeSession as? PlaygroundSession {
+            session.cancel()
+        }
+    }
+}
