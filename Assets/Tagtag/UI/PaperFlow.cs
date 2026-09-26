@@ -112,12 +112,14 @@ namespace Tagtag.UI
         public static NearbyStatus Nearby(AppState state, bool hasMap)
         {
             bool loading = state != null && state.nearbyLoading;
+            bool findingLocation = loading && state.nearbyFindingLocation;
             bool hasLocation = state?.location != null && state.location.accuracyMeters > 0f;
             int nearbyCount = state?.nearby?.Count ?? 0;
-            string title = loading ? "Looking for nearby stickers" :
+            string title = findingLocation ? "Finding your location" :
+                loading ? "Loading nearby stickers" :
                 nearbyCount == 0 ? "No stickers in view yet" : "Tap a sticker on the map";
             string mapMessage = !hasMap ? "Map is unavailable on this device." :
-                !hasLocation ? loading ? "Finding your location…" : "Location is unavailable." : "";
+                !hasLocation ? findingLocation ? "Finding your location…" : "Location is unavailable." : "";
             string locationNotice = state != null && !state.servicesConfigured ?
                 "Nearby stickers need a configured service." :
                 state != null && !hasLocation && !loading &&

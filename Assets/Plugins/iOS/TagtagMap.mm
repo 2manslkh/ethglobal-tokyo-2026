@@ -21,8 +21,56 @@
 
 static MKMapView *tagtagMap;
 static TagtagMapDelegate *tagtagDelegate;
+static NSMutableDictionary<NSString *, TagtagPin *> *tagtagPins;
+static NSCache<NSString *, UIImage *> *tagtagThumbnailCache;
+static NSMutableDictionary<NSString *, NSMutableArray *> *tagtagThumbnailRequests;
+static BOOL tagtagFirstFixSeen;
+static BOOL tagtagInitialLocationPresent;
+static CLLocationCoordinate2D tagtagInitialLocation;
+static BOOL tagtagUserMoved;
+static BOOL tagtagExplicitTarget;
+static BOOL tagtagProgrammaticRegionChange;
+static int tagtagLoadingStatus;
 
 static BOOL tagtagReducedMotion;
+
+static BOOL TagtagHasActiveGesture(UIView *view) {
+    for (UIGestureRecognizer *gesture in view.gestureRecognizers)
+        if (gesture.state == UIGestureRecognizerStateBegan || gesture.state == UIGestureRecognizerStateChanged) return YES;
+    for (UIView *subview in view.subviews)
+        if (TagtagHasActiveGesture(subview)) return YES;
+    return NO;
+}
+
+static void TagtagLoadThumbnail(NSURL *url, void (^completion)(UIImage *)) {
+    if (!tagtagThumbnailCache) {
+        tagtagThumbnailCache = [NSCache new];
+        tagtagThumbnailCache.countLimit = 96;
+        tagtagThumbnailCache.totalCostLimit = 24 * 1024 * 1024;
+    }
+    if (!tagtagThumbnailRequests) tagtagThumbnailRequests = [NSMutableDictionary new];
+    NSString *key = url.absoluteString;
+    UIImage *cached = [tagtagThumbnailCache objectForKey:key];
+    if (cached) { completion(cached); return; }
+    NSMutableArray *waiting = tagtagThumbnailRequests[key];
+    if (waiting) { [waiting addObject:[completion copy]]; return; }
+    tagtagThumbnailRequests[key] = [NSMutableArray arrayWithObject:[completion copy]];
+    NSURLRequest *request = [NSURLRequest requestWithURL:url cachePolicy:NSURLRequestUseProtocolCachePolicy timeoutInterval:20];
+    [[[NSURLSession sharedSession] dataTaskWithRequest:request completionHandler:^(NSData *data, NSURLResponse *response, NSError *error) {
+        UIImage *art = nil;
+        if (!error && data.length > 0 && data.length <= 5 * 1024 * 1024 &&
+            [response isKindOfClass:NSHTTPURLResponse.class] && ((NSHTTPURLResponse *)response).statusCode == 200) {
+            art = [UIImage imageWithData:data];
+            if (art.size.width > 1024 || art.size.height > 1024) art = nil;
+        }
+        dispatch_async(dispatch_get_main_queue(), ^{
+            if (art) [tagtagThumbnailCache setObject:art forKey:key cost:(NSUInteger)(art.size.width * art.size.height * 4)];
+            NSArray *callbacks = [tagtagThumbnailRequests[key] copy];
+            [tagtagThumbnailRequests removeObjectForKey:key];
+            for (id callback in callbacks) ((void (^)(UIImage *))callback)(art);
+        });
+    }] resume];
+}
 
 static UIImage *TagtagPinImage(NSString *presetId, NSUInteger count, UIImage *customArt) {
     const BOOL cluster = count > 0;
@@ -87,15 +135,12 @@ static UIImage *TagtagPinImage(NSString *presetId, NSUInteger count, UIImage *cu
         NSURL *url = pin.thumbnailUrl.length ? [NSURL URLWithString:pin.thumbnailUrl] : nil;
         if ([url.scheme isEqualToString:@"https"]) {
             __weak MKAnnotationView *weakView = view;
-            NSURLRequest *request = [NSURLRequest requestWithURL:url cachePolicy:NSURLRequestReloadIgnoringLocalCacheData timeoutInterval:20];
-            [[[NSURLSession sharedSession] dataTaskWithRequest:request completionHandler:^(NSData *data, NSURLResponse *response, NSError *error) {
-                if (error || data.length > 5 * 1024 * 1024 || ((NSHTTPURLResponse *)response).statusCode != 200) return;
-                UIImage *art = [UIImage imageWithData:data];
-                if (!art || art.size.width > 1024 || art.size.height > 1024) return;
-                dispatch_async(dispatch_get_main_queue(), ^{
-                    if (weakView.annotation == pin) weakView.image = TagtagPinImage(nil, 0, art);
-                });
-            }] resume];
+            TagtagLoadThumbnail(url, ^(UIImage *art) {
+                if (art && weakView.annotation == pin) {
+                    weakView.image = TagtagPinImage(nil, 0, art);
+                    weakView.centerOffset = CGPointMake(0, -weakView.image.size.height / 2);
+                }
+            });
         }
     }
     view.centerOffset = CGPointMake(0, -view.image.size.height / 2);
@@ -111,17 +156,29 @@ static UIImage *TagtagPinImage(NSString *presetId, NSUInteger count, UIImage *cu
         self.selection = ((TagtagPin *)view.annotation).stickerId;
     }
 }
+- (void)mapView:(MKMapView *)mapView regionDidChangeAnimated:(BOOL)animated {
+    if (tagtagProgrammaticRegionChange) tagtagProgrammaticRegionChange = NO;
+    if (!tagtagFirstFixSeen && TagtagHasActiveGesture(mapView)) tagtagUserMoved = YES;
+}
+- (void)mapView:(MKMapView *)mapView regionWillChangeAnimated:(BOOL)animated {
+    if (!tagtagFirstFixSeen && TagtagHasActiveGesture(mapView)) tagtagUserMoved = YES;
+}
+- (void)mapViewWillStartLoadingMap:(MKMapView *)mapView { tagtagLoadingStatus = 1; }
+- (void)mapViewDidFinishLoadingMap:(MKMapView *)mapView { tagtagLoadingStatus = 0; }
+- (void)mapViewDidFailLoadingMap:(MKMapView *)mapView withError:(NSError *)error { tagtagLoadingStatus = 2; }
 @end
 
-extern "C" void TagtagMapShow(float x, float y, float width, float height,
-                                float screenWidth, float screenHeight, double latitude, double longitude,
+extern "C" int TagtagMapShow(float x, float y, float width, float height,
+                                float screenWidth, float screenHeight, int hasLocation, double latitude, double longitude,
                                 const char *pinsJson) {
     if (!(std::isfinite(x) && std::isfinite(y) && std::isfinite(width) && std::isfinite(height)) ||
-        screenWidth <= 0 || screenHeight <= 0 || width <= 0 || height <= 0) return;
+        screenWidth <= 0 || screenHeight <= 0 || width <= 0 || height <= 0) return 0;
     UIView *host = UnityGetGLView();
-    if (!host || !host.window) return;
+    if (!host || !host.window) return 0;
     if (!tagtagDelegate) tagtagDelegate = [TagtagMapDelegate new];
+    if (!tagtagPins) tagtagPins = [NSMutableDictionary new];
     if (!tagtagMap) {
+        tagtagLoadingStatus = 1;
         tagtagMap = [[MKMapView alloc] initWithFrame:CGRectZero];
         tagtagMap.mapType = MKMapTypeStandard;
         tagtagMap.overrideUserInterfaceStyle = UIUserInterfaceStyleLight;
@@ -130,7 +187,20 @@ extern "C" void TagtagMapShow(float x, float y, float width, float height,
         tagtagMap.delegate = tagtagDelegate;
         tagtagMap.accessibilityLabel = @"Nearby stickers map";
         [host addSubview:tagtagMap];
-        if (CLLocationCoordinate2DIsValid(CLLocationCoordinate2DMake(latitude, longitude))) {
+        if (hasLocation && CLLocationCoordinate2DIsValid(CLLocationCoordinate2DMake(latitude, longitude))) {
+            tagtagInitialLocationPresent = YES;
+            tagtagInitialLocation = CLLocationCoordinate2DMake(latitude, longitude);
+            tagtagProgrammaticRegionChange = YES;
+            [tagtagMap setRegion:MKCoordinateRegionMakeWithDistance(CLLocationCoordinate2DMake(latitude, longitude), 900, 900) animated:NO];
+        } else {
+            tagtagProgrammaticRegionChange = YES;
+            [tagtagMap setRegion:MKCoordinateRegionMake(CLLocationCoordinate2DMake(0, 0), MKCoordinateSpanMake(150, 330)) animated:NO];
+        }
+    } else if (hasLocation && !tagtagFirstFixSeen && CLLocationCoordinate2DIsValid(CLLocationCoordinate2DMake(latitude, longitude)) &&
+               (!tagtagInitialLocationPresent || tagtagInitialLocation.latitude != latitude || tagtagInitialLocation.longitude != longitude)) {
+        tagtagFirstFixSeen = YES;
+        if (!tagtagUserMoved && !tagtagExplicitTarget) {
+            tagtagProgrammaticRegionChange = YES;
             [tagtagMap setRegion:MKCoordinateRegionMakeWithDistance(CLLocationCoordinate2DMake(latitude, longitude), 900, 900) animated:NO];
         }
     }
@@ -139,24 +209,43 @@ extern "C" void TagtagMapShow(float x, float y, float width, float height,
     tagtagMap.frame = CGRectMake(x * sx, (screenHeight - y - height) * sy, width * sx, height * sy);
     if (tagtagMap.superview != host) [host addSubview:tagtagMap];
     tagtagMap.hidden = NO;
-    if (!pinsJson) return;
+    if (!pinsJson) return 1;
     NSData *data = [@(pinsJson) dataUsingEncoding:NSUTF8StringEncoding];
     NSDictionary *payload = [NSJSONSerialization JSONObjectWithData:data options:0 error:nil];
     NSArray *items = [payload[@"items"] isKindOfClass:NSArray.class] ? payload[@"items"] : @[];
-    [tagtagMap removeAnnotations:tagtagMap.annotations];
+    NSMutableSet<NSString *> *seen = [NSMutableSet new];
     for (NSDictionary *item in items) {
         if (![item isKindOfClass:NSDictionary.class] || ![item[@"id"] isKindOfClass:NSString.class]) continue;
+        NSString *stickerId = item[@"id"];
+        if (!stickerId.length || [seen containsObject:stickerId]) continue;
         double lat = [item[@"latitude"] doubleValue], lon = [item[@"longitude"] doubleValue];
         CLLocationCoordinate2D point = CLLocationCoordinate2DMake(lat, lon);
         if (!CLLocationCoordinate2DIsValid(point)) continue;
+        [seen addObject:stickerId];
+        NSString *preset = [item[@"presetId"] isKindOfClass:NSString.class] ? item[@"presetId"] : nil;
+        NSString *thumbnail = [item[@"thumbnailUrl"] isKindOfClass:NSString.class] ? item[@"thumbnailUrl"] : nil;
+        NSString *title = [item[@"place"] isKindOfClass:NSString.class] ? item[@"place"] : @"Sticker";
+        TagtagPin *old = tagtagPins[stickerId];
+        if (old && old.coordinate.latitude == lat && old.coordinate.longitude == lon &&
+            [(old.presetId ?: @"") isEqualToString:(preset ?: @"")] &&
+            [(old.thumbnailUrl ?: @"") isEqualToString:(thumbnail ?: @"")] &&
+            [(old.title ?: @"") isEqualToString:title]) continue;
+        if (old) [tagtagMap removeAnnotation:old];
         TagtagPin *pin = [TagtagPin new];
-        pin.stickerId = item[@"id"];
-        pin.presetId = [item[@"presetId"] isKindOfClass:NSString.class] ? item[@"presetId"] : nil;
-        pin.thumbnailUrl = [item[@"thumbnailUrl"] isKindOfClass:NSString.class] ? item[@"thumbnailUrl"] : nil;
-        pin.title = [item[@"place"] isKindOfClass:NSString.class] ? item[@"place"] : @"Sticker";
+        pin.stickerId = stickerId;
+        pin.presetId = preset;
+        pin.thumbnailUrl = thumbnail;
+        pin.title = title;
         pin.coordinate = point;
+        tagtagPins[stickerId] = pin;
         [tagtagMap addAnnotation:pin];
     }
+    for (NSString *stickerId in [tagtagPins.allKeys copy]) {
+        if ([seen containsObject:stickerId]) continue;
+        [tagtagMap removeAnnotation:tagtagPins[stickerId]];
+        [tagtagPins removeObjectForKey:stickerId];
+    }
+    return 1;
 }
 
 extern "C" void TagtagMapHide() {
@@ -171,15 +260,35 @@ extern "C" void TagtagMapDispose() {
     [tagtagMap removeFromSuperview];
     tagtagMap = nil;
     tagtagDelegate = nil;
+    tagtagPins = nil;
+    tagtagFirstFixSeen = NO;
+    tagtagInitialLocationPresent = NO;
+    tagtagUserMoved = NO;
+    tagtagExplicitTarget = NO;
+    tagtagProgrammaticRegionChange = NO;
+    tagtagLoadingStatus = 0;
 }
 
 extern "C" void TagtagMapSetReducedMotion(bool reduced) { tagtagReducedMotion = reduced; }
 
+extern "C" int TagtagMapLoadingStatus() { return tagtagLoadingStatus; }
+
+extern "C" void TagtagMapRetry() {
+    if (!tagtagMap) return;
+    tagtagLoadingStatus = 1;
+    // A map-type round trip asks MapKit to issue fresh tile requests while retaining the region.
+    tagtagMap.mapType = MKMapTypeSatellite;
+    tagtagMap.mapType = MKMapTypeStandard;
+}
+
 extern "C" void TagtagMapRecenter(double latitude, double longitude) {
     if (!tagtagMap) return;
     CLLocationCoordinate2D point = CLLocationCoordinate2DMake(latitude, longitude);
-    if (CLLocationCoordinate2DIsValid(point))
+    if (CLLocationCoordinate2DIsValid(point)) {
+        tagtagExplicitTarget = YES;
+        tagtagProgrammaticRegionChange = YES;
         [tagtagMap setRegion:MKCoordinateRegionMakeWithDistance(point, 900, 900) animated:!(tagtagReducedMotion || UIAccessibilityIsReduceMotionEnabled())];
+    }
 }
 
 extern "C" char *TagtagMapPoll() {
