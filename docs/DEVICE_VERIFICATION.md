@@ -334,3 +334,49 @@ Use the updated [device test guide](CREATOR_SCAN_TEST_GUIDE.md), including share
 - Installation and launch are verified. The user must sign in normally and open Explore for interactive map verification; the map owner has filtered location logging active. Actual provider authentication and physical-device video/Explore acceptance remain pending.
 
 - Latest-main reinstall requested after branch cleanup: rebuilt `72f961b` with separate ARKit preparation and Unity export, then signed Xcode Debug build; all succeeded. CoreDevice installation and launch on Dawg (iPhone 15 Pro Max) both exited 0, preserving existing data. Logs: `/tmp/tagtag-latest-prepare.log`, `/tmp/tagtag-latest-export.log`, `/tmp/tagtag-latest-signed.log`, `/tmp/tagtag-latest-install.log`, `/tmp/tagtag-latest-launch.log`. Interactive Explore verification is still pending.
+
+## Map-confirmed publishing — 2026-09-26
+
+When a fresh measured fix remains worse than 100 m for three seconds, publishing
+opens a native MapKit confirmation screen for fixes up to 5 km. The user moves
+the map under the pin and selects **Use this spot**. Cancel retains the captured
+AR snapshot and note. Denied permission, absent/stale fixes and uncertainty over
+5 km still cannot publish. Confirmed coordinates remain separate from the real
+measurement and do not relax recovery or collection checks.
+
+- Red: three DeviceLocation cases failed for approximate fallback, improvement
+  during the short wait, and reduced-accuracy permission; two backend cases
+  rejected confirmed publications before implementation.
+- Unity Edit Mode: 207/207 passed (`/tmp/tagtag-confirm-final.xml`). Includes
+  preserved cancellation/retry, pause handling and explicit confirmation flags
+  to handle Unity's zero-valued serialization of null nested objects.
+- Backend: 79 passed, one emulator test skipped, zero failed
+  (`/tmp/tagtag-confirm-backend-final.log`). Tests cover fresh approximate
+  confirmation, bounds, unchanged collection precision, pin immutability, authenticated legacy-operation recovery and
+  legacy/Unity-default request compatibility.
+- Native Objective-C++ compiled for device and simulator. Unity iOS export and
+  signed Debug Xcode build succeeded (`/tmp/tagtag-confirm-export.log`,
+  `/tmp/tagtag-confirm-xcode.log`).
+- A temporary native harness used the production picker source on iPhone 17 Pro
+  and iPhone SE (3rd generation) simulators. Reviewed
+  [compact](verification/location-confirmation/compact.png) and
+  [dark](verification/location-confirmation/dark.png) captures. A programmatic
+  native check verified an outside-area pin disables confirmation and moving
+  back inside enables it and returns the selected coordinate. Further checks
+  verified the saved pin remains fixed while panning and cancellation during
+  presentation returns a cancellation result. This does not
+  verify the complete Unity/AR publication journey on physical hardware.
+
+GPT-6-Astra/high performed a read-only Herdr review. Precision-transition and
+legacy GPS-drift retry blockers plus stale picker seeds were fixed and re-reviewed
+with no remaining actionable blockers.
+
+TestFlight 0.1.0 (1) remains the earlier `01857d3` snapshot and does not contain
+this fallback. Physical indoor publication and subsequent two-device discovery
+remain pending.
+
+Delivered source `90398c8` as a signed Debug build to Dawg. (iPhone 15 Pro Max)
+on 2026-09-26 with `devicectl`; installation succeeded. Automatic launch was
+initially rejected because the phone was locked. After the owner unlocked it,
+`devicectl` launched tagtag successfully. API `tagtag-api-00011-gut` serves 100% traffic after tagged/public health
+and authentication checks. A physical indoor publish has not yet been verified.
