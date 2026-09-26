@@ -98,12 +98,13 @@ namespace Tagtag.Tests
             controller.State.designsLoading = true; controller.Notify();
             yield return Settle();
             Assert.That(Root.Q<Button>("Home Design new"), Is.Not.Null, "Cached cards must remain during refresh.");
-            controller.State.designsLoading = false; controller.State.error = "Could not refresh designs."; controller.Notify();
+            controller.State.designsLoading = false; controller.State.designError = "Could not refresh designs."; controller.Notify();
             yield return Settle();
+            Assert.That(Root.Q<Label>("Home design status").text, Is.EqualTo("Could not refresh designs."));
             Submit("Home Refresh designs");
             Assert.That(controller.RefreshCalls, Is.EqualTo(2));
             yield return Capture("home-my-designs-refresh-error");
-            controller.State.error = ""; controller.Notify(); yield return Settle();
+            controller.State.designError = ""; controller.Notify(); yield return Settle();
             yield return Capture("home-my-designs");
         }
 
@@ -193,6 +194,23 @@ namespace Tagtag.Tests
             controller.Navigate(AppPage.Home); yield return Settle();
             Assert.That(Root.Q<Button>("Home Design scroll-0"), Is.Not.Null);
             Assert.That(Root.Q<ScrollView>("Home scroll").scrollOffset.y, Is.EqualTo(saved).Within(1));
+            Submit("Home Collected"); yield return Settle();
+            Root.Q<ScrollView>("Home scroll").scrollOffset = new Vector2(0, 80);
+            yield return Settle();
+            Submit("Home Make sticker"); yield return Settle();
+            Submit("Creator My designs"); yield return Settle();
+            Assert.That(Root.Q<PaperSheet>(), Is.Null);
+            Assert.That(Root.Q<ScrollView>("Home scroll").scrollOffset.y, Is.EqualTo(saved).Within(1),
+                "The Home creator link restores the design-gallery scroll position.");
+            controller.Navigate(AppPage.Stick); yield return Settle();
+            Submit("STICK Inventory"); yield return Settle();
+            Submit("Add Sticker"); yield return Settle();
+            Submit("Creator My designs"); yield return Settle();
+            Assert.That(controller.State.page, Is.EqualTo(AppPage.Home));
+            Assert.That(controller.State.creationOpen, Is.False);
+            Assert.That(Root.Q<PaperSheet>(), Is.Null);
+            Assert.That(Root.Q<ScrollView>("Home scroll").scrollOffset.y, Is.EqualTo(saved).Within(1),
+                "The STICK creator link restores the prior Home gallery scroll position.");
         }
 
         [UnityTest]
@@ -210,8 +228,10 @@ namespace Tagtag.Tests
             Submit("Close"); yield return Settle();
             Assert.That(Root.Q<PaperSheet>(), Is.Not.Null, "Close must not bypass pending deletion.");
             controller.State.busy = false;
-            controller.State.error = "Could not remove your design. Please retry.";
+            controller.State.designError = "Could not remove your design. Please retry.";
             controller.Notify(); yield return Settle();
+            Assert.That(Root.Q<Label>("Design action error").text,
+                Is.EqualTo("Could not remove your design. Please retry."));
             Assert.That(Root.Q<Button>("Home Design saved"), Is.Not.Null);
             var retry = Root.Q<PaperSheet>().Query<Button>().ToList().FirstOrDefault(b => b.text == "Remove design");
             Assert.That(retry, Is.Not.Null);
@@ -253,8 +273,9 @@ namespace Tagtag.Tests
             Submit("Home Place design"); yield return Settle();
             Submit("Close"); yield return Settle();
             Assert.That(Root.Q<PaperSheet>(), Is.Not.Null, "A pending handoff should keep its preview visible.");
-            controller.State.busy = false; controller.State.error = "Artwork could not load. Try again.";
+            controller.State.busy = false; controller.State.designError = "Artwork could not load. Try again.";
             controller.Notify(); yield return Settle();
+            Assert.That(Root.Q<Label>("Design action error").text, Is.EqualTo("Artwork could not load. Try again."));
             Assert.That(Root.Q<Button>("Home Place design").enabledSelf, Is.True);
             controller.DeferPlacement = false;
             Submit("Home Place design"); yield return Settle();
@@ -315,6 +336,7 @@ namespace Tagtag.Tests
             public bool CanPublish { get; set; }
             public bool CanCollect => false;
             public bool HasPlacementSurface { get; set; }
+            public PlacementScanState ScanState { get; set; } = PlacementScanState.FindingSurface;
             public bool HasPlacementPreview { get; set; }
             public bool HasTrackedPlacement { get; set; }
             public bool PlacementBusy { get; set; }
@@ -360,7 +382,7 @@ namespace Tagtag.Tests
             public bool DeferPlacement;
             public void SelectDesign(string id)
             {
-                if (DeferPlacement) { State.busy = true; State.error = ""; Notify(); return; }
+                if (DeferPlacement) { State.busy = true; State.designError = ""; Notify(); return; }
                 State.selectedDesign = id; State.selectedPreset = "";
                 State.creationOpen = false; State.page = AppPage.Stick; Notify();
             }
@@ -369,7 +391,7 @@ namespace Tagtag.Tests
             public void DeleteDesign(string id)
             {
                 DeletedId = id;
-                if (DeferDeletion) { State.busy = true; State.error = ""; }
+                if (DeferDeletion) { State.busy = true; State.designError = ""; }
                 else State.designs.RemoveAll(d => d.id == id);
                 Notify();
             }

@@ -26,6 +26,25 @@ namespace Tagtag.UI.Tests
         }
 
         [Test]
+        public void ScanProgressFollowsObservedArStagesWithoutUsingLocationAsReadiness()
+        {
+            Assert.AreEqual(0, PaperScan.StageIndex(PlacementScanState.FindingSurface));
+            Assert.AreEqual(1, PaperScan.StageIndex(PlacementScanState.SurfaceReady));
+            Assert.AreEqual(2, PaperScan.StageIndex(PlacementScanState.Placed));
+            Assert.AreEqual(3, PaperScan.StageIndex(PlacementScanState.Ready));
+            Assert.AreEqual("Scan ready", PaperScan.Label(PlacementScanState.Ready));
+        }
+
+        [Test]
+        public void DesignFailuresStayOutOfGeneralNoticeAndNoteFlow()
+        {
+            AppState state = new AppState { page = AppPage.Stick, designError = "Could not save design." };
+            Assert.AreEqual("", PaperFlow.StatusMessage(state, false));
+            state.error = "Could not publish sticker.";
+            Assert.AreEqual("Could not publish sticker.", PaperFlow.StatusMessage(state, false));
+        }
+
+        [Test]
         public void NoteReadinessKeepsIncompleteAndBusyDraftsFromPublishing()
         {
             Assert.IsFalse(PaperFlow.CanPresentPublish("Place", "Clue", "  ", false, false));

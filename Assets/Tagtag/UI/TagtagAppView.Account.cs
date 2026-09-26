@@ -381,17 +381,13 @@ namespace Tagtag.UI
         private int noteFocusCursor;
         private int noteFocusSelection;
         private readonly List<PaperSelection> reportChoices = new List<PaperSelection>();
-        private readonly PresenterCache creationLibraryContents = new PresenterCache();
-        private readonly List<Button> creationSelectButtons = new List<Button>();
-        private readonly List<Button> creationDeleteButtons = new List<Button>();
         private readonly List<Button> inventoryChoices = new List<Button>();
-        private VisualElement creationLibraryHost;
         private Button creationImportButton, creationCameraButton, creationAiButton;
-        private Button creationRetryButton, creationRefreshButton;
+        private Button creationRetryButton, creationMyDesignsButton;
         private Button deleteDesignConfirmButton, deleteDesignCancelButton;
         private bool deleteDesignPending;
         private Label creationImportNotice, creationCameraNotice, creationAiNotice;
-        private Label creationCutoutNotice, creationSaveNotice;
+        private Label creationSaveNotice, creationDesignError;
 
         private void BuildSheet(AppState state)
         {
@@ -437,14 +433,14 @@ namespace Tagtag.UI
             publishButton = null;
             publishReadinessLabel = null;
             sheetDetailHost = null;
-            creationLibraryHost = null;
             inventoryChoices.Clear();
             creationImportButton = creationCameraButton = creationAiButton = null;
-            creationRetryButton = creationRefreshButton = null;
+            creationRetryButton = creationMyDesignsButton = null;
             deleteDesignConfirmButton = deleteDesignCancelButton = null;
             homePreviewPlaceButton = homePreviewRemoveButton = null;
+            homeDesignActionError = null;
             creationImportNotice = creationCameraNotice = creationAiNotice = null;
-            creationCutoutNotice = creationSaveNotice = null;
+            creationSaveNotice = creationDesignError = null;
             if (sheet == Sheet.Picker) BuildPickerSheet(content, state);
             else if (sheet == Sheet.Creator) BuildCreatorSheet(content, state);
             else if (sheet == Sheet.HomeDesignPreview) BuildHomeDesignPreview(content, state);
@@ -458,7 +454,7 @@ namespace Tagtag.UI
             else if (sheet == Sheet.Report) BuildReportSheet(content, state);
             else if (sheet == Sheet.Withdraw) BuildWithdrawSheet(content, state);
             else BuildBlockSheet(content, state);
-            AddStatus(content, state);
+            if (sheet != Sheet.Creator) AddStatus(content, state);
             sheetView.BindGestures();
             RefreshSheet(state);
             if (!string.IsNullOrEmpty(returnFieldName) && sheet == Sheet.Note)
@@ -581,20 +577,21 @@ namespace Tagtag.UI
             back.style.alignSelf = Align.FlexStart;
             back.style.marginBottom = 14f;
             Text(content, "Create a sticker", 21, true);
-            creationImportButton = Action(content, "Choose a photo or file", () => controller.CreateSticker("import"));
-            PaperDottedOutline.Decorate(creationImportButton);
-            creationImportButton.style.marginTop = 10f;
+            VisualElement sources = Row(content);
+            sources.name = "Creator sources";
+            sources.style.justifyContent = Justify.SpaceBetween;
+            sources.style.marginTop = 12f;
+            creationImportButton = CreatorTile(sources, "Upload", "upload", "import");
+            creationCameraButton = CreatorTile(sources, "Photo", "photo", "polaroid");
+            creationAiButton = CreatorTile(sources, "Imagine", "imagine", "ai");
             creationImportNotice = Text(content, "", 13, false, Muted);
-            creationCameraButton = Action(content, "Make a Polaroid", () => controller.CreateSticker("polaroid"), false);
-            creationCameraButton.style.marginTop = 7f;
             creationCameraNotice = Text(content, "", 13, false, Muted);
-            creationAiButton = Action(content, "Create with Image Playground", () => controller.CreateSticker("ai"), false);
-            creationAiButton.style.marginTop = 7f;
             creationAiNotice = Text(content, "", 13, false, Muted);
-            creationCutoutNotice = Text(content, "", 13, false, Muted);
-            creationCutoutNotice.style.marginTop = 8f;
             creationSaveNotice = Text(content, "", 14, false, Muted);
             creationSaveNotice.style.marginTop = 12f;
+            creationDesignError = Text(content, "", 14, false, new Color32(125, 39, 31, 255));
+            creationDesignError.name = "Creator design error";
+            creationDesignError.style.marginTop = 8f;
             creationRetryButton = Action(content, "Retry saving sticker", () =>
             {
                 if (SignedIn(controller.State)) controller.RetryDesignSave();
@@ -603,119 +600,71 @@ namespace Tagtag.UI
             PaperDottedOutline.Decorate(creationRetryButton, capsule: true);
             creationRetryButton.style.alignSelf = Align.FlexStart;
             creationRetryButton.style.marginTop = 6f;
-            Divider(content);
-            VisualElement libraryHeading = Row(content);
-            libraryHeading.style.alignItems = Align.Center;
-            libraryHeading.style.justifyContent = Justify.SpaceBetween;
-            Text(libraryHeading, "Your designs", 21, true);
-            creationRefreshButton = Action(libraryHeading, "Refresh", controller.RefreshDesigns, false);
-            creationRefreshButton.style.marginLeft = 8f;
-            creationLibraryHost = Column(content);
-            creationLibraryContents.Reset();
+            creationMyDesignsButton = Action(content, "My designs", OpenHomeDesignsFromCreator, false);
+            creationMyDesignsButton.name = "Creator My designs";
+            creationMyDesignsButton.style.alignSelf = Align.FlexStart;
+            creationMyDesignsButton.style.marginTop = 14f;
             RefreshCreation(state);
+        }
+
+        private Button CreatorTile(VisualElement parent, string label, string artwork, string source)
+        {
+            Button tile = Action(parent, "", () => controller.CreateSticker(source), false);
+            tile.name = "Creator " + label;
+            tile.tooltip = label + " a sticker";
+            tile.RemoveFromClassList("quiet");
+            tile.AddToClassList("secondary");
+            PaperDottedOutline.Decorate(tile);
+            tile.style.width = Length.Percent(31.5f);
+            tile.style.minWidth = 0f;
+            tile.style.minHeight = textScale > 1.2f ? 142f : 124f;
+            tile.style.flexDirection = FlexDirection.Column;
+            tile.style.alignItems = Align.Center;
+            tile.style.justifyContent = Justify.Center;
+            tile.style.paddingLeft = 4f;
+            tile.style.paddingRight = 4f;
+            Image image = new Image
+            {
+                image = Resources.Load<Texture2D>("Tagtag/Creation/" + artwork),
+                scaleMode = ScaleMode.ScaleToFit,
+                pickingMode = PickingMode.Ignore,
+                name = "Creator " + label + " art"
+            };
+            image.style.width = 74f;
+            image.style.height = 74f;
+            image.style.maxWidth = Length.Percent(100f);
+            tile.Add(image);
+            Label title = Text(tile, label, 14, true);
+            title.pickingMode = PickingMode.Ignore;
+            title.style.unityTextAlign = TextAnchor.MiddleCenter;
+            title.style.marginTop = 5f;
+            return tile;
         }
 
         private void RefreshCreation(AppState state)
         {
-            if (creationLibraryHost == null) return;
+            if (creationImportButton == null) return;
             int available = state.creationCapabilities;
             SetDisabled(creationImportButton, !PaperCreation.CanStart("import", state));
             SetDisabled(creationCameraButton, !PaperCreation.CanStart("polaroid", state));
             SetDisabled(creationAiButton, !PaperCreation.CanStart("ai", state));
-            creationImportNotice.text = (available & 1) == 0 ? "Photo and file import is unavailable on this device." :
-                "Import a photo or PNG, then crop it in the editor.";
-            creationCameraNotice.text = PaperCreation.PolaroidNotice(available);
-            creationAiNotice.text = (available & 4) == 0 ? "Image Playground is unavailable on this device." :
-                "Create artwork with Apple Image Playground.";
-            creationCutoutNotice.text = (available & 8) == 0 ?
-                "Foreground cutout is unavailable on this device." :
-                "The editor can cut out a subject and add a white sticker border.";
+            creationImportNotice.text = (available & 1) == 0 ? "Photo and file import is unavailable on this device." : "";
+            creationCameraNotice.text = (available & (1 | 2)) == 0 ? "Photo creation is unavailable on this device." : "";
+            creationAiNotice.text = (available & 4) == 0 ? "Image Playground is unavailable on this device." : "";
+            foreach (Label notice in new[] { creationImportNotice, creationCameraNotice, creationAiNotice })
+                notice.style.display = string.IsNullOrEmpty(notice.text) ? DisplayStyle.None : DisplayStyle.Flex;
             creationSaveNotice.text = state.busy && state.hasPendingDesign ? "Saving your sticker…" :
                 state.hasPendingDesign && !SignedIn(state) ?
                     "Your sticker is on this device. Sign in to save it before making another." :
                 state.hasPendingDesign ? "Your sticker is on this device. Retry saving it before making another." :
-                !SignedIn(state) ? "You can make a sticker now. Sign in afterward to save it to your account." :
-                    "Designs in My Stickers are saved to your account.";
+                "";
+            creationSaveNotice.style.display = string.IsNullOrEmpty(creationSaveNotice.text) ? DisplayStyle.None : DisplayStyle.Flex;
+            creationDesignError.text = state.designError ?? "";
+            creationDesignError.style.display = string.IsNullOrEmpty(creationDesignError.text) ? DisplayStyle.None : DisplayStyle.Flex;
             creationRetryButton.style.display = state.hasPendingDesign ? DisplayStyle.Flex : DisplayStyle.None;
             creationRetryButton.text = SignedIn(state) ? "Retry saving sticker" : "Sign in to save";
             SetDisabled(creationRetryButton, state.busy);
-            SetDisabled(creationRefreshButton, state.busy || state.designsLoading || !SignedIn(state));
-            string key = state.user?.uid + ":" + state.selectedDesign + ":" + state.designsLoading;
-            foreach (StickerDesign design in state.designs)
-                if (design != null) key += ":" + design.id + ":" + design.revision + ":" + design.name +
-                    ":" + design.ownerId + ":" + design.thumbnailUrl;
-            if (!creationLibraryContents.NeedsRefresh(key))
-            {
-                foreach (Button button in creationSelectButtons)
-                    SetDisabled(button, state.busy || !(button.userData is bool canSelect && canSelect));
-                foreach (Button button in creationDeleteButtons)
-                    SetDisabled(button, state.busy || !(button.userData is bool canDelete && canDelete));
-                return;
-            }
-            creationLibraryHost.Clear();
-            artworkNotices.RemoveAll(notice => notice.status.panel == null);
-            creationSelectButtons.Clear();
-            creationDeleteButtons.Clear();
-            if (state.designsLoading)
-            {
-                Text(creationLibraryHost, "Loading your designs…", 15, false, Muted).style.marginTop = 12f;
-                return;
-            }
-            if (state.designs.Count == 0)
-            {
-                Text(creationLibraryHost, SignedIn(state) ? "No designs yet. Make your first sticker above." :
-                    "Sign in to see your saved designs here.", 15, false, Muted).style.marginTop = 12f;
-                return;
-            }
-            foreach (StickerDesign design in state.designs)
-            {
-                if (design == null || string.IsNullOrEmpty(design.id)) continue;
-                Divider(creationLibraryHost);
-                VisualElement row = Row(creationLibraryHost);
-                row.style.alignItems = Align.Center;
-                Image art = Art(row, design, 72f);
-                art.style.flexShrink = 0f;
-                VisualElement details = Column(row);
-                details.style.flexGrow = 1f;
-                details.style.minWidth = 0f;
-                details.style.marginLeft = 12f;
-                Text(details, Safe(design.name, "Untitled sticker"), 16, true);
-                Text(details, DesignKind(design.kind), 13, false, Muted);
-                AddArtworkNotice(details, art, design.id, true);
-                bool canUse = SignedIn(state) ? design.ownerId == state.user.uid : string.IsNullOrEmpty(design.ownerId);
-                if (!canUse) Text(details, "Only the creator can leave this design.", 12, false, Muted);
-                string designId = design.id;
-                PaperSelection choose = new PaperSelection("Choose sticker", state.selectedDesign == designId, () =>
-                {
-                    controller.SelectDesign(designId);
-                });
-                PaperDottedOutline.Decorate(choose);
-                details.Add(choose);
-                choose.style.alignSelf = Align.Stretch;
-                choose.style.width = Length.Percent(100f);
-                choose.style.minWidth = 180f;
-                choose.style.marginTop = 4f;
-                choose.userData = canUse;
-                SetDisabled(choose, state.busy || !canUse);
-                creationSelectButtons.Add(choose);
-                Button remove = Action(details, "Remove from My Stickers", () =>
-                {
-                    deleteDesignFromHome = false;
-                    sheetDesignId = designId;
-                    sheet = Sheet.DeleteDesign;
-                    QueueRender();
-                }, false);
-                remove.style.alignSelf = Align.FlexStart;
-                remove.style.marginTop = 3f;
-                remove.userData = canUse;
-                SetDisabled(remove, state.busy || !canUse);
-                creationDeleteButtons.Add(remove);
-            }
-        }
-
-        private static string DesignKind(string kind)
-        {
-            return kind == "ai" ? "Image Playground" : kind == "polaroid" ? "Polaroid" : "Image";
+            SetDisabled(creationMyDesignsButton, state.busy);
         }
 
         private void BuildDeleteDesignSheet(VisualElement content, AppState state)
@@ -743,6 +692,8 @@ namespace Tagtag.UI
             }, false);
             deleteDesignCancelButton.style.marginTop = 8f;
             SetDisabled(deleteDesignCancelButton, deleteDesignPending);
+            BuildDesignActionError(content);
+            RefreshDesignActionError(state);
         }
 
         private void SyncDeleteDesign(AppState state)
@@ -756,7 +707,7 @@ namespace Tagtag.UI
                 sheet = deleteDesignFromHome ? Sheet.None : Sheet.Creator;
                 deleteDesignFromHome = false;
             }
-            else if (!state.busy && !string.IsNullOrEmpty(state.error)) deleteDesignPending = false;
+            else if (!state.busy && !string.IsNullOrEmpty(state.designError)) deleteDesignPending = false;
         }
 
         private void BuildNoteSheet(VisualElement content, AppState state)
@@ -812,6 +763,7 @@ namespace Tagtag.UI
                 if (deleteDesignConfirmButton != null) SetDisabled(deleteDesignConfirmButton,
                     state.busy || deleteDesignPending);
                 if (deleteDesignCancelButton != null) SetDisabled(deleteDesignCancelButton, deleteDesignPending);
+                RefreshDesignActionError(state);
             }
             Button close = sheetView.Q<Button>("Action Close");
             if (close != null) SetDisabled(close, !CanDismissSheet());

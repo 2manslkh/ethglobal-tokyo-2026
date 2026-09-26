@@ -144,6 +144,9 @@ namespace Tagtag.UI
         private Button stickCloseButton;
         private Button stickCancelButton;
         private Button stickRetryButton;
+        private VisualElement stickScanProgress;
+        private readonly List<VisualElement> stickScanStages = new List<VisualElement>();
+        private Label stickScanRecovery;
         private readonly PaperSurfaceTap placementTap = new PaperSurfaceTap();
         private readonly PaperSurfaceGesture placementGesture = new PaperSurfaceGesture();
         private Label cameraTitleLabel;
@@ -255,6 +258,35 @@ namespace Tagtag.UI
             top.RegisterCallback<GeometryChangedEvent>(_ => LayoutRecovery());
             dock.RegisterCallback<GeometryChangedEvent>(_ => LayoutRecovery());
             page.RegisterCallback<GeometryChangedEvent>(_ => LayoutRecovery());
+            stickScanProgress = Row(dock);
+            stickScanProgress.name = "STICK scan progress";
+            stickScanProgress.style.marginBottom = 8f;
+            stickScanStages.Clear();
+            for (int index = 0; index < PaperScan.StageCount; index++)
+            {
+                VisualElement stage = Column(stickScanProgress);
+                stage.name = "STICK scan stage " + index;
+                stage.style.flexGrow = 1f;
+                stage.style.flexBasis = 0f;
+                stage.style.minWidth = 0f;
+                stage.style.marginRight = index == PaperScan.StageCount - 1 ? 0f : 4f;
+                VisualElement mark = new VisualElement { name = "Scan mark" };
+                mark.style.height = 5f;
+                mark.style.borderTopLeftRadius = 3f;
+                mark.style.borderTopRightRadius = 3f;
+                mark.style.borderBottomLeftRadius = 3f;
+                mark.style.borderBottomRightRadius = 3f;
+                stage.Add(mark);
+                Label label = Text(stage, PaperScan.Label(index), 10, true);
+                label.style.unityTextAlign = TextAnchor.UpperCenter;
+                label.style.marginTop = 4f;
+                label.style.minHeight = textScale > 1.2f ? 34f : 26f;
+                stickScanStages.Add(stage);
+            }
+            stickScanRecovery = Text(dock, "", 12, false, Muted);
+            stickScanRecovery.name = "STICK scan recovery";
+            stickScanRecovery.style.unityTextAlign = TextAnchor.MiddleCenter;
+            stickScanRecovery.style.marginBottom = 6f;
             stickActions = Row(dock);
             stickActions.style.alignItems = Align.Center;
             stickActions.style.justifyContent = Justify.SpaceBetween;
@@ -310,6 +342,25 @@ namespace Tagtag.UI
                 ar?.HasPlacementSurface ?? false, ar?.HasPlacementPreview ?? false,
                 ar?.PlacementBusy ?? false);
             stickModeTitle.text = selected ? placement.Title : state.selected != null ? "Find sticker" : "STICK";
+            stickScanProgress.style.display = selected ? DisplayStyle.Flex : DisplayStyle.None;
+            bool trackingPaused = selected && ar != null &&
+                (ar.CameraPresentation == CameraPresentationState.Interrupted ||
+                 ar.CameraPresentation == CameraPresentationState.Live && !ar.IsTracking);
+            stickScanRecovery.text = trackingPaused ? "Tracking paused. Move slowly to resume." : "";
+            stickScanRecovery.style.display = trackingPaused ? DisplayStyle.Flex : DisplayStyle.None;
+            if (selected)
+            {
+                int current = PaperScan.StageIndex(ar?.ScanState ?? PlacementScanState.FindingSurface);
+                for (int index = 0; index < stickScanStages.Count; index++)
+                {
+                    VisualElement stage = stickScanStages[index];
+                    bool active = index == current;
+                    stage.EnableInClassList("scan-stage-current", active);
+                    stage.EnableInClassList("scan-stage-complete", index < current);
+                    stage.Q("Scan mark").style.backgroundColor = index <= current ? Yellow : Line;
+                    stage.Q<Label>().style.color = active ? Ink : Muted;
+                }
+            }
             stickWriteButton.style.display = selected ? DisplayStyle.Flex : DisplayStyle.None;
             SetDisabled(stickWriteButton, !placement.CanWriteNote);
             stickRetryButton.style.display = PaperFlow.ShowDiscoveryRetry(state) ? DisplayStyle.Flex : DisplayStyle.None;

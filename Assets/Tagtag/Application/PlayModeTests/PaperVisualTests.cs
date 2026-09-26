@@ -278,20 +278,39 @@ namespace Tagtag.Tests
             }
             Submit("Add Sticker");
             yield return Capture("camera-create-sticker");
-            Assert.That(document.rootVisualElement.Query<Button>().ToList().Any(button => button.text == "Choose a photo or file"), Is.True);
-            Assert.That(document.rootVisualElement.Query<Button>().ToList().Any(button => button.text == "Make a Polaroid"), Is.True);
-            Assert.That(document.rootVisualElement.Query<Button>().ToList().Any(button => button.text == "Create with Image Playground"), Is.True);
+            foreach (string source in new[] { "Upload", "Photo", "Imagine" })
+            {
+                var tile = document.rootVisualElement.Q<Button>("Creator " + source);
+                Assert.That(tile, Is.Not.Null);
+                Assert.That(tile.Q<Image>()?.image, Is.Not.Null, source + " uses its dedicated illustration.");
+                Assert.That(tile.Query<Label>().ToList().Any(label => label.text == source), Is.True);
+            }
+            Assert.That(document.rootVisualElement.Query<Label>().ToList().Any(label =>
+                label.text != null && label.text.StartsWith("Choose a photo library image")), Is.False);
             Submit("Back to stickers");
             yield return Capture("camera-inventory-return");
             Submit("Inventory Taggi pose 2");
             yield return Capture("camera-finding-surface");
             Assert.That(controller.State.selectedPreset, Is.EqualTo("taggi-2"));
+            var scanRecovery = document.rootVisualElement.Q<Label>("STICK scan recovery");
+            Assert.That(scanRecovery.resolvedStyle.display, Is.EqualTo(DisplayStyle.None));
+            controller.Camera.IsTracking = false;
+            controller.Notify();
+            yield return new WaitForSecondsRealtime(.4f);
+            Assert.That(scanRecovery.text, Is.EqualTo("Tracking paused. Move slowly to resume."));
+            Assert.That(scanRecovery.resolvedStyle.display, Is.Not.EqualTo(DisplayStyle.None));
+            controller.Camera.IsTracking = true;
+            controller.Notify();
+            yield return new WaitForSecondsRealtime(.4f);
+            Assert.That(scanRecovery.resolvedStyle.display, Is.EqualTo(DisplayStyle.None));
             Assert.That(controller.Camera.PlaceCalls, Is.Zero, "Selecting inventory art must not place it automatically.");
             var write = document.rootVisualElement.Q<Button>("STICK Write note");
             Assert.That(write == null || !write.enabledSelf, Is.True, "Place a preview before writing its note.");
             controller.Camera.HasPlacementSurface = true;
+            controller.Camera.ScanState = PlacementScanState.SurfaceReady;
             controller.Notify();
             yield return Capture("camera-surface-ready");
+            Assert.That(document.rootVisualElement.Q<VisualElement>("STICK scan stage 1").ClassListContains("scan-stage-current"), Is.True);
             Submit("STICK Inventory");
             yield return new WaitForSecondsRealtime(.4f);
             yield return TapCameraSurface();
@@ -299,8 +318,10 @@ namespace Tagtag.Tests
             Submit("Close");
             yield return new WaitForSecondsRealtime(.4f);
             yield return TapCameraSurface();
+            controller.Camera.ScanState = PlacementScanState.Placed;
             controller.Notify();
             yield return Capture("camera-adjusting-preview");
+            Assert.That(document.rootVisualElement.Q<VisualElement>("STICK scan stage 2").ClassListContains("scan-stage-current"), Is.True);
             Assert.That(controller.Camera.PlaceCalls, Is.EqualTo(1));
             Assert.That(controller.Camera.CanPublish, Is.False, "Fixture keeps mapping incomplete to test independent note access.");
             Assert.That(document.rootVisualElement.Q("STICK Adjustments"), Is.Null);
@@ -309,6 +330,10 @@ namespace Tagtag.Tests
             Assert.That(card.Query<Image>().ToList(), Is.Empty);
             Assert.That(document.rootVisualElement.Q("STICK guidance scroll"), Is.Null);
             Assert.That(document.rootVisualElement.Q("STICK Placement Guidance"), Is.Null);
+            controller.Camera.ScanState = PlacementScanState.Ready;
+            controller.Notify();
+            yield return new WaitForSecondsRealtime(.4f);
+            Assert.That(document.rootVisualElement.Q<VisualElement>("STICK scan stage 3").ClassListContains("scan-stage-current"), Is.True);
             Submit("STICK Write note");
             yield return Capture("camera-note-after-placement");
             Assert.That(document.rootVisualElement.Q<TextField>("Your note"), Is.Not.Null);
@@ -720,6 +745,44 @@ namespace Tagtag.Tests
         }
 
         [UnityTest]
+        public IEnumerator CompactLargeTextCreatorTilesKeepLabelsAndArtworkInsideTheirBounds()
+        {
+            oldScale = PlayerPrefs.GetFloat("tagtag.textScale", 1f);
+            oldMotion = PlayerPrefs.GetInt("tagtag.reducedMotion", 0);
+            PlayerPrefs.SetFloat("tagtag.textScale", 1.4f);
+            PlayerPrefs.SetInt("tagtag.reducedMotion", 1);
+            controller = new ReviewController();
+            controller.State.creationCapabilities = 15;
+            host = new GameObject("Compact creator review");
+            host.AddComponent<TagtagAppView>().Initialize(controller);
+            document = host.GetComponent<UIDocument>();
+            target = new RenderTexture(320, 568, 24); target.Create();
+            document.panelSettings.targetTexture = target;
+            controller.OpenCreation();
+            yield return new WaitForSecondsRealtime(.4f);
+            Submit("Add Sticker");
+            yield return Capture("creator-compact-largest");
+            var sheet = document.rootVisualElement.Q<PaperSheet>();
+            Assert.That(sheet.worldBound.yMax, Is.LessThanOrEqualTo(document.rootVisualElement.worldBound.yMax + 1f));
+            foreach (string source in new[] { "Upload", "Photo", "Imagine" })
+            {
+                var tile = sheet.Q<Button>("Creator " + source);
+                var art = tile.Q<Image>();
+                var label = tile.Q<Label>();
+                Assert.That(art.image, Is.Not.Null);
+                Assert.That(label.text, Is.EqualTo(source));
+                Assert.That(label.resolvedStyle.fontSize, Is.GreaterThanOrEqualTo(19f));
+                Assert.That(tile.worldBound.xMin, Is.GreaterThanOrEqualTo(sheet.Scroll.worldBound.xMin - 1f));
+                Assert.That(tile.worldBound.xMax, Is.LessThanOrEqualTo(sheet.Scroll.worldBound.xMax + 1f));
+                Assert.That(art.worldBound.xMin, Is.GreaterThanOrEqualTo(tile.worldBound.xMin - 1f));
+                Assert.That(art.worldBound.xMax, Is.LessThanOrEqualTo(tile.worldBound.xMax + 1f));
+                Assert.That(label.worldBound.xMin, Is.GreaterThanOrEqualTo(tile.worldBound.xMin - 1f));
+                Assert.That(label.worldBound.xMax, Is.LessThanOrEqualTo(tile.worldBound.xMax + 1f));
+                Assert.That(label.worldBound.yMax, Is.LessThanOrEqualTo(tile.worldBound.yMax + 1f));
+            }
+        }
+
+        [UnityTest]
         public IEnumerator MyStickersShowsSourcesAndSavedArtwork()
         {
             oldScale = PlayerPrefs.GetFloat("tagtag.textScale", 1f);
@@ -766,21 +829,35 @@ namespace Tagtag.Tests
             creationSheet.Scroll.scrollOffset = Vector2.zero;
             yield return Capture("my-stickers-sources");
             Assert.That(creationSheet.Q<Button>("Back to stickers"), Is.Not.Null);
-            Assert.That(document.rootVisualElement.Query<Button>().ToList().Any(button => button.text == "Make a Polaroid"), Is.True);
-            Assert.That(document.rootVisualElement.Query<Button>().ToList().Any(button => button.text == "Create with Image Playground"), Is.True);
-            Assert.That(document.rootVisualElement.Query<Label>().ToList().Any(label => label.text == "An afternoon in Tokyo"), Is.True,
-                "Creator management retains names to identify saved designs.");
-            Assert.That(document.rootVisualElement.Query<Button>().ToList().Any(button => button.text == "Remove from My Stickers"), Is.True);
-            var art = creationSheet.Q<Image>("Sticker artwork creation-review-image");
-            Assert.That(art, Is.Not.Null);
-            Assert.That(art.image, Is.Not.Null);
-            Assert.That(art.resolvedStyle.height, Is.GreaterThan(art.resolvedStyle.width));
-            creationSheet.Scroll.ScrollTo(art);
-            yield return Capture("my-stickers-library");
+            Assert.That(creationSheet.Q<Button>("Creator Photo"), Is.Not.Null);
+            Assert.That(creationSheet.Q<Button>("Creator Imagine"), Is.Not.Null);
+            Assert.That(creationSheet.Q<Button>("Creator My designs"), Is.Not.Null);
+            Assert.That(creationSheet.Q<Label>("Creator design error"), Is.Not.Null);
+            foreach (var source in new[] { ("Upload", "import"), ("Photo", "polaroid"), ("Imagine", "ai") })
+            {
+                Submit("Creator " + source.Item1);
+                Assert.That(controller.CreatedSource, Is.EqualTo(source.Item2));
+            }
+            Assert.That(creationSheet.Query<Label>().ToList().Any(label => label.text == "An afternoon in Tokyo"), Is.False,
+                "Saved-design management lives in Home.");
+            controller.State.designError = "Saving failed. Try again."; controller.Notify();
+            yield return Capture("my-stickers-save-error");
+            Assert.That(creationSheet.Q<Label>("Creator design error").text, Is.EqualTo("Saving failed. Try again."));
             controller.State.hasPendingDesign = true; controller.Notify();
             creationSheet.Scroll.scrollOffset = Vector2.zero;
             yield return Capture("my-stickers-pending-save");
             Assert.That(document.rootVisualElement.Query<Button>().ToList().Any(button => button.text == "Retry saving sticker"), Is.True);
+            controller.State.designError = ""; controller.Notify();
+            Submit("Creator My designs");
+            yield return new WaitForSecondsRealtime(.4f);
+            Assert.That(controller.State.page, Is.EqualTo(AppPage.Home));
+            Assert.That(controller.State.creationOpen, Is.False);
+            Assert.That(document.rootVisualElement.Q<PaperSheet>(), Is.Null);
+            Assert.That(document.rootVisualElement.Q<Button>("Home My designs"), Is.Not.Null);
+            controller.OpenCreation();
+            yield return new WaitForSecondsRealtime(.4f);
+            Submit("Add Sticker");
+            yield return new WaitForSecondsRealtime(.4f);
             Submit("Back to stickers");
             yield return new WaitForSecondsRealtime(.4f);
             Assert.That(document.rootVisualElement.Q<VisualElement>("Sticker inventory grid"), Is.Not.Null,
@@ -842,6 +919,7 @@ namespace Tagtag.Tests
             public bool CanPublish { get; set; }
             public bool CanCollect => false;
             public bool HasPlacementSurface { get; set; }
+            public PlacementScanState ScanState { get; set; } = PlacementScanState.FindingSurface;
             public bool HasPlacementPreview { get; set; }
             public bool HasTrackedPlacement { get; set; }
             public bool PlacementBusy { get; set; }
@@ -881,7 +959,8 @@ namespace Tagtag.Tests
             public void StartDiscovery() { Navigate(AppPage.Stick); }
             public void OpenCreation() { State.creationOpen = true; Notify(); }
             public void CloseCreation() { State.creationOpen = false; Notify(); }
-            public void CreateSticker(string source) { }
+            public string CreatedSource { get; private set; }
+            public void CreateSticker(string source) { CreatedSource = source; }
             public void RefreshDesigns() { }
             public void SelectDesign(string id) { State.selectedDesign = id; State.selectedPreset = ""; State.creationOpen = false; State.page = AppPage.Stick; Notify(); }
             public void DeleteDesign(string id) { }

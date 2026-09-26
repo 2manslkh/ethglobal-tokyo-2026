@@ -226,6 +226,27 @@ namespace Tagtag.UI
         }
     }
 
+    public static class PaperScan
+    {
+        private static readonly string[] Labels =
+            { "Find surface", "Place sticker", "Scan surroundings", "Scan ready" };
+
+        public static int StageIndex(PlacementScanState state)
+        {
+            switch (state)
+            {
+                case PlacementScanState.SurfaceReady: return 1;
+                case PlacementScanState.Placed: return 2;
+                case PlacementScanState.Ready: return 3;
+                default: return 0;
+            }
+        }
+
+        public static string Label(PlacementScanState state) => Labels[StageIndex(state)];
+        public static string Label(int index) => Labels[index];
+        public static int StageCount => Labels.Length;
+    }
+
     public sealed class PaperActivation
     {
         private bool running;

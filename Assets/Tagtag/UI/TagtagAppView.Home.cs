@@ -24,6 +24,7 @@ namespace Tagtag.UI
         private Button homeSignInButton;
         private Button homePreviewPlaceButton;
         private Button homePreviewRemoveButton;
+        private Label homeDesignActionError;
         private PaperCollectionCount homeCount;
         private Button homeCreateButton;
         private readonly PresenterCache homeContents = new PresenterCache();
@@ -225,6 +226,7 @@ namespace Tagtag.UI
             homeRefreshDesigns = Action(designsHeading, "Refresh", controller.RefreshDesigns, false);
             homeRefreshDesigns.name = "Home Refresh designs";
             homeDesignStatus = Text(homeDesignSection, "", 14, false, Muted);
+            homeDesignStatus.name = "Home design status";
             homeDesignStatus.style.marginTop = 10f;
             homeDesignStatus.style.marginBottom = 8f;
             homeSignInButton = Action(homeDesignSection, "Sign in", () =>
@@ -329,14 +331,14 @@ namespace Tagtag.UI
             SetDisabled(next, bookPage + 1 >= BookPaging.PageCount(items.Count));
         }
 
-        private void SetHomeSection(HomeSection section)
+        private void SetHomeSection(HomeSection section, bool refreshDesigns = true)
         {
             if (section == homeSection || homeScroll == null) return;
             CaptureHomeScroll();
             homeSection = section;
             RestoreHomeScrollAfterLayout(section);
             RefreshHome(controller.State);
-            if (section == HomeSection.Designs && SignedIn(controller.State)) controller.RefreshDesigns();
+            if (refreshDesigns && section == HomeSection.Designs && SignedIn(controller.State)) controller.RefreshDesigns();
         }
 
         private void OpenHomeCreator()
@@ -344,6 +346,20 @@ namespace Tagtag.UI
             controller.OpenCreation();
             if (!controller.State.creationOpen) return;
             sheet = Sheet.Creator;
+            QueueRender();
+        }
+
+        private void OpenHomeDesignsFromCreator()
+        {
+            if (controller.State.busy) return;
+            bool fromHome = controller.State.page == AppPage.Home && homeScroll != null;
+            if (fromHome)
+                SetHomeSection(HomeSection.Designs, false);
+            else
+                homeSection = HomeSection.Designs;
+            controller.CloseCreation();
+            controller.Navigate(AppPage.Home);
+            if (fromHome && SignedIn(controller.State)) controller.RefreshDesigns();
             QueueRender();
         }
 
@@ -364,8 +380,10 @@ namespace Tagtag.UI
             List<StickerDesign> designs = HomeOwnedDesigns(state);
             homeDesignStatus.text = !SignedIn(state) ? "Sign in to see your saved designs." :
                 state.designsLoading ? designs.Count > 0 ? "Refreshing your designs…" : "Loading your designs…" :
-                !string.IsNullOrEmpty(state.error) ? state.error :
+                !string.IsNullOrEmpty(state.designError) ? state.designError :
                 designs.Count == 0 ? "No designs yet. Make a sticker to start your collection." : "";
+            homeDesignStatus.style.color = SignedIn(state) && !state.designsLoading &&
+                !string.IsNullOrEmpty(state.designError) ? (Color)new Color32(125, 39, 31, 255) : Muted;
             homeDesignStatus.style.display = string.IsNullOrEmpty(homeDesignStatus.text) ? DisplayStyle.None : DisplayStyle.Flex;
             homeSignInButton.style.display = SignedIn(state) ? DisplayStyle.None : DisplayStyle.Flex;
             string key = state.user?.uid + ":" + designs.Count;
@@ -457,13 +475,30 @@ namespace Tagtag.UI
             }, false);
             homePreviewRemoveButton.name = "Home Remove design";
             homePreviewRemoveButton.style.marginTop = 7f;
+            BuildDesignActionError(content);
             RefreshHomeDesignPreview(state);
+        }
+
+        private void BuildDesignActionError(VisualElement content)
+        {
+            homeDesignActionError = Text(content, "", 14, false, new Color32(125, 39, 31, 255));
+            homeDesignActionError.name = "Design action error";
+            homeDesignActionError.style.marginTop = 9f;
+        }
+
+        private void RefreshDesignActionError(AppState state)
+        {
+            if (homeDesignActionError == null) return;
+            homeDesignActionError.text = state.designError ?? "";
+            homeDesignActionError.style.display = string.IsNullOrEmpty(homeDesignActionError.text) ?
+                DisplayStyle.None : DisplayStyle.Flex;
         }
 
         private void RefreshHomeDesignPreview(AppState state)
         {
             if (homePreviewPlaceButton != null) SetDisabled(homePreviewPlaceButton, state.busy || homePlacementPending);
             if (homePreviewRemoveButton != null) SetDisabled(homePreviewRemoveButton, state.busy || homePlacementPending);
+            RefreshDesignActionError(state);
         }
 
         private void FocusHomeDesign(string id)
