@@ -14,6 +14,7 @@ const MAX_BODY = 32768;
 const DISCOVERY_SECONDS = 300;
 const NEARBY_METERS = 2000;
 const BROWSE_MAX_ACCURACY_METERS = 5000;
+const RECOVERY_MAX_ACCURACY_METERS = 5000;
 const DESIGN_KINDS = new Set(['image', 'ai', 'polaroid']);
 
 class ApiError extends Error {
@@ -455,10 +456,12 @@ export function createApi({ adapter, now = () => Math.floor(Date.now() / 1000), 
 
             if (method === 'POST' && segments[1] === 'stickers' && segments[3] === 'recover' && segments.length === 4) {
                 rateLimit('recover', user.uid, 20, 60);
-                const point = location((await bodyJson(request)).location);
+                const measured = (await bodyJson(request)).location;
+                const point = location(measured, RECOVERY_MAX_ACCURACY_METERS);
                 const sticker = await active(segments[2]);
                 if (await isBlocked(user.uid, sticker.authorId)) denied();
-                if (distanceMeters(point, sticker) > 100) denied();
+                // Loading the map tolerates GPS drift; collecting still requires precise proximity.
+                if (distanceMeters(point, sticker) > measured.accuracyMeters + 100) denied();
                 const discoveryId = ids();
                 const expiresAt = now() + DISCOVERY_SECONDS;
                 await adapter.set('discoveries', discoveryId, { id: discoveryId, userId: user.uid, stickerId: sticker.id, expiresAt });
