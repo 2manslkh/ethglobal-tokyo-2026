@@ -62,7 +62,11 @@ static UIImage *TagtagCutout(UIImage *image, NSError **error) {
         VNImageRequestHandler *handler = [[VNImageRequestHandler alloc] initWithCGImage:image.CGImage options:@{}];
         if (![handler performRequests:@[request] error:error]) return nil;
         VNInstanceMaskObservation *observation = request.results.firstObject;
-        if (!observation || observation.allInstances.count == 0) return nil;
+        if (!observation || observation.allInstances.count == 0) {
+            if (error) *error = [NSError errorWithDomain:@"TagtagStickerCreation" code:1
+                                               userInfo:@{NSLocalizedDescriptionKey: @"No distinct subject was found. Try another crop or turn off cutout."}];
+            return nil;
+        }
         CVPixelBufferRef pixelBuffer = [observation generateScaledMaskForImageForInstances:observation.allInstances
                                                                         fromRequestHandler:handler error:error];
         if (!pixelBuffer) return nil;
@@ -73,9 +77,9 @@ static UIImage *TagtagCutout(UIImage *image, NSError **error) {
         CIImage *clear = [[CIImage imageWithColor:CIColor.clearColor] imageByCroppingToRect:extent];
         CIImage *white = [[CIImage imageWithColor:CIColor.whiteColor] imageByCroppingToRect:extent];
         CIImage *expanded = [mask imageByApplyingFilter:@"CIMorphologyMaximum" withInputParameters:@{@"inputRadius": @12}];
-        CIImage *border = [white imageByApplyingFilter:@"CIBlendWithAlphaMask"
+        CIImage *border = [white imageByApplyingFilter:@"CIBlendWithMask"
                                      withInputParameters:@{kCIInputBackgroundImageKey: clear, @"inputMaskImage": expanded}];
-        CIImage *composite = [source imageByApplyingFilter:@"CIBlendWithAlphaMask"
+        CIImage *composite = [source imageByApplyingFilter:@"CIBlendWithMask"
                                           withInputParameters:@{kCIInputBackgroundImageKey: border, @"inputMaskImage": mask}];
         CIContext *context = [CIContext contextWithOptions:@{kCIContextWorkingColorSpace: [NSNull null]}];
         CGImageRef cgImage = [context createCGImage:composite fromRect:extent];
@@ -95,6 +99,9 @@ static UIImage *TagtagCutout(UIImage *image, NSError **error) {
 @property(nonatomic, strong) UIImage *image;
 @property(nonatomic, strong) UIScrollView *cropView;
 @property(nonatomic, strong) UIImageView *imageView;
+@property(nonatomic, strong) UIImageView *fullImageView;
+@property(nonatomic, strong) UIImageView *previewView;
+@property(nonatomic, strong) UISegmentedControl *cropMode;
 @property(nonatomic, strong) UITextField *nameField;
 @property(nonatomic, strong) UITextField *captionField;
 @property(nonatomic, strong) UISwitch *cutoutSwitch;
@@ -103,6 +110,10 @@ static UIImage *TagtagCutout(UIImage *image, NSError **error) {
 @property(nonatomic) BOOL initialCropLayout;
 @property(nonatomic) BOOL finished;
 @property(nonatomic) BOOL busy;
+@property(nonatomic) BOOL previewMode;
+@property(nonatomic, strong) NSData *pendingPNG;
+@property(nonatomic) CGSize pendingSize;
+@property(nonatomic, copy) NSString *pendingName;
 @end
 
 @implementation TagtagStickerEditor
@@ -124,6 +135,23 @@ static UIImage *TagtagCutout(UIImage *image, NSError **error) {
     self.imageView = [UIImageView new];
     self.imageView.contentMode = UIViewContentModeScaleToFill;
     [self.cropView addSubview:self.imageView];
+    self.fullImageView = [UIImageView new];
+    self.fullImageView.contentMode = UIViewContentModeScaleAspectFit;
+    self.fullImageView.backgroundColor = UIColor.darkGrayColor;
+    self.fullImageView.hidden = YES;
+    [self.view addSubview:self.fullImageView];
+    self.previewView = [UIImageView new];
+    self.previewView.contentMode = UIViewContentModeScaleAspectFit;
+    self.previewView.accessibilityLabel = @"Final sticker preview";
+    self.previewView.hidden = YES;
+    [self.view addSubview:self.previewView];
+
+    self.cropMode = [[UISegmentedControl alloc] initWithItems:@[@"Full image", @"Square crop"]];
+    self.cropMode.selectedSegmentIndex = 0;
+    self.cropMode.accessibilityLabel = @"Image shape";
+    [self.cropMode addTarget:self action:@selector(cropModeChanged) forControlEvents:UIControlEventValueChanged];
+    self.cropMode.hidden = YES;
+    [self.view addSubview:self.cropMode];
 
     self.hintLabel = [UILabel new];
     self.hintLabel.text = @"Drag and pinch to crop";
@@ -137,6 +165,9 @@ static UIImage *TagtagCutout(UIImage *image, NSError **error) {
     self.nameField.placeholder = @"Sticker name";
     self.nameField.text = [self.source isEqualToString:@"polaroid"] ? @"My Polaroid" : @"My sticker";
     self.nameField.returnKeyType = UIReturnKeyDone;
+    self.nameField.font = [UIFont preferredFontForTextStyle:UIFontTextStyleBody];
+    self.nameField.adjustsFontForContentSizeCategory = YES;
+    self.nameField.accessibilityLabel = @"Sticker name, up to 80 characters";
     self.nameField.delegate = self;
     self.nameField.hidden = YES;
     [self.view addSubview:self.nameField];
@@ -145,6 +176,8 @@ static UIImage *TagtagCutout(UIImage *image, NSError **error) {
     self.captionField.borderStyle = UITextBorderStyleRoundedRect;
     self.captionField.placeholder = @"Caption (optional, 40 characters)";
     self.captionField.returnKeyType = UIReturnKeyDone;
+    self.captionField.font = [UIFont preferredFontForTextStyle:UIFontTextStyleBody];
+    self.captionField.adjustsFontForContentSizeCategory = YES;
     self.captionField.delegate = self;
     self.captionField.hidden = YES;
     [self.view addSubview:self.captionField];
@@ -156,13 +189,15 @@ static UIImage *TagtagCutout(UIImage *image, NSError **error) {
     UILabel *cutoutLabel = [UILabel new];
     cutoutLabel.tag = 101;
     cutoutLabel.text = @"Cut out subject + white border";
-    cutoutLabel.font = [UIFont systemFontOfSize:15];
+    cutoutLabel.font = [UIFont preferredFontForTextStyle:UIFontTextStyleSubheadline];
+    cutoutLabel.adjustsFontForContentSizeCategory = YES;
     cutoutLabel.hidden = YES;
     [self.view addSubview:cutoutLabel];
 
     self.saveButton = [UIButton buttonWithType:UIButtonTypeSystem];
-    [self.saveButton setTitle:@"Save sticker" forState:UIControlStateNormal];
-    self.saveButton.titleLabel.font = [UIFont boldSystemFontOfSize:18];
+    [self.saveButton setTitle:@"Preview" forState:UIControlStateNormal];
+    self.saveButton.titleLabel.font = [UIFont preferredFontForTextStyle:UIFontTextStyleHeadline];
+    self.saveButton.titleLabel.adjustsFontForContentSizeCategory = YES;
     self.saveButton.backgroundColor = [UIColor colorWithRed:1 green:0.84 blue:0.22 alpha:1];
     self.saveButton.tintColor = UIColor.blackColor;
     self.saveButton.layer.cornerRadius = 14;
@@ -189,14 +224,21 @@ static UIImage *TagtagCutout(UIImage *image, NSError **error) {
     [super viewDidLayoutSubviews];
     CGRect safe = self.view.safeAreaLayoutGuide.layoutFrame;
     CGFloat margin = 22, width = safe.size.width - 2 * margin;
-    CGFloat controls = [self.source isEqualToString:@"polaroid"] ? 214 : 166;
+    CGFloat controls = [self.source isEqualToString:@"import"] ? 230 :
+        ([self.source isEqualToString:@"polaroid"] ? 220 : 178);
     CGFloat cropSize = MAX(100, MIN(width, safe.size.height - controls - 30));
     self.cropView.frame = CGRectMake((safe.size.width - cropSize) / 2, safe.origin.y + 10, cropSize, cropSize);
+    self.fullImageView.frame = self.cropView.frame;
+    self.previewView.frame = CGRectMake(margin, safe.origin.y + 10, width, safe.size.height - 80);
     CGFloat y = CGRectGetMaxY(self.cropView.frame) + 8;
     self.hintLabel.frame = CGRectMake(margin, y, width, 20);
     y += 28;
     self.nameField.frame = CGRectMake(margin, y, width, 38);
     y += 44;
+    if ([self.source isEqualToString:@"import"]) {
+        self.cropMode.frame = CGRectMake(margin, y, width, 34);
+        y += 40;
+    }
     if ([self.source isEqualToString:@"polaroid"]) {
         self.captionField.frame = CGRectMake(margin, y, width, 38);
         y += 44;
@@ -215,6 +257,13 @@ static UIImage *TagtagCutout(UIImage *image, NSError **error) {
                                                    (self.image.size.height * zoom - cropSize) / 2);
         self.initialCropLayout = YES;
     }
+}
+
+- (void)cropModeChanged {
+    BOOL full = [self.source isEqualToString:@"import"] && self.cropMode.selectedSegmentIndex == 0;
+    self.cropView.hidden = full || self.previewMode;
+    self.fullImageView.hidden = !full || self.previewMode;
+    self.hintLabel.text = full ? @"Full image keeps the original edges" : @"Drag and pinch to crop";
 }
 
 - (UIView *)viewForZoomingInScrollView:(UIScrollView *)scrollView { return self.imageView; }
@@ -324,15 +373,17 @@ static UIImage *TagtagCutout(UIImage *image, NSError **error) {
     self.image = TagtagNormalize(image);
     if (!self.image) { [self finish:@"error" path:nil image:nil error:@"The image has invalid dimensions."]; return; }
     self.imageView.image = self.image;
+    self.fullImageView.image = self.image;
     self.initialCropLayout = NO;
     self.busy = NO;
-    self.cropView.hidden = NO;
+    self.cropMode.hidden = ![self.source isEqualToString:@"import"];
+    [self cropModeChanged];
     self.hintLabel.hidden = NO;
     self.nameField.hidden = NO;
     self.captionField.hidden = ![self.source isEqualToString:@"polaroid"];
     BOOL cutoutAvailable = NO;
     if (@available(iOS 17.0, *)) cutoutAvailable = YES;
-    self.cutoutSwitch.hidden = !cutoutAvailable;
+    self.cutoutSwitch.hidden = !cutoutAvailable || [self.source isEqualToString:@"polaroid"];
     [self.view viewWithTag:101].hidden = self.cutoutSwitch.hidden;
     self.saveButton.hidden = NO;
     [self.view setNeedsLayout];
@@ -341,15 +392,17 @@ static UIImage *TagtagCutout(UIImage *image, NSError **error) {
 - (BOOL)textFieldShouldReturn:(UITextField *)textField { [textField resignFirstResponder]; return YES; }
 
 - (BOOL)textField:(UITextField *)textField shouldChangeCharactersInRange:(NSRange)range replacementString:(NSString *)string {
-    if (textField != self.captionField) return YES;
-    NSString *result = [textField.text stringByReplacingCharactersInRange:range withString:string];
+    NSUInteger limit = textField == self.captionField ? 40 : (textField == self.nameField ? 80 : NSUIntegerMax);
+    if (limit == NSUIntegerMax) return YES;
+    NSString *result = [(textField.text ?: @"") stringByReplacingCharactersInRange:range withString:string];
     __block NSUInteger count = 0;
     [result enumerateSubstringsInRange:NSMakeRange(0, result.length) options:NSStringEnumerationByComposedCharacterSequences
                            usingBlock:^(NSString *substring, NSRange substringRange, NSRange enclosingRange, BOOL *stop) { count++; }];
-    return count <= 40;
+    return count <= limit;
 }
 
 - (UIImage *)croppedImage {
+    if ([self.source isEqualToString:@"import"] && self.cropMode.selectedSegmentIndex == 0) return self.image;
     CGFloat zoom = self.cropView.zoomScale;
     CGSize viewport = self.cropView.bounds.size;
     CGRect crop = CGRectMake(self.cropView.contentOffset.x / zoom, self.cropView.contentOffset.y / zoom,
@@ -390,17 +443,25 @@ static UIImage *TagtagCutout(UIImage *image, NSError **error) {
 }
 
 - (void)saveTapped {
+    if (self.previewMode) { [self commitPreview]; return; }
     if (self.busy || self.finished) return;
     [self.view endEditing:YES];
     UIImage *cropped = [self croppedImage];
     if (!cropped) { [self showError:@"Could not crop this image."]; return; }
     BOOL cutout = self.cutoutSwitch.isOn && !self.cutoutSwitch.hidden;
+    BOOL fullImport = [self.source isEqualToString:@"import"] && self.cropMode.selectedSegmentIndex == 0;
     NSString *caption = [self.captionField.text copy] ?: @"";
+    NSString *name = [self.nameField.text stringByTrimmingCharactersInSet:NSCharacterSet.whitespaceAndNewlineCharacterSet];
+    if (!name.length) name = [self.source isEqualToString:@"polaroid"] ? @"My Polaroid" : @"My sticker";
+    self.pendingName = name;
     self.busy = YES;
     self.saveButton.enabled = NO;
-    [self.saveButton setTitle:@"Saving…" forState:UIControlStateNormal];
+    [self.saveButton setTitle:@"Preparing preview…" forState:UIControlStateNormal];
     dispatch_async(dispatch_get_global_queue(QOS_CLASS_USER_INITIATED, 0), ^{
-        UIImage *art = TagtagRender(cropped, CGSizeMake(792, 792), NO);
+        CGFloat edge = fullImport ? 1024 : 792;
+        CGFloat ratio = MIN(1, edge / MAX(cropped.size.width, cropped.size.height));
+        UIImage *art = TagtagRender(cropped, CGSizeMake(MAX(1, floor(cropped.size.width * ratio)),
+                                                    MAX(1, floor(cropped.size.height * ratio))), NO);
         NSError *error = nil;
         if (cutout) art = TagtagCutout(art, &error);
         if (art && [self.source isEqualToString:@"polaroid"]) art = [self polaroidWithPhoto:art caption:caption];
@@ -415,27 +476,91 @@ static UIImage *TagtagCutout(UIImage *image, NSError **error) {
             CGFloat shrink = 0.8;
             art = TagtagRender(art, CGSizeMake(MAX(1, floor(art.size.width * shrink)), MAX(1, floor(art.size.height * shrink))), NO);
         }
-        NSString *path = nil;
-        if (png.length > 0 && png.length <= TagtagMaximumPNGBytes && finalSize.width <= 1024 && finalSize.height <= 1024) {
-            NSString *directory = [NSSearchPathForDirectoriesInDomains(NSApplicationSupportDirectory, NSUserDomainMask, YES).firstObject
-                                   stringByAppendingPathComponent:@"StickerCreations"];
-            [[NSFileManager defaultManager] createDirectoryAtPath:directory withIntermediateDirectories:YES attributes:nil error:&error];
-            path = [directory stringByAppendingPathComponent:[NSUUID.UUID.UUIDString stringByAppendingPathExtension:@"png"]];
-            if (![png writeToFile:path options:NSDataWritingAtomic error:&error]) path = nil;
-        }
-        NSString *completedPath = path;
+        BOOL valid = png.length > 0 && png.length <= TagtagMaximumPNGBytes && finalSize.width <= 1024 && finalSize.height <= 1024;
+        NSData *completedPNG = valid ? png : nil;
         CGSize completedSize = finalSize;
+        dispatch_async(dispatch_get_main_queue(), ^{
+            if (self.finished) return;
+            self.busy = NO;
+            self.saveButton.enabled = YES;
+            if (!completedPNG) {
+                [self.saveButton setTitle:@"Preview" forState:UIControlStateNormal];
+                [self showError:error.localizedDescription ?: @"Could not make a PNG under 5 MiB. Try another crop."];
+                return;
+            }
+            self.pendingPNG = completedPNG;
+            self.pendingSize = completedSize;
+            self.previewView.image = [UIImage imageWithData:completedPNG];
+            self.previewMode = YES;
+            [self showPreview];
+        });
+    });
+}
+
+- (void)showPreview {
+    self.title = @"Preview sticker";
+    self.navigationItem.leftBarButtonItem = [[UIBarButtonItem alloc] initWithTitle:@"Edit" style:UIBarButtonItemStylePlain
+                                                                            target:self action:@selector(backToEdit)];
+    self.previewView.hidden = NO;
+    self.cropView.hidden = YES;
+    self.fullImageView.hidden = YES;
+    self.hintLabel.hidden = YES;
+    self.nameField.hidden = YES;
+    self.captionField.hidden = YES;
+    self.cropMode.hidden = YES;
+    self.cutoutSwitch.hidden = YES;
+    [self.view viewWithTag:101].hidden = YES;
+    [self.saveButton setTitle:@"Save sticker" forState:UIControlStateNormal];
+}
+
+- (void)backToEdit {
+    if (self.busy || self.finished) return;
+    self.pendingPNG = nil;
+    self.previewView.image = nil;
+    self.previewView.hidden = YES;
+    self.previewMode = NO;
+    self.title = @"Create sticker";
+    self.navigationItem.leftBarButtonItem = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemCancel
+                                                                                       target:self action:@selector(cancelTapped)];
+    [self cropModeChanged];
+    self.hintLabel.hidden = NO;
+    self.nameField.hidden = NO;
+    self.captionField.hidden = ![self.source isEqualToString:@"polaroid"];
+    self.cropMode.hidden = ![self.source isEqualToString:@"import"];
+    BOOL cutoutAvailable = NO;
+    if (@available(iOS 17.0, *)) cutoutAvailable = YES;
+    self.cutoutSwitch.hidden = !cutoutAvailable || [self.source isEqualToString:@"polaroid"];
+    [self.view viewWithTag:101].hidden = self.cutoutSwitch.hidden;
+    [self.saveButton setTitle:@"Preview" forState:UIControlStateNormal];
+}
+
+- (void)commitPreview {
+    if (self.busy || self.finished || !self.pendingPNG.length) return;
+    NSData *png = self.pendingPNG;
+    CGSize size = self.pendingSize;
+    self.busy = YES;
+    self.saveButton.enabled = NO;
+    [self.saveButton setTitle:@"Saving…" forState:UIControlStateNormal];
+    dispatch_async(dispatch_get_global_queue(QOS_CLASS_USER_INITIATED, 0), ^{
+        NSError *error = nil;
+        NSString *directory = [NSSearchPathForDirectoriesInDomains(NSApplicationSupportDirectory, NSUserDomainMask, YES).firstObject
+                               stringByAppendingPathComponent:@"StickerCreations"];
+        BOOL directoryReady = [[NSFileManager defaultManager] createDirectoryAtPath:directory withIntermediateDirectories:YES
+                                                                          attributes:nil error:&error];
+        NSString *path = directoryReady ? [directory stringByAppendingPathComponent:[NSUUID.UUID.UUIDString stringByAppendingPathExtension:@"png"]] : nil;
+        if (path && ![png writeToFile:path options:NSDataWritingAtomic error:&error]) path = nil;
+        NSString *completedPath = path;
         dispatch_async(dispatch_get_main_queue(), ^{
             if (self.finished) {
                 if (completedPath) [[NSFileManager defaultManager] removeItemAtPath:completedPath error:nil];
                 return;
             }
-            if (completedPath) [self finish:@"success" path:completedPath image:art error:nil dimensions:completedSize];
+            if (completedPath) [self finish:@"success" path:completedPath image:nil error:nil dimensions:size];
             else {
                 self.busy = NO;
                 self.saveButton.enabled = YES;
                 [self.saveButton setTitle:@"Save sticker" forState:UIControlStateNormal];
-                [self showError:error.localizedDescription ?: @"Could not save a PNG under 5 MiB. Try another crop."];
+                [self showError:error.localizedDescription ?: @"Could not save the sticker. Please try again."];
             }
         });
     });
@@ -457,7 +582,8 @@ static UIImage *TagtagCutout(UIImage *image, NSError **error) {
     if (self.finished) return;
     self.finished = YES;
     if ([self.source isEqualToString:@"ai"]) TagtagStickerCreationAICancel();
-    NSString *name = [self.nameField.text stringByTrimmingCharactersInSet:NSCharacterSet.whitespaceAndNewlineCharacterSet];
+    NSString *name = self.previewMode ? self.pendingName :
+        [self.nameField.text stringByTrimmingCharactersInSet:NSCharacterSet.whitespaceAndNewlineCharacterSet];
     if (!name.length) name = [self.source isEqualToString:@"polaroid"] ? @"My Polaroid" : @"My sticker";
     NSString *kind = [self.source isEqualToString:@"polaroid"] ? @"polaroid" : ([self.source isEqualToString:@"ai"] ? @"ai" : @"image");
     NSDictionary *payload = @{@"status": status ?: @"error", @"path": path ?: @"", @"name": name,
