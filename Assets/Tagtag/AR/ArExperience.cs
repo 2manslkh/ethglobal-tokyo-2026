@@ -31,7 +31,7 @@ namespace Tagtag.AR
         public Texture2D ReferencePhoto => referencePhoto;
         public ReferencePhotoState PhotoState => photoState;
         public PlacementScanState ScanState => PlacementFlow.ScanState(IsTracking, HasPlacementSurface,
-            anchor != null && visual != null, HasTrackedPlacement, MapReady);
+            anchor != null && visual != null, HasTrackedPlacement, MapReady && ReferencePhotoSceneReady());
         public bool HasPlacementSurface { get; private set; }
         public bool HasPlacementPreview => !recovered && anchor != null && visual != null;
         public bool PlacementBusy => busy;
@@ -41,7 +41,7 @@ namespace Tagtag.AR
         public bool IsTracking => active && !paused && ARSession.state == ARSessionState.SessionTracking &&
             cameraFrameAt > 0 && Time.realtimeSinceStartupAsDouble - cameraFrameAt < 1.5;
         public bool CanPublish => ArGates.CanPublish(IsTracking, HasTrackedPlacement,
-            MapReady, visual != null && anchor != null, busy);
+            MapReady, visual != null && anchor != null, busy) && ReferencePhotoSceneReady();
         public bool HasTrackedPlacement => anchor != null && anchor.trackingState == TrackingState.Tracking;
         public bool CanCollect => ArGates.CanCollect(IsTracking, recovered, anchor != null && anchor.trackingState == TrackingState.Tracking,
             camera == null || visual == null ? float.PositiveInfinity : Vector3.Distance(camera.transform.position, visual.transform.position), true);
@@ -60,6 +60,9 @@ namespace Tagtag.AR
         private ARAnchor anchor;
         private readonly List<ARRaycastHit> hits = new List<ARRaycastHit>();
         private readonly PlacementFlow placementFlow = new PlacementFlow();
+        private readonly WorldMapReadiness mapReadiness = new WorldMapReadiness();
+        private int mapValidationRequest;
+        private double mapValidationStarted;
         private readonly Dictionary<TrackableId, SurfaceHatch> surfaceHatches = new Dictionary<TrackableId, SurfaceHatch>();
         private readonly List<TrackableId> removedHatches = new List<TrackableId>();
         private readonly PlaneHatchMesh hatchMeshBuilder = new PlaneHatchMesh();
@@ -100,11 +103,13 @@ namespace Tagtag.AR
 #if UNITY_IOS
         private ARWorldMapRequest? mapRequest;
         private ARKitSessionSubsystem ArKit => session != null ? session.subsystem as ARKitSessionSubsystem : null;
-        private bool MapReady => ArKit != null && ARKitSessionSubsystem.worldMapSupported &&
+        private bool LiveMapReady => ArKit != null && ARKitSessionSubsystem.worldMapSupported &&
             ArGates.CanSerializeWorldMap(ArKit.worldMappingStatus);
 #else
-        private bool MapReady => false;
+        private bool LiveMapReady => false;
 #endif
+        private bool MapReady => LiveMapReady &&
+            mapReadiness.TryGetMap(PlacementRevision, Time.realtimeSinceStartupAsDouble, out _);
 
         public void Enter()
         {
@@ -347,6 +352,7 @@ namespace Tagtag.AR
             if (!active || rig == null) return;
             presentation.ObserveSession(ARSession.state);
             presentation.Tick(Time.realtimeSinceStartupAsDouble);
+            UpdateMapReadiness();
             var tracking = IsTracking;
             var mapped = MapReady;
             var anchorTracking = anchor != null && anchor.trackingState == TrackingState.Tracking;
@@ -657,6 +663,56 @@ namespace Tagtag.AR
             }
         }
 
+        private void UpdateMapReadiness()
+        {
+            // Capture uses the already-validated bytes synchronously. Do not
+            // invalidate that snapshot while its reference photo is being made.
+            if (busy) return;
+            mapReadiness.Observe(!recovered && HasPlacementPreview && IsTracking &&
+                HasTrackedPlacement && LiveMapReady, PlacementRevision);
+#if UNITY_IOS && !UNITY_EDITOR
+            if (mapRequest.HasValue && !mapReadiness.IsValidating) DisposeMapRequest();
+            double now = Time.realtimeSinceStartupAsDouble;
+            if (mapRequest.HasValue)
+            {
+                var requestStatus = mapRequest.Value.status;
+                if (requestStatus == ARWorldMapRequestStatus.Pending && now - mapValidationStarted < 10) return;
+                byte[] bytes = null;
+                try
+                {
+                    if (requestStatus == ARWorldMapRequestStatus.Success)
+                    {
+                        using (var map = mapRequest.Value.GetWorldMap())
+                        {
+                            if (map.valid)
+                            {
+                                using (var serialized = map.Serialize(Allocator.Temp))
+                                    if (serialized.Length > 0 && serialized.Length <= WorldMapReadiness.MaxMapBytes)
+                                        bytes = serialized.ToArray();
+                            }
+                        }
+                    }
+                }
+                catch (Exception)
+                {
+                    // An unusable map never enables capture. Retry after more scanning.
+                }
+                finally { DisposeMapRequest(); }
+                mapReadiness.CompleteValidation(mapValidationRequest, requestStatus, bytes, Time.realtimeSinceStartupAsDouble);
+            }
+            if (mapReadiness.CanValidate(now))
+            {
+                mapValidationRequest = mapReadiness.BeginValidation(now);
+                mapValidationStarted = now;
+                try { mapRequest = ArKit.GetARWorldMapAsync(); }
+                catch (Exception)
+                {
+                    mapReadiness.CompleteValidation(mapValidationRequest, ARWorldMapRequestStatus.ErrorUnknown, null, now);
+                }
+            }
+#endif
+        }
+
 #if UNITY_IOS && !UNITY_EDITOR
         private IEnumerator CaptureWorldMap(Action<SpatialSnapshot> success, Action<string> failure)
         {
@@ -665,27 +721,10 @@ namespace Tagtag.AR
             SetStatus("Saving this sticker and its surroundings…");
             try
             {
-                mapRequest = ArKit.GetARWorldMapAsync();
-                var started = Time.realtimeSinceStartup;
-                while (mapRequest.HasValue && mapRequest.Value.status == ARWorldMapRequestStatus.Pending &&
-                    Time.realtimeSinceStartup - started < 20f) yield return null;
-                if (attempt != generation) yield break;
-                if (!mapRequest.HasValue || mapRequest.Value.status != ARWorldMapRequestStatus.Success ||
-                    !IsTracking || !MapReady || anchor == null || anchor.trackingState != TrackingState.Tracking)
+                if (!IsTracking || !MapReady || anchor == null || anchor.trackingState != TrackingState.Tracking ||
+                    !mapReadiness.TryGetMap(PlacementRevision, Time.realtimeSinceStartupAsDouble, out var worldMapBytes))
                 {
-                    failure("The spatial map is not ready. Keep the preview and scan from more angles.");
-                    yield break;
-                }
-                byte[] worldMapBytes;
-                try
-                {
-                    using (var map = mapRequest.Value.GetWorldMap())
-                    using (var serialized = map.Serialize(Allocator.Temp))
-                        worldMapBytes = serialized.ToArray();
-                }
-                catch (Exception)
-                {
-                    failure("The spatial map could not be captured. Keep the preview and try again.");
+                    failure("Scan a wider area with nearby edges and objects. Wait for Scan ready before tapping STICK.");
                     yield break;
                 }
                 byte[] bytes;
@@ -719,7 +758,6 @@ namespace Tagtag.AR
             }
             finally
             {
-                DisposeMapRequest();
                 if (attempt == generation && photoState == ReferencePhotoState.Loading)
                     SetPhotoUnavailable(null);
                 if (attempt == generation) { busy = false; Changed?.Invoke(); }
@@ -1013,6 +1051,7 @@ namespace Tagtag.AR
         private void CancelOperations()
         {
             ++generation;
+            mapReadiness.Invalidate();
             if (captureRoutine != null) StopCoroutine(captureRoutine);
             if (recoveryRoutine != null) StopCoroutine(recoveryRoutine);
             captureRoutine = null;
@@ -1042,6 +1081,7 @@ namespace Tagtag.AR
 
         private void ClearPlacement()
         {
+            mapReadiness.Invalidate();
             if (anchor != null || visual != null) PlacementRevision++;
             if (visual != null) Destroy(visual);
             if (material != null) Destroy(material);

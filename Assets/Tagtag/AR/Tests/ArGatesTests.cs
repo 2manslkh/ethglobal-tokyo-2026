@@ -16,7 +16,7 @@ namespace Tagtag.AR.Tests
         }
 
         [Test]
-        public void ExtendingWorldMapIsSufficientToPublish()
+        public void ExtendingWorldMapAllowsValidation()
         {
             Assert.IsTrue(ArGates.CanSerializeWorldMap(ARWorldMappingStatus.Extending));
             Assert.IsTrue(ArGates.CanSerializeWorldMap(ARWorldMappingStatus.Mapped));

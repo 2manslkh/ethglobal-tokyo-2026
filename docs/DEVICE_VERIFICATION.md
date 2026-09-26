@@ -944,3 +944,24 @@ world-map serialization. This device check demonstrates that ARKit can still
 reject capture for insufficient features after the indicator becomes ready.
 The generic failure wording and optimistic readiness indicator remain a UX
 limitation; this investigation did not change their behavior.
+
+## Validated scan gate installed — 2026-09-27
+
+Implemented background map validation after the investigation above. The complete
+ring and enabled STICK now require serialized map bytes for the current placement,
+current tracking, and a visible sticker in live camera imagery. Capture uses that
+same map. See [readiness checks and captures](verification/scan-readiness/README.md).
+
+Unity iOS Edit Mode passed 273/273. The camera-flow UI test passed, including
+disabling STICK and retracting the ring when validation is lost; eleven other
+PaperVisual tests passed in the preceding suite run. Separate ARKit preparation,
+Unity export, signed Xcode Debug/iphoneos build, and signature verification passed.
+Preserved the prior installed build's NFT-enabled runtime configuration while
+restoring the repository configuration after export. The resulting signed package
+was checked for the same configuration and all thirteen native preset images.
+
+Installed and launched on Dawg., iPhone 15 Pro Max. Evidence:
+`/tmp/tagtag-map-readiness-{prepare,export,xcode}.log`,
+`/tmp/tagtag-map-readiness-install.json`, and
+`/tmp/tagtag-map-readiness-launch.json`. Physical low-detail scanning, successful
+capture, readiness invalidation, and refresh responsiveness await user verification.

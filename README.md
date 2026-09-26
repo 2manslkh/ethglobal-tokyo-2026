@@ -41,13 +41,22 @@ Tap the circular **STICK** control after Scan ready to capture a camera-only Ori
 
 For mounted-view and visual regression checks, run Unity without `-nographics`, using `-buildTarget StandaloneOSX -testPlatform PlayMode -testFilter Tagtag.Tests.PaperVisualTests`. The fixture checks draft/caret/focus/scroll continuity, sign-in return, duplicate activation, and synced collection details. It captures normal and compact layouts under `Application.temporaryCachePath/tagtag-paper-review`; its standalone result is `tagtag-paper-visual-result.xml`. The neutral background in the live-camera fixture is simulated imagery. Native maps, the software keyboard, permissions, and AR still require simulator or physical-device checks.
 
-STICK uses a full-screen camera with Close and a sticker inventory. Choose a design, scan for a yellow pencil-hatched surface, then tap to attach it. Drag on the original surface, pinch to resize, and twist to rotate. The Home profile icon opens sign-in or account settings. The native iOS status bar stays visible with a transparent background over the camera and a paper backing on other screens. With artwork selected, the circular STICK control becomes the capture action and enables after Scan ready and capture readiness. Capture requires a tracked anchor and a usable ARKit world map. ARKit's Extending and Mapped states both qualify; Extending allows capture while ARKit continues mapping the current area. Publish reuses that captured map and photo even if live tracking later drops; saved publication retries continue to use their stored snapshot. The bundled [sticker material and shader](Assets/Tagtag/AR/SOURCE_PROVENANCE.md) keep artwork and transparent edges available in stripped player builds.
+STICK uses a full-screen camera with Close and a sticker inventory. Choose a design, scan for a yellow pencil-hatched surface, then tap to attach it. Drag on the original surface, pinch to resize, and twist to rotate. The Home profile icon opens sign-in or account settings. The native iOS status bar stays visible with a transparent background over the camera and a paper backing on other screens. With artwork selected, the circular STICK control becomes the capture action and enables after Scan ready and capture readiness. Capture requires a tracked anchor and a usable ARKit world map. ARKit's Extending and Mapped states both allow validation to begin; capture waits for successful map serialization. Publish reuses that captured map and photo even if live tracking later drops; saved publication retries continue to use their stored snapshot. The bundled [sticker material and shader](Assets/Tagtag/AR/SOURCE_PROVENANCE.md) keep artwork and transparent edges available in stripped player builds.
 
 New publications include a camera-only Original spot photo to help nearby finders match the surroundings. A thumbnail opens an enlarged saved-photo sheet during discovery; it never replaces AR recovery or collection checks. The bounded JPEG (maximum 1024-pixel edge and 512 KiB) travels inside private map envelope v2, using the existing map access, expiry and deletion lifecycle. The new app still reads v1 maps without photos; both publishing and finding phones need this update for v2 publications. See the [device test guide](docs/CREATOR_SCAN_TEST_GUIDE.md).
 
 Run graphics-enabled placement and rendering checks with `-buildTarget StandaloneOSX -testPlatform PlayMode -testFilter Tagtag`. Repeat with `-testPlatform StandaloneOSX` to verify shader inclusion in a built player. The test callback writes the complete suite to `Application.temporaryCachePath/tagtag-player-result.xml`, and the real sticker render to `tagtag-sticker-render.png`.
 
 Successful publication and new AR collection open a full-screen sticker celebration with a short artwork reveal, drawn yellow stars, and one iOS success haptic when the artwork becomes available. Tap **Keep exploring** to return to the camera or **Read the note** to open the collected sticker. Rewards do not replay on refresh or when reopening a sticker. See [celebration verification](docs/verification/celebration/README.md).
+
+The scan ring reaches **Scan ready** only after ARKit has successfully produced
+and serialized a map for the current placement. STICK also waits for tracking
+and a visible sticker in the camera. Background checks refresh the validated map;
+tracking loss, placement edits, failed validation, or expiry disable capture.
+STICK reuses the verified map rather than making another map request. If the
+ring remains incomplete, scan a wider area with nearby edges and objects.
+This checks that the map can be saved; later recovery still depends on the
+surroundings being recognizable.
 
 ## iPhone build
 

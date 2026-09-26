@@ -339,9 +339,9 @@ namespace Tagtag.Tests
             Assert.That(controller.Camera.InteractionBlocked, Is.True, "The inventory must block all camera input.");
             var inventoryGrid = document.rootVisualElement.Q<VisualElement>("Sticker inventory grid");
             Assert.That(inventoryGrid, Is.Not.Null);
-            Assert.That(inventoryGrid.childCount, Is.EqualTo(13), "Twelve Taggi stickers and Add Sticker should form the initial inventory.");
+            Assert.That(inventoryGrid.childCount, Is.EqualTo(StickerPresets.Ids.Count + 1),
+                "All bundled Taggi stickers and Add Sticker should form the initial inventory.");
             Assert.That(inventoryGrid.resolvedStyle.flexDirection, Is.EqualTo(FlexDirection.Row));
-            Assert.That(inventoryGrid.childCount % 3, Is.EqualTo(1), "The final inventory row includes the Add Sticker tile.");
             Assert.That(inventoryGrid[0].worldBound.yMin, Is.EqualTo(inventoryGrid[1].worldBound.yMin).Within(1f));
             Assert.That(inventoryGrid[1].worldBound.yMin, Is.EqualTo(inventoryGrid[2].worldBound.yMin).Within(1f));
             Assert.That(inventoryGrid[1].worldBound.xMin, Is.GreaterThan(inventoryGrid[0].worldBound.xMin));
@@ -351,7 +351,7 @@ namespace Tagtag.Tests
             Assert.That(document.rootVisualElement.Query<Label>().ToList().Any(label =>
                 label.text.StartsWith("Taggi pose ") || label.text.StartsWith("After choosing")), Is.False,
                 "Inventory artwork has no names or placement instructions.");
-            Assert.That(inventoryGrid[12].name, Is.EqualTo("Add Sticker"), "Add Sticker must follow the last sticker.");
+            Assert.That(inventoryGrid[StickerPresets.Ids.Count].name, Is.EqualTo("Add Sticker"), "Add Sticker must follow the last sticker.");
             foreach (var choice in document.rootVisualElement.Query<Button>().ToList().Where(button =>
                 button.name != null && button.name.StartsWith("Inventory ")))
             {
@@ -429,6 +429,17 @@ namespace Tagtag.Tests
             Assert.That(document.rootVisualElement.Q<PaperScanProgress>("STICK scan progress").Progress, Is.EqualTo(1f).Within(.001f));
             AssertCenteredStickControls();
             Assert.That(inventory.enabledInHierarchy, Is.True);
+            controller.Camera.ScanState = PlacementScanState.Placed;
+            controller.Camera.CanPublish = false;
+            controller.Notify();
+            yield return new WaitForSecondsRealtime(.4f);
+            Assert.That(inventory.enabledInHierarchy, Is.False, "Losing map validation must disable STICK again.");
+            Assert.That(document.rootVisualElement.Q<PaperScanProgress>("STICK scan progress").Progress,
+                Is.LessThan(1f), "The ring cannot remain complete after map validation is lost.");
+            controller.Camera.ScanState = PlacementScanState.Ready;
+            controller.Camera.CanPublish = true;
+            controller.Notify();
+            yield return new WaitForSecondsRealtime(.4f);
             Assert.That(inventory.Query<Label>().ToList().Any(label => label.text == "STICK"), Is.True,
                 "Capture mode keeps an explicit label inside the circle.");
             controller.FailNextCapture = true;
