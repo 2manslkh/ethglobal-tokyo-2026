@@ -98,10 +98,14 @@ namespace Tagtag.UI
             if (controller != null)
             {
                 controller.Changed -= OnControllerChanged;
+                if (controller.Map is IMapLoadingExperience oldMapLoading)
+                    oldMapLoading.Changed -= OnMapLoadingChanged;
             }
 
             controller = tagtagController ?? throw new ArgumentNullException(nameof(tagtagController));
             controller.Changed += OnControllerChanged;
+            if (controller.Map is IMapLoadingExperience mapLoading)
+                mapLoading.Changed += OnMapLoadingChanged;
             if (!artworkSubscribed)
             {
                 StickerArtwork.Changed += OnArtworkChanged;
@@ -141,6 +145,8 @@ namespace Tagtag.UI
             if (controller != null)
             {
                 controller.Changed -= OnControllerChanged;
+                if (controller.Map is IMapLoadingExperience mapLoading)
+                    mapLoading.Changed -= OnMapLoadingChanged;
                 controller.Ar?.SetCameraInteraction(default, true);
                 controller.Map?.Hide();
             }
@@ -298,6 +304,8 @@ namespace Tagtag.UI
             QueueRender();
         }
 
+        private void OnMapLoadingChanged() => QueueRender();
+
         private void QueueRender()
         {
             if (root == null || renderQueued)
@@ -372,8 +380,14 @@ namespace Tagtag.UI
                 homeDesignSection = null;
                 homeDesignGrid = null;
                 homeDesignStatus = null;
+                homePlacedSection = null;
+                homePlacedList = null;
+                homePlacedStatus = null;
+                homeRetryPlacements = null;
+                homePlacedSignIn = null;
                 homeCollectedTab = null;
                 homeDesignTab = null;
+                homePlacedTab = null;
                 homeRefreshDesigns = null;
                 homeSignInButton = null;
                 explorePreview = null;
@@ -383,6 +397,9 @@ namespace Tagtag.UI
                 stickActions = null;
                 cameraSurface = null;
                 stickWriteButton = null;
+                stickSelectedArtworkButton = null;
+                stickSelectedArtworkKey = null;
+                stickSelectedArtworkPointerHeld = false;
                 accountCollectionCount = null;
                 accountAuthoredCount = null;
                 accountMotionSwitch = null;
@@ -710,9 +727,10 @@ namespace Tagtag.UI
             return label;
         }
 
-        private Button Action(VisualElement parent, string title, Action callback, bool filled = true)
+        private Button Action(VisualElement parent, string title, Action callback, bool filled = true, bool quiet = false)
         {
-            Button button = new PaperButton(title, callback, filled ? PaperButtonKind.Primary : PaperButtonKind.Quiet);
+            Button button = new PaperButton(title, callback, filled ? PaperButtonKind.Primary :
+                quiet ? PaperButtonKind.Quiet : PaperButtonKind.Secondary);
             button.userData = 15;
             button.style.minHeight = 44f;
             button.style.paddingLeft = 15f;

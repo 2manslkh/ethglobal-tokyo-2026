@@ -29,7 +29,10 @@ namespace Tagtag.Services
         private readonly Func<CancellationToken, Task<LocationFix>> locateNearby;
         private readonly Func<LocationFix, Task<StickerSummary[]>> loadNearby;
         private CancellationTokenSource nearbyCancellation;
-        private const string NearbyLoadingMessage = "Finding nearby stickers. You can keep exploring the app.";
+        private DateTimeOffset nearbyLastSuccess;
+        private string nearbyCacheUserId;
+        private const string NearbyLocationMessage = "Finding your location. You can keep exploring the app.";
+        private const string NearbyFetchingMessage = "Loading nearby stickers. You can keep exploring the app.";
         private RecoveryData recovery;
         private PlacementDraft pendingDraft;
         private int accountGeneration;
@@ -54,7 +57,8 @@ namespace Tagtag.Services
             Func<Task> disconnectWallet = null,
             Func<string, string, Task<string>> nftOwner = null,
             Func<string, string, string, Task<string>> transferNft = null,
-            Func<string, Task<string>> transferStatus = null)
+            Func<string, Task<string>> transferStatus = null,
+            Func<string, Task<PlacementPage>> loadPlacements = null)
         {
             this.configuration = configuration;
             this.identity = identity;
@@ -79,11 +83,13 @@ namespace Tagtag.Services
             this.locateNearby = locateNearby ?? (token => location.Current(token));
             this.loadNearby = loadNearby ?? (async fix =>
                 (await api.Call<SummaryList>("POST", "/v1/nearby", new LocationRequest { location = fix }, await session.Token(false))).items);
+            this.loadPlacements = loadPlacements;
             cache = new LocalCollection(System.IO.Path.Combine(Application.persistentDataPath, "collections"));
             publications = new PendingPublication(System.IO.Path.Combine(Application.persistentDataPath, "publications"));
             editablePublications = new EditablePublication(System.IO.Path.Combine(Application.persistentDataPath, "editable-publications"));
             State.servicesConfigured = configuration.Configured;
             State.user = session.Current;
+            nearbyCacheUserId = State.user?.uid;
             State.nftTransfers = transferStore.Read(State.user?.uid);
             State.collection = cache.Read(State.user?.uid);
             InitializeCreation(stickerCreation);
@@ -93,6 +99,7 @@ namespace Tagtag.Services
             ar.Changed += Notify;
             ar.StickerTapped += Collect;
             map.StickerSelected += SelectSticker;
+            if (map is IMapLoadingExperience loadingMap) loadingMap.Changed += Notify;
         }
 
         public void Start() { Resume(); }
@@ -108,9 +115,20 @@ namespace Tagtag.Services
             creation?.Cancel();
             if (creationObject != null) StickerArtwork.Release(creationObject);
             Ar.Changed -= Notify; Ar.StickerTapped -= Collect; Map.StickerSelected -= SelectSticker;
+            if (Map is IMapLoadingExperience loadingMap) loadingMap.Changed -= Notify;
             Ar.Exit(); Map.Hide();
         }
-        private void Notify() { if (!disposed) Changed?.Invoke(); }
+        private void Notify()
+        {
+            if (disposed) return;
+            if (nearbyCacheUserId != State.user?.uid)
+            {
+                nearbyCacheUserId = State.user?.uid;
+                nearbyLastSuccess = default;
+            }
+            SyncPlacementIdentity();
+            Changed?.Invoke();
+        }
         public void SetSuspended(bool value)
         {
             if (disposed || suspended == value) return;
@@ -150,7 +168,11 @@ namespace Tagtag.Services
             }
             if (page == AppPage.Stick && pendingDraft == null && !string.IsNullOrEmpty(State.selectedDesign)) RestoreSelectedArtwork();
             Notify();
-            if (page == AppPage.Explore && State.nearby.Count == 0) RefreshNearby();
+            if (page == AppPage.Explore)
+            {
+                UnityEngine.Debug.Log($"Explore entered at {Time.realtimeSinceStartup:F3}s");
+                if (nearbyLastSuccess + TimeSpan.FromSeconds(60) <= DateTimeOffset.UtcNow) RefreshNearby();
+            }
         }
         public void SetAccountOpen(bool open)
         {
@@ -201,6 +223,7 @@ namespace Tagtag.Services
             CancelNearby();
             location.Stop();
             accountGeneration++; session.SignOut(); State.user = null; recovery = null;
+            nearbyLastSuccess = default;
             ClearWallet();
             RestoreDesigns(); State.creationOpen = false; State.selectedDesign = "";
             blockedAuthors.Clear(); State.collection.Clear(); State.authored.Clear(); State.detail = null; State.selected = null;
@@ -218,9 +241,11 @@ namespace Tagtag.Services
             nearbyRefreshQueued = false;
             var request = nearbyCancellation = new CancellationTokenSource();
             int generation = accountGeneration;
+            long started = System.Diagnostics.Stopwatch.GetTimestamp();
             State.nearbyLoading = true;
+            State.nearbyFindingLocation = true;
             if (!preserveForegroundError) { State.error = ""; State.locationSettingsRequired = false; }
-            State.status = NearbyLoadingMessage;
+            State.status = NearbyLocationMessage;
             Notify();
             try
             {
@@ -228,21 +253,33 @@ namespace Tagtag.Services
                 if (!CurrentNearby(request, generation)) return;
                 State.location = fix;
                 State.locationSettingsRequired = false;
+                State.nearbyFindingLocation = false;
+                State.status = NearbyFetchingMessage;
+                UnityEngine.Debug.Log($"Explore location ready in {ElapsedMilliseconds(started)} ms");
                 Notify();
                 var items = await loadNearby(fix);
                 if (!CurrentNearby(request, generation)) return;
                 State.nearby = (items ?? Array.Empty<StickerSummary>()).ToList();
+                nearbyLastSuccess = DateTimeOffset.UtcNow;
                 ApplyBlocks();
                 foreach (var item in State.nearby) if (!string.IsNullOrEmpty(item.designId)) StickerArtwork.Authorize(item.designId);
                 State.status = State.nearby.Count == 0 ? "No stickers nearby yet. Leave the first one." : "Little discoveries around you.";
+                UnityEngine.Debug.Log($"Explore nearby ready in {ElapsedMilliseconds(started)} ms ({State.nearby.Count} pins)");
             }
-            catch (OperationCanceledException) { }
+            catch (OperationCanceledException)
+            {
+                if (CurrentNearby(request, generation)) State.status = "Nearby lookup stopped. Refresh to try again.";
+            }
             catch (Exception error)
             {
-                if (CurrentNearby(request, generation) && (!preserveForegroundError || string.IsNullOrEmpty(State.error)))
+                if (CurrentNearby(request, generation))
                 {
-                    State.error = error is ApiFailure ? error.Message : "Nearby stickers could not load. Please try again.";
-                    State.locationSettingsRequired = error is ApiFailure failure && failure.LocationSettingsRequired;
+                    if (!preserveForegroundError || string.IsNullOrEmpty(State.error))
+                    {
+                        State.error = error is ApiFailure ? error.Message : "Nearby stickers could not load. Please try again.";
+                        State.locationSettingsRequired = error is ApiFailure failure && failure.LocationSettingsRequired;
+                    }
+                    State.status = State.nearby.Count == 0 ? "Refresh nearby to try again." : "Showing your last nearby results. Refresh to try again.";
                 }
             }
             finally
@@ -257,6 +294,7 @@ namespace Tagtag.Services
                 {
                     nearbyCancellation = null;
                     State.nearbyLoading = false;
+                    State.nearbyFindingLocation = false;
                     Notify();
                 }
                 else if (identityChanged) Notify();
@@ -266,7 +304,8 @@ namespace Tagtag.Services
 
         private bool CurrentNearby(CancellationTokenSource request, int generation) =>
             !disposed && nearbyCancellation == request && !request.IsCancellationRequested &&
-            generation == accountGeneration && State.page == AppPage.Explore && !State.accountOpen;
+            generation == accountGeneration && State.user?.uid == session.Current?.uid &&
+            State.page == AppPage.Explore && !State.accountOpen;
 
         private void CancelNearby(bool resumeOnReturn = false)
         {
@@ -274,7 +313,8 @@ namespace Tagtag.Services
             nearbyRefreshQueued = resumeOnReturn && (State.nearbyLoading || nearbyRefreshQueued);
             nearbyCancellation = null;
             State.nearbyLoading = false;
-            if (State.status == NearbyLoadingMessage) State.status = "";
+            State.nearbyFindingLocation = false;
+            if (State.status == NearbyLocationMessage || State.status == NearbyFetchingMessage) State.status = "";
             previous?.Cancel();
         }
 
@@ -285,7 +325,8 @@ namespace Tagtag.Services
         }
         public void SelectSticker(string id)
         {
-            State.selected = State.nearby.FirstOrDefault(item => item.id == id);
+            State.selected = State.nearby.FirstOrDefault(item => item.id == id) ??
+                (State.mapSelection?.id == id ? State.mapSelection : null);
             State.error = ""; Notify();
         }
         public void StartDiscovery()
@@ -416,6 +457,7 @@ namespace Tagtag.Services
                 EnsurePublicationActive(operationGeneration, operationAccount);
                 State.authored.RemoveAll(item => item.id == published.sticker.id); State.authored.Add(published.sticker);
                 State.nearby.RemoveAll(item => item.id == published.sticker.id); State.nearby.Add(published.sticker);
+                RefreshPlacements();
                 try { editablePublications.Remove(State.user.uid); }
                 catch { throw new ApiFailure("Published online. Local draft cleanup failed; retrying will not duplicate it."); }
                 if (!ClearPublication()) throw new ApiFailure("Published online. Local draft cleanup failed; retrying will not duplicate it.");
@@ -479,12 +521,13 @@ namespace Tagtag.Services
             foreach (var item in State.collection)
                 if (blockedAuthors.Contains(item.authorId)) { item.unavailable = true; item.note = ""; if (!string.IsNullOrEmpty(item.designId)) StickerArtwork.Forget(item.designId); }
             if (State.selected != null && blockedAuthors.Contains(State.selected.authorId)) State.selected = null;
+            if (State.mapSelection != null && blockedAuthors.Contains(State.mapSelection.authorId)) State.mapSelection = null;
             if (State.detail != null && blockedAuthors.Contains(State.detail.authorId)) State.detail = null;
         }
         public void Withdraw(string id)
         {
             if (!RequireAccount()) return;
-            Run(async () => { await api.Call<OkResult>("POST", Path(id) + "/withdraw", new object(), await session.Token()); State.authored.RemoveAll(item => item.id == id); State.nearby.RemoveAll(item => item.id == id); State.status = "Sticker withdrawn from discovery."; });
+            Run(async () => { await api.Call<OkResult>("POST", Path(id) + "/withdraw", new object(), await session.Token()); State.authored.RemoveAll(item => item.id == id); State.nearby.RemoveAll(item => item.id == id); PlacementWithdrawn(id); State.status = "Sticker withdrawn from discovery."; });
         }
         public void DeleteAccount()
         {
@@ -524,6 +567,7 @@ namespace Tagtag.Services
             await SyncDesigns();
             foreach (var item in State.collection.Where(item => !item.unavailable).Cast<StickerSummary>().Concat(State.authored))
                 if (!string.IsNullOrEmpty(item.designId)) StickerArtwork.Authorize(item.designId);
+            RefreshPlacements();
         }
         public void Resume()
         {
@@ -740,6 +784,8 @@ namespace Tagtag.Services
             }
         }
         private static string Path(string id) => "/v1/stickers/" + Uri.EscapeDataString(id);
+        private static long ElapsedMilliseconds(long started) =>
+            (System.Diagnostics.Stopwatch.GetTimestamp() - started) * 1000 / System.Diagnostics.Stopwatch.Frequency;
         private static long Now => DateTimeOffset.UtcNow.ToUnixTimeSeconds();
     }
 }

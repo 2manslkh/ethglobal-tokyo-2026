@@ -30,10 +30,74 @@ namespace Tagtag.Services.Tests
             controller.Navigate(AppPage.Explore);
             Assert.That(controller.State.busy, Is.False, "Nearby reads must not acquire the global action lock.");
             Assert.That(controller.State.nearbyLoading, Is.True);
+            Assert.That(controller.State.nearbyFindingLocation, Is.True);
             controller.Navigate(AppPage.Stick);
             Assert.That(controller.State.page, Is.EqualTo(AppPage.Stick));
             Assert.That(controller.State.nearbyLoading, Is.False);
+            Assert.That(controller.State.nearbyFindingLocation, Is.False);
             Assert.That(requestToken.IsCancellationRequested, Is.True);
+        }
+
+        [Test]
+        public async Task LocationFixSwitchesLoadingPhaseBeforeNearbyCompletes()
+        {
+            var response = new TaskCompletionSource<StickerSummary[]>();
+            controller.Dispose();
+            controller = new TagtagController(new ServiceConfiguration(), new Camera(), new Map(), new Identity(),
+                _ => Task.FromResult(new LocationFix { latitude = 35, longitude = 139, accuracyMeters = 5 }),
+                _ => response.Task);
+
+            controller.Navigate(AppPage.Explore);
+            Assert.That(controller.State.nearbyLoading, Is.True);
+            Assert.That(controller.State.nearbyFindingLocation, Is.False);
+            response.SetResult(Array.Empty<StickerSummary>());
+            await Task.Yield();
+            Assert.That(controller.State.nearbyLoading, Is.False);
+        }
+
+        [Test]
+        public async Task EmptySuccessfulNearbyResultIsCachedOnQuickReturnButManualRefreshFetches()
+        {
+            controller.Dispose();
+            int calls = 0;
+            controller = new TagtagController(new ServiceConfiguration(), new Camera(), new Map(), new Identity(),
+                _ => Task.FromResult(new LocationFix { latitude = 35, longitude = 139, accuracyMeters = 5 }),
+                _ => { calls++; return Task.FromResult(Array.Empty<StickerSummary>()); });
+
+            controller.Navigate(AppPage.Explore);
+            await Task.Yield();
+            controller.Navigate(AppPage.Home);
+            controller.Navigate(AppPage.Explore);
+            await Task.Yield();
+            Assert.That(calls, Is.EqualTo(1));
+
+            controller.RefreshNearby();
+            await Task.Yield();
+            Assert.That(calls, Is.EqualTo(2));
+        }
+
+        [Test]
+        public async Task FailedRefreshPreservesPinsAndExplicitRemoteSelection()
+        {
+            controller.Dispose();
+            controller = new TagtagController(new ServiceConfiguration(), new Camera(), new Map(), new Identity(),
+                _ => Task.FromResult(new LocationFix { latitude = 35, longitude = 139, accuracyMeters = 5 }),
+                _ => Task.FromException<StickerSummary[]>(new ApiFailure("Nearby unavailable")));
+            var oldPin = new StickerSummary { id = "old" };
+            var remote = new StickerSummary { id = "remote", latitude = 36, longitude = 140 };
+            controller.State.nearby.Add(oldPin);
+            controller.State.mapSelection = remote;
+            controller.State.selected = remote;
+
+            controller.Navigate(AppPage.Explore);
+            controller.RefreshNearby();
+            await Task.Yield();
+
+            Assert.That(controller.State.nearby, Does.Contain(oldPin));
+            Assert.That(controller.State.mapSelection, Is.SameAs(remote));
+            Assert.That(controller.State.selected, Is.SameAs(remote));
+            Assert.That(controller.State.error, Is.EqualTo("Nearby unavailable"));
+            Assert.That(controller.State.nearbyFindingLocation, Is.False);
         }
 
         [Test]

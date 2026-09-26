@@ -21,7 +21,8 @@ Success JSON object; errors `{error:{code,message}}`. Authorization uses Bearer 
 - `POST /v1/stickers/{id}/recover` body `{location}` → `{sticker:StickerSummary,discoveryId,expiresAt,mapUrl,position,rotation,widthMeters}`. Download world map separately; client constructs RecoveryData.snapshot.
 - `POST /v1/stickers/{id}/collect` body `{discoveryId,location}` → `{sticker:CollectedSticker}`. Requires matching short-lived discovery session and proximity. AR tap/distance gate stays client-side; never describe it as unforgeable proof. Idempotent per user+sticker.
 - `GET /v1/collection` → `{items:CollectedSticker[]}`. Moderated/deleted content has `unavailable:true`, empty note. Ordinary withdrawn content remains in existing collections.
-- `GET /v1/authored` → `{items:StickerSummary[]}`.
+- `GET /v1/authored` → `{items:StickerSummary[]}` for the signed-in author. With no query parameters this retains the legacy unpaginated response shape and 1,000-record read cap. Authored summaries include `status` (`published` or `withdrawn`).
+- `GET /v1/authored?status=published&limit=50[&cursor=...]` → `{items:StickerSummary[],nextCursor:string|null}`. `status` accepts `published` or `withdrawn`; `limit` defaults to 50 and accepts 1–100. Only the selected status appears. Results are newest first by `createdAt` then `id` descending, with filtering and cursor application before the page limit. Pass `nextCursor` URL-escaped to fetch the following page; `null` ends the list. Cursors are bound to the authenticated owner and selected status. Invalid or mismatched cursors return `400`. Paginated reads have no 1,000-record cap. Firebase requires the `stickers(authorId ASC,status ASC,createdAt DESC,id DESC)` composite index.
 - `POST /v1/stickers/{id}/withdraw` body `{}` → `{ok:true}`.
 - `POST /v1/stickers/{id}/report` body `{reason}` → `{ok:true}`.
 - `POST /v1/blocks` body `{authorId}` → `{ok:true}`.

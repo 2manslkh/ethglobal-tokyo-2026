@@ -17,6 +17,7 @@ namespace Tagtag
     [Serializable] public class StickerSummary
     {
         public string id, presetId, authorId, authorName, place, teaser;
+        public string status;
         public string designId, artworkUrl, thumbnailUrl;
         public int artworkWidth, artworkHeight;
         public double latitude, longitude;
@@ -104,6 +105,10 @@ namespace Tagtag
         public List<StickerSummary> nearby = new List<StickerSummary>();
         public List<StickerSummary> authored = new List<StickerSummary>();
         public StickerSummary selected;
+        public StickerSummary mapSelection;
+        public List<StickerSummary> placements = new List<StickerSummary>();
+        public bool placementsLoading, placementsLoaded, nearbyFindingLocation;
+        public string placementsError = "", placementsNextCursor = "";
         public CollectedSticker detail;
         public string status = "", error = "", designError = "", selectedPreset = "", draftPlace = "", draftTeaser = "", draftNote = "";
         public bool busy, nearbyLoading, accountOpen, servicesConfigured, hasPendingPublication;
@@ -146,6 +151,13 @@ namespace Tagtag
         void Hide();
         void Recenter(LocationFix location);
     }
+    public interface IMapLoadingExperience
+    {
+        event Action Changed;
+        bool IsLoading { get; }
+        string Error { get; }
+        void Retry();
+    }
     public interface INativeIdentity
     {
         void SignIn(string provider, ServiceConfiguration configuration, Action<IdentityCredential> success, Action<string> failure);
@@ -184,6 +196,17 @@ namespace Tagtag
         void Block(string authorId);
         void Withdraw(string id);
         void DeleteAccount();
+    }
+    [Serializable] public sealed class PlacementPage
+    {
+        public StickerSummary[] items;
+        public string nextCursor;
+    }
+    public interface IPlacedLocationsController
+    {
+        void RefreshPlacements();
+        void LoadMorePlacements();
+        void OpenPlacedLocation(StickerSummary sticker);
     }
     public interface INftTransferController
     {

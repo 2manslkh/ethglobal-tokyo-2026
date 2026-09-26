@@ -23,6 +23,14 @@ export class MemoryAdapter {
             throw new Error(`Unknown filter ${op}`);
         })).slice(0, limit).map(item => structuredClone(item));
     }
+    async queryAuthoredPage({ ownerId, status, limit, cursor }) {
+        return [...this.bucket('stickers').values()]
+            .filter(item => item.authorId === ownerId && item.status === status)
+            .sort((a, b) => b.createdAt - a.createdAt || (a.id < b.id ? 1 : a.id > b.id ? -1 : 0))
+            .filter(item => !cursor || item.createdAt < cursor.createdAt ||
+                (item.createdAt === cursor.createdAt && item.id < cursor.id))
+            .slice(0, limit).map(item => structuredClone(item));
+    }
     async transaction(callback) {
         const previous = this.tail;
         let release;

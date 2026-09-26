@@ -115,3 +115,23 @@ Designs sync to the creator's account and can be placed repeatedly. Collecting s
 Image Playground is checked at runtime and has no cloud fallback. Foreground cutout requires iOS 17 or later; imports and Polaroids retain the iOS 15 minimum. Native creation uses PhotosUI, Vision, UIKit, and a Swift Image Playground bridge. The backend uses `sharp` to validate PNG pixels, remove metadata, and generate thumbnails. Limits are 5 MiB/1024 pixels per image, 20 new designs per account per day, and 100 active designs. See [the creation plan](docs/plans/2026-09-26-sticker-creation.md) and [backend API details](backend/README.md).
 
 Deploy backend support and both `designs` Firestore indexes before installing a client with creation enabled. Update the cleanup job to the same backend image. A native image-generation or camera experience still requires physical-device verification; successful compilation does not verify Apple Intelligence availability or camera capture.
+
+## Home and Explore updates
+
+Home includes Collected, Your Designs, and Placed tabs. Make a sticker is inside
+Your Designs. Placed shows active publications with pagination; tapping a row
+opens that location in Explore without changing the phone's measured location.
+The camera shows the selected artwork above its bottom dock; tap it to change
+stickers before or after placing the preview.
+
+Explore mounts its native map before GPS completes, preserves the viewport and
+existing pins during refresh, and reuses successful nearby results for 60 seconds.
+Explicit refresh bypasses that cache. Timing logs report location acquisition,
+nearby fetch, and native map mounting. Device measurements of tile/artwork readiness
+and cold/warm visits are required before claiming a real-world speedup.
+
+Deploy the updated backend and the authored pagination index in
+`firestore.indexes.json` before distributing this client. The new authored query
+is backward-compatible with older clients; see the
+[API contract](docs/plans/tagtag-api-contract.md). No production deployment is
+performed by the local implementation/build workflow.

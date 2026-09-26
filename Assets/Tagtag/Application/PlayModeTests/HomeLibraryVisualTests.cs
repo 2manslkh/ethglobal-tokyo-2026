@@ -54,25 +54,30 @@ namespace Tagtag.Tests
         }
 
         [UnityTest]
-        public IEnumerator EmptyBookHasIllustratedActionBesideCountAndChangesOnCollection()
+        public IEnumerator EmptyBookKeepsIllustratedActionInDesignsAndChangesOnCollection()
         {
             yield return Mount();
             var make = Root.Q<Button>("Home Make sticker");
             var count = Root.Q<Label>("home-collected-number");
-            Assert.That(make.worldBound.xMin, Is.GreaterThan(count.worldBound.xMax));
-            Assert.That(make.worldBound.center.y, Is.EqualTo(count.worldBound.center.y).Within(40f));
-            Assert.That(make.layout.width, Is.GreaterThanOrEqualTo(44));
-            Assert.That(make.layout.height, Is.GreaterThanOrEqualTo(44));
+            Assert.That(IsVisible(make), Is.False);
+            Assert.That(count, Is.Not.Null);
             Assert.That(Root.Q<Image>("Home Make sticker art")?.image, Is.Not.Null);
             Assert.That(Root.Q<Image>("Home Empty Taggi")?.image, Is.Not.Null);
             Assert.That(Root.Q<Button>("Home Collected"), Is.Not.Null);
             Assert.That(Root.Q<Button>("Home My designs"), Is.Not.Null);
+            Assert.That(Root.Q<Button>("Home Placed"), Is.Not.Null);
             yield return Capture("home-collected-empty");
             controller.State.collection.Add(new CollectedSticker { id = "collected-one", presetId = "taggi-1" });
             controller.Notify();
             yield return Settle();
             Assert.That(Root.Q<Image>("Home Empty Taggi"), Is.Null);
             Assert.That(Root.Q<Label>("home-collected-number").text, Is.EqualTo("1"));
+            Submit("Home My designs");
+            yield return Settle();
+            Assert.That(IsVisible(make), Is.True);
+            Assert.That(make.layout.width, Is.GreaterThanOrEqualTo(44));
+            Assert.That(make.layout.height, Is.GreaterThanOrEqualTo(44));
+            Assert.That(make.worldBound.yMax, Is.LessThan(Root.Q<VisualElement>("Home Designs").worldBound.yMin));
             Submit("Home Make sticker");
             yield return Settle();
             Assert.That(controller.State.creationOpen, Is.True);
@@ -106,6 +111,101 @@ namespace Tagtag.Tests
             yield return Capture("home-my-designs-refresh-error");
             controller.State.designError = ""; controller.Notify(); yield return Settle();
             yield return Capture("home-my-designs");
+        }
+
+        [UnityTest]
+        public IEnumerator PlacedTabShowsActiveLocationsNewestFirstAndOpensExplore()
+        {
+            controller.State.placements.Add(new StickerSummary { id = "old", place = "Old place", presetId = "taggi-1", status = "published", createdAt = 10 });
+            controller.State.placements.Add(new StickerSummary { id = "new", place = "New place", presetId = "taggi-2", status = "published", createdAt = 20 });
+            controller.State.placements.Add(new StickerSummary { id = "draft", place = "Unpublished", status = "draft", createdAt = 30 });
+            controller.State.placementsLoaded = true;
+            yield return Mount();
+            Submit("Home Placed"); yield return Settle();
+            Assert.That(controller.PlacementRefreshCalls, Is.EqualTo(1));
+            var cards = Root.Q<VisualElement>("Home Placed list").Query<Button>().ToList();
+            Assert.That(cards.Select(b => b.name), Is.EqualTo(new[] { "Home Placed new", "Home Placed old" }));
+            Assert.That(cards[0].Query<Image>().First(), Is.Not.Null);
+            Assert.That(cards[0].Query<Label>().ToList().Any(l => l.text == "New place"), Is.True);
+            yield return Capture("home-placed-populated");
+            Submit("Home Placed new"); yield return Settle();
+            Assert.That(controller.OpenedPlacement?.id, Is.EqualTo("new"));
+            Assert.That(controller.State.page, Is.EqualTo(AppPage.Explore));
+        }
+
+        [UnityTest]
+        public IEnumerator PlacedTabShowsGuestLoadingErrorAndRetry()
+        {
+            yield return Mount();
+            Submit("Home Placed"); yield return Settle();
+            controller.State.placementsLoading = true; controller.Notify(); yield return Settle();
+            Assert.That(Root.Q<Label>("Home placed status").text, Does.Contain("Loading"));
+            controller.State.placementsLoading = false;
+            controller.State.placementsError = "Could not load placed stickers.";
+            controller.Notify(); yield return Settle();
+            Assert.That(Root.Q<Label>("Home placed status").text, Is.EqualTo("Could not load placed stickers."));
+            Submit("Home Retry placements");
+            Assert.That(controller.PlacementRefreshCalls, Is.EqualTo(2));
+            controller.State.user = null; controller.Notify(); yield return Settle();
+            Submit("Home Placed"); yield return Settle();
+            Assert.That(Root.Q<Label>("Home placed status").text, Does.Contain("Sign in"));
+        }
+
+        [UnityTest]
+        public IEnumerator PlacedTabLoadsNextPageNearScrollEndOnlyOncePerCursor()
+        {
+            for (int i = 0; i < 12; i++)
+                controller.State.placements.Add(new StickerSummary
+                { id = "placed-" + i, place = "Place " + i, status = "published", presetId = "taggi-1", createdAt = i });
+            controller.State.placementsLoaded = true;
+            controller.State.placementsNextCursor = "first-cursor";
+            yield return Mount();
+            Submit("Home Placed"); yield return Settle();
+            var scroll = Root.Q<ScrollView>("Home scroll");
+            scroll.scrollOffset = new Vector2(0, 9999);
+            yield return Settle();
+            Assert.That(controller.PlacementMoreCalls, Is.EqualTo(1));
+            scroll.scrollOffset = new Vector2(0, 0);
+            scroll.scrollOffset = new Vector2(0, 9999);
+            yield return Settle();
+            Assert.That(controller.PlacementMoreCalls, Is.EqualTo(1));
+            controller.State.placementsNextCursor = "second-cursor";
+            controller.Notify(); yield return Settle();
+            Assert.That(controller.PlacementMoreCalls, Is.EqualTo(2));
+            Submit("Home Collected"); yield return Settle();
+            controller.State.placementsNextCursor = "first-cursor";
+            Submit("Home Placed"); yield return Settle();
+            scroll.scrollOffset = new Vector2(0, 9999);
+            yield return Settle();
+            Assert.That(controller.PlacementMoreCalls, Is.EqualTo(3),
+                "Returning to the Placed tab starts a fresh pagination sequence.");
+            controller.State.placements = new List<StickerSummary>(controller.State.placements);
+            controller.Notify(); yield return Settle();
+            Assert.That(controller.PlacementMoreCalls, Is.EqualTo(4),
+                "A background first-page refresh with the same cursor can load page two again.");
+        }
+
+        [UnityTest]
+        public IEnumerator SelectedCameraArtworkSitsAboveDockAndOpensPicker()
+        {
+            controller.State.selectedPreset = "taggi-1";
+            controller.State.page = AppPage.Stick;
+            yield return Mount();
+            controller.Camera.CameraPresentation = CameraPresentationState.Live;
+            controller.Camera.IsTracking = true;
+            controller.Notify(); yield return Settle();
+            var thumbnail = Root.Q<Button>("STICK selected artwork");
+            var dock = Root.Q<VisualElement>("STICK camera dock");
+            Assert.That(IsVisible(thumbnail), Is.True);
+            Assert.That(thumbnail.layout.width, Is.EqualTo(84).Within(1));
+            Assert.That(thumbnail.worldBound.yMax, Is.LessThan(dock.worldBound.yMin));
+            Assert.That(thumbnail.worldBound.xMax, Is.GreaterThan(dock.worldBound.center.x));
+            Assert.That(thumbnail.Q<Image>("STICK selected artwork image")?.image, Is.Not.Null);
+            yield return Capture("camera-selected-artwork");
+            Submit("STICK selected artwork"); yield return Settle();
+            Assert.That(Root.Q<PaperSheet>(), Is.Not.Null);
+            Assert.That(IsVisible(thumbnail), Is.False);
+            Assert.That(controller.Camera.InteractionBlocked, Is.True);
         }
 
         [UnityTest]
@@ -161,10 +261,11 @@ namespace Tagtag.Tests
             yield return Mount(1.4f, 320, 568);
             var make = Root.Q<Button>("Home Make sticker");
             var count = Root.Q<Label>("home-collected-number");
-            Assert.That(make.worldBound.xMin, Is.GreaterThan(count.worldBound.xMax));
-            Assert.That(make.worldBound.xMax, Is.LessThanOrEqualTo(Root.worldBound.xMax));
+            Assert.That(count, Is.Not.Null);
+            Assert.That(IsVisible(make), Is.False);
             yield return Capture("home-compact-empty");
             Submit("Home My designs"); yield return Settle();
+            Assert.That(make.worldBound.xMax, Is.LessThanOrEqualTo(Root.worldBound.xMax));
             var card = Root.Q<Button>("Home Design long");
             Assert.That(card, Is.Not.Null);
             Assert.That(card.worldBound.xMax, Is.LessThanOrEqualTo(Root.worldBound.xMax));
@@ -194,9 +295,6 @@ namespace Tagtag.Tests
             controller.Navigate(AppPage.Home); yield return Settle();
             Assert.That(Root.Q<Button>("Home Design scroll-0"), Is.Not.Null);
             Assert.That(Root.Q<ScrollView>("Home scroll").scrollOffset.y, Is.EqualTo(saved).Within(1));
-            Submit("Home Collected"); yield return Settle();
-            Root.Q<ScrollView>("Home scroll").scrollOffset = new Vector2(0, 80);
-            yield return Settle();
             Submit("Home Make sticker"); yield return Settle();
             Submit("Creator My designs"); yield return Settle();
             Assert.That(Root.Q<PaperSheet>(), Is.Null);
@@ -311,7 +409,8 @@ namespace Tagtag.Tests
             var pixels = new Texture2D(target.width, target.height, TextureFormat.RGBA32, false);
             pixels.ReadPixels(new Rect(0, 0, target.width, target.height), 0, 0); pixels.Apply();
             RenderTexture.active = previous;
-            string directory = Path.Combine(Application.temporaryCachePath, "tagtag-home-review");
+            string directory = Path.Combine(Application.temporaryCachePath, "tagtag-home-review",
+                new DirectoryInfo(Application.dataPath).Parent.Name);
             Directory.CreateDirectory(directory);
             File.WriteAllBytes(Path.Combine(directory, name + ".png"), pixels.EncodeToPNG());
             UnityEngine.Object.Destroy(pixels);
@@ -358,7 +457,7 @@ namespace Tagtag.Tests
             public void Recover(RecoveryData recovery) { }
         }
 
-        private sealed class ReviewController : ITagtagController
+        private sealed class ReviewController : ITagtagController, IPlacedLocationsController
         {
             public readonly ReviewCamera Camera = new ReviewCamera();
             public AppState State { get; } = new AppState { servicesConfigured = true,
@@ -379,6 +478,13 @@ namespace Tagtag.Tests
             public void CreateSticker(string source) { }
             public int RefreshCalls;
             public void RefreshDesigns() { RefreshCalls++; }
+            public int PlacementRefreshCalls;
+            public int PlacementMoreCalls;
+            public StickerSummary OpenedPlacement;
+            public void RefreshPlacements() { PlacementRefreshCalls++; }
+            public void LoadMorePlacements() { PlacementMoreCalls++; }
+            public void OpenPlacedLocation(StickerSummary sticker)
+            { OpenedPlacement = sticker; State.selected = sticker; Navigate(AppPage.Explore); }
             public bool DeferPlacement;
             public void SelectDesign(string id)
             {

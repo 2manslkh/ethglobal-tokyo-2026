@@ -8,7 +8,7 @@ namespace Tagtag.UI
 {
     public sealed partial class TagtagAppView
     {
-        private enum HomeSection { Collected, Designs }
+        private enum HomeSection { Collected, Designs, Placed }
 
         private VisualElement homeBook;
         private VisualElement homeFooter;
@@ -16,10 +16,16 @@ namespace Tagtag.UI
         private VisualElement homeCollectedSection;
         private VisualElement homeDesignSection;
         private VisualElement homeDesignGrid;
+        private VisualElement homePlacedSection;
+        private VisualElement homePlacedList;
         private ScrollView homeScroll;
         private Label homeDesignStatus;
         private PaperSelection homeCollectedTab;
         private PaperSelection homeDesignTab;
+        private PaperSelection homePlacedTab;
+        private Label homePlacedStatus;
+        private Button homeRetryPlacements;
+        private Button homePlacedSignIn;
         private Button homeRefreshDesigns;
         private Button homeSignInButton;
         private Button homePreviewPlaceButton;
@@ -29,11 +35,15 @@ namespace Tagtag.UI
         private Button homeCreateButton;
         private readonly PresenterCache homeContents = new PresenterCache();
         private readonly PresenterCache homeDesignContents = new PresenterCache();
+        private readonly PresenterCache homePlacedContents = new PresenterCache();
         private readonly List<Button> homeDesignCards = new List<Button>();
         private List<CollectedSticker> homeItems = new List<CollectedSticker>();
         private HomeSection homeSection;
         private Vector2 homeCollectedOffset;
         private Vector2 homeDesignOffset;
+        private Vector2 homePlacedOffset;
+        private string homeRequestedPlacementCursor;
+        private List<StickerSummary> homeObservedPlacements;
         private bool homeScrollRestorePending;
         private int homeScrollRestoreGeneration;
         private string homeUserId;
@@ -53,9 +63,12 @@ namespace Tagtag.UI
             if (homeUserId == userId) return;
             homeUserId = userId;
             homeSection = HomeSection.Collected;
-            homeCollectedOffset = homeDesignOffset = Vector2.zero;
+            homeCollectedOffset = homeDesignOffset = homePlacedOffset = Vector2.zero;
             bookPage = 0;
             homeDesignContents.Reset();
+            homePlacedContents.Reset();
+            homeRequestedPlacementCursor = null;
+            homeObservedPlacements = null;
             if (sheet == Sheet.HomeDesignPreview || (sheet == Sheet.DeleteDesign && deleteDesignFromHome))
             {
                 sheet = Sheet.None;
@@ -75,7 +88,8 @@ namespace Tagtag.UI
         {
             if (homeScroll == null) return;
             if (homeSection == HomeSection.Collected) homeCollectedOffset = homeScroll.scrollOffset;
-            else homeDesignOffset = homeScroll.scrollOffset;
+            else if (homeSection == HomeSection.Designs) homeDesignOffset = homeScroll.scrollOffset;
+            else homePlacedOffset = homeScroll.scrollOffset;
         }
 
         private void RestoreHomeScrollAfterLayout(HomeSection section)
@@ -86,7 +100,8 @@ namespace Tagtag.UI
 
         private void OnHomeSectionGeometry(HomeSection section, GeometryChangedEvent evt)
         {
-            VisualElement sectionElement = section == HomeSection.Collected ? homeCollectedSection : homeDesignSection;
+            VisualElement sectionElement = section == HomeSection.Collected ? homeCollectedSection :
+                section == HomeSection.Designs ? homeDesignSection : homePlacedSection;
             if (evt.target != sectionElement || !homeScrollRestorePending || homeSection != section) return;
             int generation = homeScrollRestoreGeneration;
             ScrollView scroll = homeScroll;
@@ -94,8 +109,10 @@ namespace Tagtag.UI
             {
                 if (scroll.panel == null || homeSection != section ||
                     generation != homeScrollRestoreGeneration) return;
-                scroll.scrollOffset = section == HomeSection.Collected ? homeCollectedOffset : homeDesignOffset;
+                scroll.scrollOffset = section == HomeSection.Collected ? homeCollectedOffset :
+                    section == HomeSection.Designs ? homeDesignOffset : homePlacedOffset;
                 homeScrollRestorePending = false;
+                MaybeLoadMorePlacements();
             });
         }
 
@@ -103,8 +120,10 @@ namespace Tagtag.UI
         {
             homeContents.Reset();
             homeDesignContents.Reset();
+            homePlacedContents.Reset();
             homeScroll = PaperScroll(screenHost);
             homeScroll.name = "Home scroll";
+            homeScroll.verticalScroller.valueChanged += _ => MaybeLoadMorePlacements();
             VisualElement page = Column(homeScroll.contentContainer);
             page.style.paddingLeft = 20f;
             page.style.paddingRight = 20f;
@@ -150,7 +169,66 @@ namespace Tagtag.UI
             homeCount.Caption.style.marginLeft = 6f;
             homeCount.Caption.style.whiteSpace = WhiteSpace.Normal;
             homeCount.Caption.style.minWidth = 0f;
-            homeCreateButton = Action(summary, "Make a sticker", OpenHomeCreator, false);
+            VisualElement sectionSwitch = Row(page);
+            sectionSwitch.style.marginBottom = 14f;
+            homeCollectedTab = new PaperSelection("Collected", homeSection == HomeSection.Collected,
+                () => SetHomeSection(HomeSection.Collected));
+            homeCollectedTab.name = "Home Collected";
+            homeDesignTab = new PaperSelection("Your Designs", homeSection == HomeSection.Designs,
+                () => SetHomeSection(HomeSection.Designs));
+            homeDesignTab.name = "Home My designs";
+            homePlacedTab = new PaperSelection("Placed", homeSection == HomeSection.Placed,
+                () => SetHomeSection(HomeSection.Placed));
+            homePlacedTab.name = "Home Placed";
+            foreach (PaperSelection tab in new[] { homeCollectedTab, homeDesignTab, homePlacedTab })
+            {
+                tab.style.width = Length.Percent(tab == homeCollectedTab ? 38f : tab == homeDesignTab ? 34f : 28f);
+                tab.style.flexGrow = 1f;
+                tab.style.minWidth = 0f;
+                tab.style.minHeight = 48f;
+                tab.style.whiteSpace = WhiteSpace.Normal;
+                tab.style.paddingLeft = 9f;
+                tab.style.paddingRight = 9f;
+                tab.style.fontSize = Mathf.RoundToInt(12f * textScale);
+                tab.Q<PaperIcon>(className: "selection-check").style.display = DisplayStyle.None;
+                sectionSwitch.Add(tab);
+            }
+            homeCollectedTab.style.whiteSpace = WhiteSpace.NoWrap;
+            homeCollectedTab.style.marginRight = 3f;
+            homeDesignTab.style.marginLeft = 3f;
+            homeDesignTab.style.marginRight = 3f;
+            homePlacedTab.style.marginLeft = 3f;
+            homeCollectedSection = Column(page);
+            homeCollectedSection.RegisterCallback<GeometryChangedEvent>(evt => OnHomeSectionGeometry(HomeSection.Collected, evt));
+            homeBook = Column(homeCollectedSection);
+            homeBook.name = "Sticker book page";
+            PaperDottedOutline.Decorate(homeBook, container: true);
+            homeBook.style.minHeight = textScale > 1.2f ? 490f : 390f;
+            homeBook.style.backgroundColor = Soft;
+            homeBook.style.borderTopLeftRadius = 18f;
+            homeBook.style.borderTopRightRadius = 18f;
+            homeBook.style.borderBottomLeftRadius = 18f;
+            homeBook.style.borderBottomRightRadius = 18f;
+            homeBook.style.paddingTop = 8f;
+            homeBook.style.paddingBottom = 8f;
+            homeBook.style.paddingLeft = 8f;
+            homeBook.style.paddingRight = 8f;
+            homeBook.RegisterCallback<PointerDownEvent>(evt => OnBookPointerDown(homeBook, evt));
+            homeBook.RegisterCallback<PointerUpEvent>(evt => OnBookPointerUp(homeBook, evt, homeItems.Count));
+            homeBook.RegisterCallback<PointerCancelEvent>(_ => { bookPressed = false; pressedStickerId = null; });
+            homeFooter = Row(homeCollectedSection);
+            homeFooter.style.minHeight = 62f;
+            homeFooter.style.alignItems = Align.Center;
+            homeFooter.style.justifyContent = Justify.SpaceBetween;
+            homeDesignSection = Column(page);
+            homeDesignSection.name = "Home design section";
+            homeDesignSection.style.backgroundColor = Soft;
+            homeDesignSection.style.paddingLeft = 12f;
+            homeDesignSection.style.paddingRight = 12f;
+            homeDesignSection.style.paddingTop = 12f;
+            homeDesignSection.style.paddingBottom = 12f;
+            homeDesignSection.RegisterCallback<GeometryChangedEvent>(evt => OnHomeSectionGeometry(HomeSection.Designs, evt));
+            homeCreateButton = Action(homeDesignSection, "Make a sticker", OpenHomeCreator, false);
             homeCreateButton.name = "Home Make sticker";
             homeCreateButton.text = "";
             homeCreateButton.tooltip = "Make a sticker";
@@ -176,55 +254,17 @@ namespace Tagtag.UI
             makeCaption.style.marginTop = 2f;
             makeCaption.style.flexShrink = 0f;
             makeCaption.pickingMode = PickingMode.Ignore;
-            VisualElement sectionSwitch = Row(page);
-            sectionSwitch.style.marginBottom = 14f;
-            homeCollectedTab = new PaperSelection("Collected", homeSection == HomeSection.Collected,
-                () => SetHomeSection(HomeSection.Collected));
-            homeCollectedTab.name = "Home Collected";
-            homeDesignTab = new PaperSelection("My designs", homeSection == HomeSection.Designs,
-                () => SetHomeSection(HomeSection.Designs));
-            homeDesignTab.name = "Home My designs";
-            foreach (PaperSelection tab in new[] { homeCollectedTab, homeDesignTab })
-            {
-                tab.style.width = Length.Percent(50f);
-                tab.style.flexGrow = 1f;
-                tab.style.minWidth = 0f;
-                tab.style.minHeight = 48f;
-                tab.style.whiteSpace = WhiteSpace.Normal;
-                sectionSwitch.Add(tab);
-            }
-            homeCollectedTab.style.marginRight = 5f;
-            homeDesignTab.style.marginLeft = 5f;
-            homeCollectedSection = Column(page);
-            homeCollectedSection.RegisterCallback<GeometryChangedEvent>(evt => OnHomeSectionGeometry(HomeSection.Collected, evt));
-            homeBook = Column(homeCollectedSection);
-            homeBook.name = "Sticker book page";
-            homeBook.style.minHeight = textScale > 1.2f ? 490f : 390f;
-            homeBook.style.backgroundColor = Soft;
-            homeBook.style.borderTopLeftRadius = 18f;
-            homeBook.style.borderTopRightRadius = 18f;
-            homeBook.style.borderBottomLeftRadius = 18f;
-            homeBook.style.borderBottomRightRadius = 18f;
-            homeBook.style.paddingTop = 8f;
-            homeBook.style.paddingBottom = 8f;
-            homeBook.style.paddingLeft = 8f;
-            homeBook.style.paddingRight = 8f;
-            homeBook.RegisterCallback<PointerDownEvent>(evt => OnBookPointerDown(homeBook, evt));
-            homeBook.RegisterCallback<PointerUpEvent>(evt => OnBookPointerUp(homeBook, evt, homeItems.Count));
-            homeBook.RegisterCallback<PointerCancelEvent>(_ => { bookPressed = false; pressedStickerId = null; });
-            homeFooter = Row(homeCollectedSection);
-            homeFooter.style.minHeight = 62f;
-            homeFooter.style.alignItems = Align.Center;
-            homeFooter.style.justifyContent = Justify.SpaceBetween;
-            homeDesignSection = Column(page);
-            homeDesignSection.RegisterCallback<GeometryChangedEvent>(evt => OnHomeSectionGeometry(HomeSection.Designs, evt));
             VisualElement designsHeading = Row(homeDesignSection);
             designsHeading.style.alignItems = Align.Center;
+            if (textScale > 1.2f) designsHeading.style.flexDirection = FlexDirection.Column;
             Label designsTitle = Text(designsHeading, "Your designs", 21, true);
             designsTitle.style.flexGrow = 1f;
             designsTitle.style.minWidth = 0f;
             homeRefreshDesigns = Action(designsHeading, "Refresh", controller.RefreshDesigns, false);
             homeRefreshDesigns.name = "Home Refresh designs";
+            homeRefreshDesigns.style.flexShrink = 0f;
+            homeRefreshDesigns.style.minWidth = 80f;
+            if (textScale > 1.2f) homeRefreshDesigns.style.alignSelf = Align.FlexStart;
             homeDesignStatus = Text(homeDesignSection, "", 14, false, Muted);
             homeDesignStatus.name = "Home design status";
             homeDesignStatus.style.marginTop = 10f;
@@ -239,10 +279,38 @@ namespace Tagtag.UI
             homeSignInButton.style.marginBottom = 12f;
             homeDesignGrid = Column(homeDesignSection);
             homeDesignGrid.name = "Home Designs";
+            homePlacedSection = Column(page);
+            homePlacedSection.name = "Home placed section";
+            homePlacedSection.style.backgroundColor = Soft;
+            homePlacedSection.style.paddingLeft = 12f;
+            homePlacedSection.style.paddingRight = 12f;
+            homePlacedSection.style.paddingTop = 12f;
+            homePlacedSection.style.paddingBottom = 12f;
+            homePlacedSection.RegisterCallback<GeometryChangedEvent>(evt => OnHomeSectionGeometry(HomeSection.Placed, evt));
+            Text(homePlacedSection, "Placed", 21, true);
+            homePlacedStatus = Text(homePlacedSection, "", 14, false, Muted);
+            homePlacedStatus.name = "Home placed status";
+            homePlacedStatus.style.marginTop = 8f;
+            homeRetryPlacements = Action(homePlacedSection, "Retry", () =>
+                RefreshPlacementsFromStart(), false);
+            homeRetryPlacements.name = "Home Retry placements";
+            homeRetryPlacements.style.alignSelf = Align.FlexStart;
+            homePlacedSignIn = Action(homePlacedSection, "Sign in", () =>
+            {
+                accountScreen = AccountScreen.SignIn;
+                controller.SetAccountOpen(true);
+            }, false);
+            homePlacedSignIn.name = "Home Placed sign in";
+            homePlacedSignIn.style.alignSelf = Align.FlexStart;
+            homePlacedList = Column(homePlacedSection);
+            homePlacedList.name = "Home Placed list";
+            homePlacedList.RegisterCallback<GeometryChangedEvent>(_ => MaybeLoadMorePlacements());
             RefreshHome(state);
             AddStatus(page, state);
             RestoreHomeScrollAfterLayout(homeSection);
             if (homeSection == HomeSection.Designs && SignedIn(state)) controller.RefreshDesigns();
+            if (homeSection == HomeSection.Placed && SignedIn(state))
+                RefreshPlacementsFromStart();
         }
 
         private void RefreshHome(AppState state)
@@ -257,13 +325,17 @@ namespace Tagtag.UI
             homeCount.SetCount(items.Count);
             homeCollectedTab.SetSelected(homeSection == HomeSection.Collected);
             homeDesignTab.SetSelected(homeSection == HomeSection.Designs);
+            homePlacedTab.SetSelected(homeSection == HomeSection.Placed);
             homeCollectedSection.style.display = homeSection == HomeSection.Collected ? DisplayStyle.Flex : DisplayStyle.None;
             homeDesignSection.style.display = homeSection == HomeSection.Designs ? DisplayStyle.Flex : DisplayStyle.None;
+            homePlacedSection.style.display = homeSection == HomeSection.Placed ? DisplayStyle.Flex : DisplayStyle.None;
             RefreshHomeDesigns(state);
+            RefreshHomePlacements(state);
             if (!homeContents.NeedsRefresh(key)) return;
             bookPage = page;
             homeItems = items;
             homeBook.Clear();
+            PaperDottedOutline.Decorate(homeBook, container: true);
             for (int rowIndex = 0; rowIndex < BookPaging.Rows; rowIndex++)
             {
                 VisualElement row = Row(homeBook);
@@ -304,7 +376,6 @@ namespace Tagtag.UI
             if (items.Count == 0)
             {
                 homeInvitation = Column(homeBook);
-                PaperDottedOutline.Decorate(homeInvitation, container: true);
                 homeInvitation.style.position = Position.Absolute;
                 homeInvitation.style.left = 12f;
                 homeInvitation.style.right = 12f;
@@ -339,6 +410,14 @@ namespace Tagtag.UI
             RestoreHomeScrollAfterLayout(section);
             RefreshHome(controller.State);
             if (refreshDesigns && section == HomeSection.Designs && SignedIn(controller.State)) controller.RefreshDesigns();
+            if (section == HomeSection.Placed && SignedIn(controller.State))
+                RefreshPlacementsFromStart();
+        }
+
+        private void RefreshPlacementsFromStart()
+        {
+            homeRequestedPlacementCursor = null;
+            (controller as IPlacedLocationsController)?.RefreshPlacements();
         }
 
         private void OpenHomeCreator()
@@ -432,6 +511,74 @@ namespace Tagtag.UI
                     AddArtworkNotice(cell, art, designId, true);
                 }
             }
+        }
+
+        private void RefreshHomePlacements(AppState state)
+        {
+            if (homePlacedList == null) return;
+            if (!ReferenceEquals(homeObservedPlacements, state.placements))
+            {
+                homeObservedPlacements = state.placements;
+                homeRequestedPlacementCursor = null;
+            }
+            bool signedIn = SignedIn(state);
+            List<StickerSummary> placements = signedIn && state.placements != null ? state.placements
+                .Where(item => item != null && !string.IsNullOrEmpty(item.id) && item.status == "published")
+                .OrderByDescending(item => item.createdAt).ThenByDescending(item => item.id, StringComparer.Ordinal)
+                .GroupBy(item => item.id).Select(group => group.First()).ToList() : new List<StickerSummary>();
+            homePlacedStatus.text = !signedIn ? "Sign in to see your placed stickers." :
+                state.placementsLoading ? placements.Count == 0 ? "Loading your placed stickers…" : "Loading more placed stickers…" :
+                !string.IsNullOrEmpty(state.placementsError) ? state.placementsError :
+                !state.placementsLoaded ? "Loading your placed stickers…" :
+                placements.Count == 0 ? "No placed stickers yet. Place a design to see it here." : "";
+            homePlacedStatus.style.color = signedIn && !state.placementsLoading &&
+                !string.IsNullOrEmpty(state.placementsError) ? (Color)new Color32(125, 39, 31, 255) : Muted;
+            homePlacedStatus.style.display = string.IsNullOrEmpty(homePlacedStatus.text) ? DisplayStyle.None : DisplayStyle.Flex;
+            homeRetryPlacements.style.display = signedIn && !state.placementsLoading &&
+                !string.IsNullOrEmpty(state.placementsError) ? DisplayStyle.Flex : DisplayStyle.None;
+            homePlacedSignIn.style.display = signedIn ? DisplayStyle.None : DisplayStyle.Flex;
+            string key = state.user?.uid + ":" + placements.Count;
+            foreach (StickerSummary item in placements)
+                key += ":" + item.id + ":" + item.revision + ":" + item.place + ":" + item.createdAt + ":" + item.thumbnailUrl;
+            if (homeSection == HomeSection.Placed) homeScroll?.schedule.Execute(MaybeLoadMorePlacements);
+            if (!homePlacedContents.NeedsRefresh(key)) return;
+            homePlacedList.Clear();
+            foreach (StickerSummary item in placements)
+            {
+                StickerSummary placement = item;
+                Button card = Action(homePlacedList, "", () =>
+                    (controller as IPlacedLocationsController)?.OpenPlacedLocation(placement), false);
+                card.name = "Home Placed " + item.id;
+                card.tooltip = "Explore " + Safe(item.place, "placed sticker");
+                card.style.flexDirection = FlexDirection.Row;
+                card.style.alignItems = Align.Center;
+                card.style.justifyContent = Justify.FlexStart;
+                card.style.marginBottom = 10f;
+                card.style.minHeight = 96f;
+                Image art = Art(card, item, 72f);
+                art.pickingMode = PickingMode.Ignore;
+                VisualElement words = Column(card);
+                words.pickingMode = PickingMode.Ignore;
+                words.style.flexGrow = 1f;
+                words.style.minWidth = 0f;
+                words.style.marginLeft = 12f;
+                Text(words, Safe(item.place, "Placed sticker"), 16, true).pickingMode = PickingMode.Ignore;
+                Text(words, "Placed " + Date(item.createdAt), 13, false, Muted).pickingMode = PickingMode.Ignore;
+            }
+        }
+
+        private void MaybeLoadMorePlacements()
+        {
+            AppState state = controller?.State;
+            if (homeSection != HomeSection.Placed || homeScroll == null || state == null || !SignedIn(state) ||
+                state.placementsLoading || !string.IsNullOrEmpty(state.placementsError) ||
+                string.IsNullOrEmpty(state.placementsNextCursor) ||
+                state.placementsNextCursor == homeRequestedPlacementCursor) return;
+            float viewport = homeScroll.contentViewport.layout.height;
+            float content = homeScroll.contentContainer.layout.height;
+            if (viewport <= 0f || content <= 0f || homeScroll.scrollOffset.y + viewport < content - 160f) return;
+            homeRequestedPlacementCursor = state.placementsNextCursor;
+            (controller as IPlacedLocationsController)?.LoadMorePlacements();
         }
 
         private void OpenHomeDesign(string id)

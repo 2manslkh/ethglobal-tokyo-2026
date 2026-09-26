@@ -30,6 +30,13 @@ export function createFirebaseAdapter({ projectId = process.env.GOOGLE_CLOUD_PRO
             const snapshot = await query.limit(limit).get();
             return snapshot.docs.map(item => item.data());
         },
+        async queryAuthoredPage({ ownerId, status, limit, cursor }) {
+            let query = db.collection('stickers').where('authorId', '==', ownerId).where('status', '==', status)
+                .orderBy('createdAt', 'desc').orderBy('id', 'desc');
+            if (cursor) query = query.startAfter(cursor.createdAt, cursor.id);
+            const snapshot = await query.limit(limit).get();
+            return snapshot.docs.map(item => item.data());
+        },
         async transaction(callback) {
             return db.runTransaction(async firestoreTransaction => {
                 const tx = {

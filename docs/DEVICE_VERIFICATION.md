@@ -1,5 +1,40 @@
 # Device verification
 
+## UI improvements — 2026-09-26
+
+Implemented on `feat/ui-improvements` in `/private/tmp/tagtag-ui-improvements`.
+Added dashed die-cut treatments and pressed states, Your Designs creation placement,
+active Placed locations with paginated map handoff, a tappable selected-artwork
+camera preview, and progressive Explore loading with a short nearby-results cache.
+
+- Unity 6000.5.5f1 Edit Mode: **186/186 passed**, `/tmp/tagtag-edit-green.xml`.
+- Graphics-enabled Home/Paper Play Mode: **20/20 passed**, `/tmp/tagtag-ui-play-verified.xml`.
+- After final button-local renderer and pagination corrections, Home Play Mode:
+  **13/13 passed**, `/tmp/tagtag-home-verified.xml`.
+- Compact enlarged-text capture after isolating worktree screenshot output:
+  **1/1 passed**, `/tmp/tagtag-compact-isolated.xml`.
+- Backend `npm test`: **71 passed**, one Firebase emulator-only test skipped.
+- Separate ARKit preparation and iOS export succeeded: `/tmp/tagtag-ui-prepare.log`
+  and `/tmp/tagtag-ui-export.log`. Unsigned Xcode Debug/iphoneos check:
+  **BUILD SUCCEEDED**, `/tmp/tagtag-ui-xcode.log` (exit 0).
+- Reviewed [Placed](verification/ui-improvements/home-placed.png),
+  [camera selection](verification/ui-improvements/camera-selected-artwork.png), and
+  [compact Your Designs](verification/ui-improvements/home-compact-designs.png).
+  These are Unity-rendered fixtures with simulated camera imagery and test data,
+  not physical-device captures. Per-checkout capture directories prevent concurrent
+  login-work tests from overwriting this feature's evidence.
+
+No physical-device performance improvement, GPS permission behavior, tile failure,
+or AR gesture outcome is claimed by these results. On an iPhone, verify cold/warm
+Explore visits, slow/offline tile and sticker loading, denied/low-accuracy GPS,
+background/resume, panning followed by opening the same placed location, and
+preset/custom-thumbnail picker taps while placing and adjusting. Record timing to
+first map, location, pins, and artwork before reporting a quantified speedup.
+The existing 50-metre nearby accuracy requirement is unchanged here; a concurrent
+location-service diagnosis owns any adjustment. Deploy the backend and authored
+pagination Firestore index before distributing the client. No backend deployment
+or phone installation was performed in this work.
+
 ## NFT consolidation — 2026-09-26
 
 Merged the NFT checkpoint `7d00a4c` with local publishing fixes and remote main `3402d97` (custom sticker creation). Preserved both wallet and design account lifecycles, collection artwork URLs and NFT status, API routes, dependencies, indexes, and regression tests. A new combined regression reproduced HTTP 500 when collecting custom artwork with NFTs enabled; custom discoveries now queue generic Taggi preset 0 without copying custom artwork or private notes into the mint job.
