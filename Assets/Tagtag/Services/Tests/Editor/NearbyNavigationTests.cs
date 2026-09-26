@@ -226,6 +226,67 @@ namespace Tagtag.Services.Tests
             Assert.That(controller.State.hasPendingDesign, Is.False);
         }
 
+        [TestCase(75f)]
+        [TestCase(500f)]
+        [TestCase(2000f)]
+        [TestCase(2000.149f)]
+        [TestCase(5000f)]
+        public void ExploreLoadsWithFreshApproximateLocation(float accuracy)
+        {
+            controller.Dispose();
+            var runtime = new BrowsingLocationRuntime { Accuracy = accuracy };
+            LocationFix queried = null;
+            controller = new TagtagController(new ServiceConfiguration(), new Camera(), new Map(),
+                new Identity { StoredSession = ValidSession },
+                loadNearby: fix => { queried = fix; return Task.FromResult(new[] { new StickerSummary { id = "nearby" } }); },
+                deviceLocation: new DeviceLocation(runtime));
+
+            controller.Navigate(AppPage.Explore);
+
+            Assert.That(controller.State.error, Is.Empty, "Browsing must not wait for discovery-grade GPS accuracy.");
+            Assert.That(controller.State.location, Is.Not.Null, "Explore must have a map center.");
+            Assert.That(controller.State.location.accuracyMeters, Is.EqualTo(accuracy), "Never misreport the measured precision.");
+            Assert.That(queried, Is.SameAs(controller.State.location));
+            Assert.That(controller.State.nearby.Count, Is.EqualTo(1));
+            Assert.That(controller.State.nearbyLoading, Is.False);
+            Assert.That(runtime.DelayCount, Is.Zero);
+            Assert.That(runtime.StopCount, Is.EqualTo(1));
+        }
+
+        [Test]
+        public void BrowsingStillRejectsStaleLocation()
+        {
+            controller.Dispose();
+            var runtime = new BrowsingLocationRuntime { Accuracy = 500, MeasuredAt = 0 };
+            bool queried = false;
+            controller = new TagtagController(new ServiceConfiguration(), new Camera(), new Map(),
+                new Identity { StoredSession = ValidSession },
+                loadNearby: fix => { queried = true; return Task.FromResult(Array.Empty<StickerSummary>()); },
+                deviceLocation: new DeviceLocation(runtime));
+            controller.Navigate(AppPage.Explore);
+            Assert.That(queried, Is.False);
+            Assert.That(controller.State.location, Is.Null);
+            Assert.That(controller.State.nearbyLoading, Is.False);
+            Assert.That(controller.State.error, Is.Not.Empty);
+        }
+
+        private sealed class BrowsingLocationRuntime : ILocationRuntime
+        {
+            public float Accuracy;
+            public long MeasuredAt = 100;
+            public int DelayCount, StopCount;
+            public LocationAuthorization Authorization => LocationAuthorization.FullAccuracy;
+            public bool ServicesEnabled => true;
+            public LocationServiceStatus Status { get; private set; } = LocationServiceStatus.Stopped;
+            public LocationFix LastFix => new LocationFix { latitude = 35.68, longitude = 139.76,
+                accuracyMeters = Accuracy, measuredUnixSeconds = MeasuredAt };
+            public DateTimeOffset UtcNow { get; private set; } = DateTimeOffset.FromUnixTimeSeconds(100);
+            public void Start(float desiredAccuracyMeters, float updateDistanceMeters) { Status = LocationServiceStatus.Running; }
+            public void Stop() { StopCount++; Status = LocationServiceStatus.Stopped; }
+            public Task Delay(CancellationToken cancellation)
+            { cancellation.ThrowIfCancellationRequested(); DelayCount++; UtcNow = UtcNow.AddSeconds(1); return Task.CompletedTask; }
+        }
+
         private static string ValidSession => JsonUtility.ToJson(new UserSession
         { uid = "nearby-test", idToken = "test-token", refreshToken = "test-refresh", expiresAt = DateTimeOffset.UtcNow.ToUnixTimeSeconds() + 3600 });
 

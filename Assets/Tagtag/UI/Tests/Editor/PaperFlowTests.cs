@@ -186,6 +186,17 @@ namespace Tagtag.UI.Tests
         }
 
         [Test]
+        public void ExploreLabelsApproximateLocationWithoutHidingMap()
+        {
+            var state = new AppState { servicesConfigured = true,
+                location = new LocationFix { accuracyMeters = 500 } };
+            NearbyStatus result = PaperFlow.Nearby(state, true);
+            Assert.That(result.MapMessage, Is.Empty);
+            Assert.That(result.LocationNotice, Does.Contain("Approximate location"));
+            Assert.That(result.CanRefresh, Is.True);
+        }
+
+        [Test]
         public void NavigationUsesDedicatedTaggiArtworkResources()
         {
             Assert.AreEqual("Tagtag/Navigation/home", PaperNavigationArt.ResourcePath(AppPage.Home));
