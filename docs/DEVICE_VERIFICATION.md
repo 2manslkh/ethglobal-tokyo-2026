@@ -857,6 +857,5 @@ Do not use the older `Build/SignedDerivedData` package or TestFlight archive
 The native simulator harness passed with all twelve packaged images, including
 an additional temporary check of the actual chooser cells. A separate clean
 harness using the old archive's four images failed the Taggi #7 assertion.
-These checks verify resource loading; final on-map appearance on the phone
-still requires visual confirmation. No source-code fix was needed beyond
-the existing `0ad5424` change.
+The user then confirmed that the on-map image displays correctly on the phone.
+No source-code fix was needed beyond the existing `0ad5424` change.
