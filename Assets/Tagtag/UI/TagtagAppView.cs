@@ -766,7 +766,7 @@ namespace Tagtag.UI
             artworkNotices.RemoveAll(notice => notice.status.panel == null);
             Label status = Text(parent, "", 13, false, Muted);
             status.style.marginTop = 4f;
-            Button retry = Action(parent, "Retry artwork", () => StickerArtwork.Retry(), false);
+            Button retry = Action(parent, "Retry artwork", controller.RefreshArtwork, false);
             retry.style.alignSelf = Align.FlexStart;
             retry.style.marginTop = 4f;
             artworkNotices.Add(new ArtworkNotice(designId, thumbnail, art, status, retry));

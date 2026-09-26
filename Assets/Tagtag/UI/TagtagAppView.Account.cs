@@ -332,6 +332,15 @@ namespace Tagtag.UI
                 () => FocusSheetTrigger(openedSheet) : openedSheet == Sheet.Collected ?
                 () => FocusCollectedCell(collectedId) : null;
             sheetView = new PaperSheet(title, CloseSheet, reducedMotion, returnFocus, "Close");
+            if (sheet == Sheet.Picker)
+            {
+                sheetView.style.flexDirection = FlexDirection.Column;
+                sheetView.Grip.style.flexShrink = 0f;
+                sheetView.Q(className: "sheet-heading").style.flexShrink = 0f;
+                sheetView.Scroll.style.flexGrow = 1f;
+                sheetView.Scroll.style.flexShrink = 1f;
+                sheetView.Scroll.style.minHeight = 0f;
+            }
             sheetView.Q<Label>(className: "sheet-title").style.unityFont = HeadingFont;
             sheetView.style.bottom = SheetBottom();
             ApplySheetHeight();
@@ -542,7 +551,9 @@ namespace Tagtag.UI
                     controller.SelectDesign(designId);
                 });
                 details.Add(choose);
-                choose.style.alignSelf = Align.FlexStart;
+                choose.style.alignSelf = Align.Stretch;
+                choose.style.width = Length.Percent(100f);
+                choose.style.minWidth = 180f;
                 choose.style.marginTop = 4f;
                 choose.userData = canUse;
                 SetDisabled(choose, state.busy || !canUse);
@@ -703,11 +714,27 @@ namespace Tagtag.UI
             if (root.layout.height <= 0f || Screen.height <= 0)
             {
                 sheetView.style.maxHeight = Length.Percent(82f);
+                if (sheet == Sheet.Picker)
+                {
+                    sheetView.style.top = Length.Percent(18f);
+                    sheetView.style.bottom = StyleKeyword.Auto;
+                    sheetView.style.height = Length.Percent(82f);
+                }
                 return;
             }
             float scale = root.layout.height / Screen.height;
             float topInset = (Screen.height - Screen.safeArea.yMax) * scale;
-            sheetView.style.maxHeight = Mathf.Max(180f, root.layout.height - SheetBottom() - topInset - 8f);
+            float available = Mathf.Max(180f, root.layout.height - SheetBottom() - topInset - 8f);
+            if (sheet != Sheet.Picker)
+            {
+                sheetView.style.maxHeight = available;
+                return;
+            }
+            float maxHeight = Mathf.Min(root.layout.height * .82f, available);
+            sheetView.style.top = root.layout.height - SheetBottom() - maxHeight;
+            sheetView.style.bottom = StyleKeyword.Auto;
+            sheetView.style.maxHeight = maxHeight;
+            sheetView.style.height = maxHeight;
         }
 
         private void BuildCollectedDetail(VisualElement content, AppState state)
