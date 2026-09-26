@@ -128,6 +128,9 @@ stickers before or after placing the preview.
 
 Explore mounts its native map before GPS completes, preserves the viewport and
 existing pins during refresh, and reuses successful nearby results for 60 seconds.
+Tap a grouped map pin to open **Stickers here**, a scrollable chooser with artwork,
+place names and teasers. Every member can be selected even at identical coordinates
+or maximum zoom; selecting a row opens its usual teaser and Find in AR action.
 Explicit refresh bypasses that cache. Timing logs report location acquisition,
 nearby fetch, and native map mounting. Device measurements of tile/artwork readiness
 and cold/warm visits are required before claiming a real-world speedup.

@@ -9,14 +9,16 @@
 @property(nonatomic, copy) NSString *stickerId;
 @property(nonatomic, copy) NSString *presetId;
 @property(nonatomic, copy) NSString *thumbnailUrl;
+@property(nonatomic, copy) NSString *teaser;
 @property(nonatomic, copy) NSString *title;
 @property(nonatomic) CLLocationCoordinate2D coordinate;
 @end
 @implementation TagtagPin
 @end
 
-@interface TagtagMapDelegate : NSObject <MKMapViewDelegate>
+@interface TagtagMapDelegate : NSObject <MKMapViewDelegate, UIAdaptivePresentationControllerDelegate>
 @property(nonatomic, strong) NSString *selection;
+@property(nonatomic, strong) UINavigationController *clusterPicker;
 @end
 
 static MKMapView *tagtagMap;
@@ -118,6 +120,65 @@ static UIImage *TagtagPinImage(NSString *presetId, NSUInteger count, UIImage *cu
 }
 @end
 
+@interface TagtagClusterPicker : UITableViewController
+@property(nonatomic, copy) NSArray<TagtagPin *> *pins;
+@property(nonatomic, copy) void (^completed)(TagtagPin *);
+@end
+
+@implementation TagtagClusterPicker
+- (void)viewDidLoad {
+    [super viewDidLoad];
+    self.title = @"Stickers here";
+    self.navigationItem.rightBarButtonItem = [[UIBarButtonItem alloc]
+        initWithBarButtonSystemItem:UIBarButtonSystemItemClose target:self action:@selector(close)];
+    self.tableView.backgroundColor = [UIColor colorWithRed:1 green:254.0/255 blue:250.0/255 alpha:1];
+    self.tableView.rowHeight = UITableViewAutomaticDimension;
+    self.tableView.estimatedRowHeight = 80;
+}
+- (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section { return self.pins.count; }
+- (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath {
+    UITableViewCell *cell = [tableView dequeueReusableCellWithIdentifier:@"sticker-choice"];
+    if (!cell) cell = [[UITableViewCell alloc] initWithStyle:UITableViewCellStyleSubtitle reuseIdentifier:@"sticker-choice"];
+    TagtagPin *pin = self.pins[indexPath.row];
+    cell.textLabel.text = pin.title.length ? pin.title : @"Sticker";
+    cell.textLabel.font = [UIFont preferredFontForTextStyle:UIFontTextStyleHeadline];
+    cell.textLabel.adjustsFontForContentSizeCategory = YES;
+    cell.textLabel.numberOfLines = 0;
+    cell.detailTextLabel.text = pin.teaser.length ? pin.teaser : @"Tap to view this sticker";
+    cell.detailTextLabel.font = [UIFont preferredFontForTextStyle:UIFontTextStyleSubheadline];
+    cell.detailTextLabel.textColor = [UIColor colorWithRed:92.0/255 green:91.0/255 blue:85.0/255 alpha:1];
+    cell.detailTextLabel.adjustsFontForContentSizeCategory = YES;
+    cell.detailTextLabel.numberOfLines = 0;
+    cell.imageView.image = TagtagPinImage(pin.presetId, 0, nil);
+    cell.accessoryType = UITableViewCellAccessoryDisclosureIndicator;
+    cell.backgroundColor = self.tableView.backgroundColor;
+    cell.accessibilityIdentifier = pin.stickerId;
+    cell.accessibilityLabel = [NSString stringWithFormat:@"%@, %@, sticker %ld of %lu",
+        cell.textLabel.text, cell.detailTextLabel.text, (long)indexPath.row + 1, (unsigned long)self.pins.count];
+    NSURL *url = pin.thumbnailUrl.length ? [NSURL URLWithString:pin.thumbnailUrl] : nil;
+    if ([url.scheme isEqualToString:@"https"]) {
+        __weak UITableViewCell *weakCell = cell;
+        TagtagLoadThumbnail(url, ^(UIImage *art) {
+            if (art && [weakCell.accessibilityIdentifier isEqualToString:pin.stickerId]) {
+                weakCell.imageView.image = TagtagPinImage(nil, 0, art);
+                [weakCell setNeedsLayout];
+            }
+        });
+    }
+    return cell;
+}
+- (void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath {
+    if (indexPath.row < self.pins.count && self.completed) self.completed(self.pins[indexPath.row]);
+}
+- (void)close { if (self.completed) self.completed(nil); }
+@end
+
+static void TagtagDismissClusterPicker(BOOL animated) {
+    UINavigationController *picker = tagtagDelegate.clusterPicker;
+    tagtagDelegate.clusterPicker = nil;
+    [picker dismissViewControllerAnimated:animated completion:nil];
+}
+
 @implementation TagtagMapDelegate
 - (MKAnnotationView *)mapView:(MKMapView *)mapView viewForAnnotation:(id<MKAnnotation>)annotation {
     if ([annotation isKindOfClass:MKUserLocation.class]) return nil;
@@ -150,11 +211,47 @@ static UIImage *TagtagPinImage(NSString *presetId, NSUInteger count, UIImage *cu
 - (void)mapView:(MKMapView *)mapView didSelectAnnotationView:(MKAnnotationView *)view {
     if ([view.annotation isKindOfClass:MKClusterAnnotation.class]) {
         MKClusterAnnotation *cluster = (MKClusterAnnotation *)view.annotation;
-        [mapView showAnnotations:cluster.memberAnnotations animated:!(tagtagReducedMotion || UIAccessibilityIsReduceMotionEnabled())];
         [mapView deselectAnnotation:view.annotation animated:NO];
+        if (self.clusterPicker) return;
+        UIViewController *presenter = mapView.window.rootViewController;
+        if (!presenter || presenter.presentedViewController) return;
+        NSMutableArray<TagtagPin *> *members = [NSMutableArray new];
+        for (id<MKAnnotation> annotation in cluster.memberAnnotations)
+            if ([annotation isKindOfClass:TagtagPin.class]) [members addObject:(TagtagPin *)annotation];
+        if (members.count == 0) return;
+        [members sortUsingComparator:^NSComparisonResult(TagtagPin *a, TagtagPin *b) {
+            NSComparisonResult title = [(a.title ?: @"") localizedStandardCompare:(b.title ?: @"")];
+            return title == NSOrderedSame ? [a.stickerId compare:b.stickerId] : title;
+        }];
+        TagtagClusterPicker *choices = [[TagtagClusterPicker alloc] initWithStyle:UITableViewStylePlain];
+        choices.pins = members;
+        UINavigationController *navigation = [[UINavigationController alloc] initWithRootViewController:choices];
+        navigation.overrideUserInterfaceStyle = UIUserInterfaceStyleLight;
+        navigation.modalPresentationStyle = UIModalPresentationPageSheet;
+        UINavigationBarAppearance *appearance = [UINavigationBarAppearance new];
+        [appearance configureWithOpaqueBackground];
+        appearance.backgroundColor = [UIColor colorWithRed:1 green:254.0/255 blue:250.0/255 alpha:1];
+        navigation.navigationBar.standardAppearance = appearance;
+        navigation.navigationBar.scrollEdgeAppearance = appearance;
+        navigation.navigationBar.tintColor = [UIColor colorWithRed:32.0/255 green:32.0/255 blue:30.0/255 alpha:1];
+        navigation.sheetPresentationController.detents = @[UISheetPresentationControllerDetent.mediumDetent, UISheetPresentationControllerDetent.largeDetent];
+        navigation.sheetPresentationController.prefersGrabberVisible = YES;
+        navigation.presentationController.delegate = self;
+        __weak TagtagMapDelegate *weakSelf = self;
+        __weak UINavigationController *weakNavigation = navigation;
+        choices.completed = ^(TagtagPin *chosen) {
+            if (!weakNavigation || weakSelf.clusterPicker != weakNavigation || tagtagMap.hidden) return;
+            if (chosen && tagtagPins[chosen.stickerId]) weakSelf.selection = chosen.stickerId;
+            TagtagDismissClusterPicker(!(tagtagReducedMotion || UIAccessibilityIsReduceMotionEnabled()));
+        };
+        self.clusterPicker = navigation;
+        [presenter presentViewController:navigation animated:!(tagtagReducedMotion || UIAccessibilityIsReduceMotionEnabled()) completion:nil];
     } else if ([view.annotation isKindOfClass:TagtagPin.class]) {
         self.selection = ((TagtagPin *)view.annotation).stickerId;
     }
+}
+- (void)presentationControllerDidDismiss:(UIPresentationController *)presentationController {
+    if (self.clusterPicker == presentationController.presentedViewController) self.clusterPicker = nil;
 }
 - (void)mapView:(MKMapView *)mapView regionDidChangeAnimated:(BOOL)animated {
     if (tagtagProgrammaticRegionChange) tagtagProgrammaticRegionChange = NO;
@@ -210,6 +307,8 @@ extern "C" int TagtagMapShow(float x, float y, float width, float height,
     if (tagtagMap.superview != host) [host addSubview:tagtagMap];
     tagtagMap.hidden = NO;
     if (!pinsJson) return 1;
+    // A changed nearby result invalidates the choice list, including withdrawn stickers.
+    TagtagDismissClusterPicker(NO);
     NSData *data = [@(pinsJson) dataUsingEncoding:NSUTF8StringEncoding];
     NSDictionary *payload = [NSJSONSerialization JSONObjectWithData:data options:0 error:nil];
     NSArray *items = [payload[@"items"] isKindOfClass:NSArray.class] ? payload[@"items"] : @[];
@@ -225,17 +324,20 @@ extern "C" int TagtagMapShow(float x, float y, float width, float height,
         NSString *preset = [item[@"presetId"] isKindOfClass:NSString.class] ? item[@"presetId"] : nil;
         NSString *thumbnail = [item[@"thumbnailUrl"] isKindOfClass:NSString.class] ? item[@"thumbnailUrl"] : nil;
         NSString *title = [item[@"place"] isKindOfClass:NSString.class] ? item[@"place"] : @"Sticker";
+        NSString *teaser = [item[@"teaser"] isKindOfClass:NSString.class] ? item[@"teaser"] : nil;
         TagtagPin *old = tagtagPins[stickerId];
         if (old && old.coordinate.latitude == lat && old.coordinate.longitude == lon &&
             [(old.presetId ?: @"") isEqualToString:(preset ?: @"")] &&
             [(old.thumbnailUrl ?: @"") isEqualToString:(thumbnail ?: @"")] &&
-            [(old.title ?: @"") isEqualToString:title]) continue;
+            [(old.title ?: @"") isEqualToString:title] &&
+            [(old.teaser ?: @"") isEqualToString:(teaser ?: @"")]) continue;
         if (old) [tagtagMap removeAnnotation:old];
         TagtagPin *pin = [TagtagPin new];
         pin.stickerId = stickerId;
         pin.presetId = preset;
         pin.thumbnailUrl = thumbnail;
         pin.title = title;
+        pin.teaser = teaser;
         pin.coordinate = point;
         tagtagPins[stickerId] = pin;
         [tagtagMap addAnnotation:pin];
@@ -249,12 +351,14 @@ extern "C" int TagtagMapShow(float x, float y, float width, float height,
 }
 
 extern "C" void TagtagMapHide() {
+    TagtagDismissClusterPicker(NO);
     tagtagDelegate.selection = nil;
     // Sheets temporarily cover the map. Keep its region and annotations for return.
     tagtagMap.hidden = YES;
 }
 
 extern "C" void TagtagMapDispose() {
+    TagtagDismissClusterPicker(NO);
     tagtagDelegate.selection = nil;
     tagtagMap.delegate = nil;
     [tagtagMap removeFromSuperview];
