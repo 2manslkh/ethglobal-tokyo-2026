@@ -51,8 +51,7 @@ namespace Tagtag.UI
             scroll.style.paddingRight = 24f;
             VisualElement content = scroll.contentContainer;
 
-            if (accountScreen == AccountScreen.SignIn && !SignedIn(state)) BuildSignIn(content, state);
-            else if (accountScreen == AccountScreen.Authored) BuildAuthored(content, state);
+            if (accountScreen == AccountScreen.Authored) BuildAuthored(content, state);
             else if (accountScreen == AccountScreen.DeleteConfirmation) BuildDeleteConfirmation(content, state);
             else BuildAccountOverview(content, state);
             AddStatus(content, state);
@@ -75,41 +74,8 @@ namespace Tagtag.UI
             if (authoredListHost != null) RefreshAuthored(state);
         }
 
-        private void BuildSignIn(VisualElement content, AppState state)
-        {
-            Text(content, "Keep the stickers you find", 29, true).style.marginTop = 26f;
-            Label explanation = Text(content, "Explore freely. Sign in to leave a sticker or add one to your book. Your collection follows this account.", 16, false, Muted);
-            explanation.style.marginTop = 12f;
-            explanation.style.marginBottom = 24f;
-            Button apple = Action(content, "Continue with Apple", () => controller.SignIn("apple"));
-            appleSignInButton = apple;
-            apple.AddToClassList("auth-provider-apple");
-            apple.style.marginBottom = 10f;
-            SetDisabled(apple, state.busy || !state.servicesConfigured);
-            Button google = Action(content, "Continue with Google", () => controller.SignIn("google"));
-            googleSignInButton = google;
-            google.AddToClassList("auth-provider-google");
-            SetDisabled(google, state.busy || !state.servicesConfigured);
-            if (!state.servicesConfigured)
-            {
-                Text(content, "Sign-in is unavailable until the service is configured.", 14, false, Muted).style.marginTop = 12f;
-            }
-            Action(content, "Continue exploring", () =>
-            {
-                if (returnAfterSignIn == Sheet.Picker || returnAfterSignIn == Sheet.Creator) controller.CloseCreation();
-                AbandonSignInReturn();
-                controller.SetAccountOpen(false);
-            }, false).style.marginTop = 20f;
-        }
-
         private void BuildAccountOverview(VisualElement content, AppState state)
         {
-            if (!SignedIn(state))
-            {
-                BuildSignIn(content, state);
-                return;
-            }
-
             Text(content, Safe(state.user.displayName, "Your account"), 28, true).style.marginTop = 22f;
             Text(content, "Your stickers and collection", 15, false, Muted).style.marginTop = 4f;
             if (state.nftEnabled)

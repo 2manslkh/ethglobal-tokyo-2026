@@ -147,9 +147,9 @@ namespace Tagtag.Tests
             Assert.That(Root.Q<PaperSheet>(), Is.Null);
             Assert.That(Root.Q<Button>("Home Design private"), Is.Null);
             controller.State.user = null; controller.Notify(); yield return Settle();
-            Submit("Home My designs"); yield return Settle();
+            Assert.That(Root.Q<Button>("Home My designs"), Is.Null);
             Assert.That(Root.Q<Button>("Home Design private"), Is.Null);
-            Assert.That(Root.Query<Label>().ToList().Any(l => l.text != null && l.text.Contains("Sign in")), Is.True);
+            Assert.That(Root.Q<Button>("Action Continue with Apple") != null, Is.True);
             yield return Capture("home-designs-signed-out");
         }
 
