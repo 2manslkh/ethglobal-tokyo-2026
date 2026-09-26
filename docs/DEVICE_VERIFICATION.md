@@ -118,3 +118,51 @@ The repair bundles the source app's material/shader and checks resources before 
 - Unsigned Xcode compilation and automatic development signing succeeded (`/private/tmp/tagtag-ar-flow-xcode-unsigned.log`, `/private/tmp/tagtag-ar-flow-xcode-signed.log`). USB installation on Dawg. (iPhone 15 Pro Max, iOS 26.6.1 / 23G83) returned `InstallComplete` without uninstalling (`/private/tmp/tagtag-ar-flow-install.log`).
 
 Physical retest on Dawg.: after being asked to reopen STICK, choose inventory art, scan a wall/table, tap an outlined surface, and check transparent Taggi artwork, drag/pinch/twist, and Close, the owner replied **“Yup it all looks good”**. This records the owner's successful overall retest of the requested artwork and placement flow, with no failures reported. Publishing and the earlier detailed permission/interruption cases were not part of this confirmation. No device video was received.
+
+## Navigation and camera simplification — 2026-09-26
+
+The global brand/sign-in header and reserved space are removed. Home's profile
+icon opens guest sign-in or the signed-in account screen. Camera Close uses a
+48-unit circular paper sticker; the placement title sticker contains only
+“Place Sticker.” Guidance stays in a separate scrollable notice. Placement uses
+existing drag, pinch and twist gestures with unchanged size limits and blocking.
+Recovery content scrolls between the header and action dock at enlarged text size.
+
+Verification commands (Unity `6000.5.5f1`, repository root):
+
+```sh
+/Applications/Unity/Hub/Editor/6000.5.5f1/Unity.app/Contents/MacOS/Unity \
+  -batchmode -nographics -projectPath "$PWD" -buildTarget iOS \
+  -runTests -testPlatform EditMode \
+  -testResults /tmp/tagtag-navigation/edit.xml -logFile /tmp/tagtag-navigation/edit.log
+/Applications/Unity/Hub/Editor/6000.5.5f1/Unity.app/Contents/MacOS/Unity \
+  -batchmode -projectPath "$PWD" -buildTarget StandaloneOSX \
+  -runTests -testPlatform PlayMode -testFilter Tagtag \
+  -testResults /tmp/tagtag-navigation/play.xml -logFile /tmp/tagtag-navigation/play.log
+```
+
+Evidence is retained in [navigation-camera](verification/navigation-camera/).
+The captures use a 390×844 standard fixture and a 320×568 fixture with 1.4× text
+and reduced motion. These are rendered Unity fixtures; camera imagery is simulated
+and the native map/status bar are not present in these captures. Coverage includes
+Home, Explore, placement, discovery, permission denial, interruption, unavailable
+camera, guest profile access, authentication return, signed-in account access,
+placement readiness, sheet input blocking, and recovery-action scrolling.
+
+The new UI regressions first failed on the old header and Close size; the compact
+recovery regression first failed before its scrollable layout was added. The full
+Edit Mode suite passed 94/94 and the graphics-enabled Play Mode suite passed 6/6.
+A separate GPT-6-Sol high review found no actionable correctness issues.
+
+Native status-bar settings and the export hook now enforce visible dark status
+text. The existing generated Unity iOS controller was inspected and reads those
+plist keys. Native export/build, actual status-bar visibility, safe-area placement,
+and camera coordinate alignment on iPhone remain **pending the combined publishing
+dogfood integration build**, per coordinator instruction. No device build was
+installed and no native build was run for this branch.
+
+CoreDevice did not expose an available physical iPhone during this task. Physical
+pinch/twist, surface drag, sheet blocking, tracking interruption, background/resume,
+and VoiceOver remain **unverified** on this revision. Run and record these checks
+after the coordinator installs the combined build; do not replace that build with
+this branch's older standalone output.
