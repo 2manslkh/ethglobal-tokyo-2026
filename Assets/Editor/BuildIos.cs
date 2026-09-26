@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using Tagtag;
+using Tagtag.Editor;
 using UnityEditor;
 using UnityEditor.Build;
 using UnityEditor.Build.Reporting;
@@ -17,6 +18,7 @@ public static class BuildIos
 {
     private const string ScenePath = "Assets/Scenes/Tagtag.unity";
     private const string OutputPath = "Build/iOS";
+    private const string StagingOutputPath = "Build/iOS-staging";
     private const string AppName = "tagtag";
     private const string AppIconPath = "Assets/Tagtag/Branding/AppIcon.png";
     private const string CameraUsageDescription = "tagtag uses your camera to place and discover AR stickers around you.";
@@ -92,6 +94,75 @@ public static class BuildIos
 #if !UNITY_XR_ARKIT_LOADER_ENABLED
         throw new InvalidOperationException("ARKit was just configured. Run BuildIos.Build in a new Unity invocation so its native build processor is compiled.");
 #endif
+        Export(OutputPath);
+    }
+
+    public static void BuildStaging()
+    {
+        var projectRoot = Path.GetFullPath(Path.Combine(Application.dataPath, ".."));
+        StagingIosConfiguration.RequireIsolatedProject(projectRoot);
+        var productionCopy = Path.Combine(projectRoot, StagingIosConfiguration.ProductionCopyName);
+        var resourcePath = Path.Combine(Application.dataPath, "Resources/Tagtag/ServiceConfiguration.json");
+        var stagingPath = Environment.GetEnvironmentVariable("TAGTAG_STAGING_CONFIG");
+        var firebase = ReadStagingFirebaseSettings();
+        // Validate before changing any build settings or player resources.
+        StagingIosConfiguration.LoadValidated(stagingPath, productionCopy, firebase);
+        var previousProductName = PlayerSettings.productName;
+        var previousIdentifier = PlayerSettings.GetApplicationIdentifier(NamedBuildTarget.iOS);
+        try
+        {
+            PrepareArKit();
+#if !UNITY_XR_ARKIT_LOADER_ENABLED
+            throw new InvalidOperationException("ARKit was just configured. Run BuildIos.PrepareArKit in a separate Unity invocation before BuildIos.BuildStaging.");
+#endif
+            StagingIosConfiguration.Install(stagingPath, productionCopy, resourcePath, firebase);
+            AssetDatabase.ImportAsset("Assets/Resources/Tagtag/ServiceConfiguration.json", ImportAssetOptions.ForceUpdate);
+            PlayerSettings.productName = "tagtag staging";
+            PlayerSettings.SetApplicationIdentifier(NamedBuildTarget.iOS, "com.kenk.tagtag.staging");
+            Export(StagingOutputPath);
+        }
+        finally
+        {
+            File.Copy(productionCopy, resourcePath, true);
+            AssetDatabase.ImportAsset("Assets/Resources/Tagtag/ServiceConfiguration.json", ImportAssetOptions.ForceUpdate);
+            PlayerSettings.productName = previousProductName;
+            PlayerSettings.SetApplicationIdentifier(NamedBuildTarget.iOS, previousIdentifier);
+            AssetDatabase.SaveAssets();
+        }
+    }
+
+    public static void PrepareStaging()
+    {
+        var projectRoot = Path.GetFullPath(Path.Combine(Application.dataPath, ".."));
+        StagingIosConfiguration.RequireIsolatedProject(projectRoot);
+        StagingIosConfiguration.LoadValidated(Environment.GetEnvironmentVariable("TAGTAG_STAGING_CONFIG"),
+            Path.Combine(projectRoot, StagingIosConfiguration.ProductionCopyName), ReadStagingFirebaseSettings());
+        PrepareArKit();
+    }
+
+    private static StagingFirebaseSettings ReadStagingFirebaseSettings()
+    {
+        var path = Environment.GetEnvironmentVariable("TAGTAG_STAGING_FIREBASE_PLIST");
+        if (string.IsNullOrWhiteSpace(path) || !File.Exists(path))
+            throw new InvalidOperationException("A downloaded staging GoogleService-Info.plist is required.");
+        var plist = new PlistDocument();
+        try { plist.ReadFromFile(path); }
+        catch (Exception error) { throw new InvalidOperationException("Staging Firebase plist could not be read.", error); }
+        string Value(string key) => plist.root.values.TryGetValue(key, out var entry) ? entry.AsString() : null;
+        return new StagingFirebaseSettings
+        {
+            ProjectId = Value("PROJECT_ID"),
+            GcmSenderId = Value("GCM_SENDER_ID"),
+            GoogleAppId = Value("GOOGLE_APP_ID"),
+            BundleId = Value("BUNDLE_ID"),
+            ApiKey = Value("API_KEY"),
+            ClientId = Value("CLIENT_ID"),
+            ReversedClientId = Value("REVERSED_CLIENT_ID")
+        };
+    }
+
+    private static void Export(string outputPath)
+    {
         EnsureScene();
         PlayerSettings.defaultInterfaceOrientation = UIOrientation.Portrait;
         PlayerSettings.allowedAutorotateToLandscapeLeft = false;
@@ -102,17 +173,17 @@ public static class BuildIos
         BuildPlayerOptions options = new BuildPlayerOptions
         {
             scenes = new[] { ScenePath },
-            locationPathName = OutputPath,
+            locationPathName = outputPath,
             target = BuildTarget.iOS,
             options = BuildOptions.None
         };
         BuildReport report = BuildPipeline.BuildPlayer(options);
         if (report.summary.result != BuildResult.Succeeded ||
-            !File.Exists(Path.Combine(OutputPath, "Unity-iPhone.xcodeproj/project.pbxproj")))
+            !File.Exists(Path.Combine(outputPath, "Unity-iPhone.xcodeproj/project.pbxproj")))
         {
             throw new InvalidOperationException("iOS export did not produce an Xcode project: " + report.summary.result);
         }
-        Debug.Log("iOS Xcode project exported to " + Path.GetFullPath(OutputPath));
+        Debug.Log("iOS Xcode project exported to " + Path.GetFullPath(outputPath));
     }
 
     private static void EnsureScene()
@@ -133,6 +204,16 @@ public static class BuildIos
     public static void ConfigureNativeProject(BuildTarget target, string output)
     {
         if (target != BuildTarget.iOS) return;
+        var staging = Path.GetFileName(output.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)) == "iOS-staging";
+        ServiceConfiguration stagingConfiguration = null;
+        if (staging)
+        {
+            var projectRoot = Path.GetFullPath(Path.Combine(Application.dataPath, ".."));
+            StagingIosConfiguration.RequireIsolatedProject(projectRoot);
+            stagingConfiguration = StagingIosConfiguration.LoadValidated(
+                Path.Combine(Application.dataPath, "Resources/Tagtag/ServiceConfiguration.json"),
+                Path.Combine(projectRoot, StagingIosConfiguration.ProductionCopyName), ReadStagingFirebaseSettings());
+        }
         var path = PBXProject.GetPBXProjectPath(output);
         var project = new PBXProject();
         project.ReadFromFile(path);
@@ -190,7 +271,7 @@ public static class BuildIos
         var infoPath = Path.Combine(output, "Info.plist");
         var info = new PlistDocument();
         info.ReadFromFile(infoPath);
-        info.root.SetString("CFBundleDisplayName", AppName);
+        info.root.SetString("CFBundleDisplayName", staging ? "tagtag staging" : AppName);
         info.root.SetString("NSCameraUsageDescription", CameraUsageDescription);
         info.root.SetString("NSLocationWhenInUseUsageDescription", LocationUsageDescription);
         info.root.SetBoolean("UIRequiresFullScreen", true);
@@ -200,8 +281,9 @@ public static class BuildIos
         var bundledFonts = info.root.values.ContainsKey("UIAppFonts")
             ? info.root["UIAppFonts"].AsArray() : info.root.CreateArray("UIAppFonts");
         bundledFonts.AddString(clusterFont);
-        var googleScheme = Environment.GetEnvironmentVariable("TAGTAG_GOOGLE_REVERSED_CLIENT_ID");
-        if (string.IsNullOrWhiteSpace(googleScheme))
+        var googleScheme = staging ? stagingConfiguration.googleReversedClientId :
+            Environment.GetEnvironmentVariable("TAGTAG_GOOGLE_REVERSED_CLIENT_ID");
+        if (!staging && string.IsNullOrWhiteSpace(googleScheme))
         {
             const string configPath = "Assets/Resources/Tagtag/ServiceConfiguration.json";
             if (File.Exists(configPath))

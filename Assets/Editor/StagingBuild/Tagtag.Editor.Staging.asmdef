@@ -1,0 +1,6 @@
+{
+    "name": "Tagtag.Editor.Staging",
+    "rootNamespace": "Tagtag.Editor",
+    "references": ["Tagtag.Core"],
+    "includePlatforms": ["Editor"]
+}
