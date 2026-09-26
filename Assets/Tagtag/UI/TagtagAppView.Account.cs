@@ -829,13 +829,17 @@ namespace Tagtag.UI
 
         private float SheetBottom()
         {
-            float pixels = Mathf.Max(Screen.safeArea.yMin, lastKeyboardHeight);
-            return pixels * (root != null && root.layout.height > 0f && Screen.height > 0 ? root.layout.height / Screen.height : 1f);
+            float pixels = lastKeyboardHeight > 0f ? Mathf.Max(Screen.safeArea.yMin, lastKeyboardHeight) : 0f;
+            return pixels * (root != null && root.layout.height > 0f && Screen.height > 0 ?
+                root.layout.height / Screen.height : 1f);
         }
 
         private void ApplySheetHeight()
         {
             if (sheetView == null || root == null) return;
+            float scale = root.layout.height > 0f && Screen.height > 0 ? root.layout.height / Screen.height : 1f;
+            float safeBottom = lastKeyboardHeight > 0f ? 0f : Mathf.Max(0f, Screen.safeArea.yMin) * scale;
+            sheetView.style.paddingBottom = 18f + safeBottom;
             if (float.IsNaN(root.layout.height) || float.IsInfinity(root.layout.height) || root.layout.height <= 0f || Screen.height <= 0)
             {
                 sheetView.style.maxHeight = Length.Percent(82f);
@@ -847,7 +851,6 @@ namespace Tagtag.UI
                 }
                 return;
             }
-            float scale = root.layout.height / Screen.height;
             float topInset = (Screen.height - Screen.safeArea.yMax) * scale;
             float available = Mathf.Max(180f, root.layout.height - SheetBottom() - topInset - 8f);
             if (sheet != Sheet.Picker && sheet != Sheet.Creator)
