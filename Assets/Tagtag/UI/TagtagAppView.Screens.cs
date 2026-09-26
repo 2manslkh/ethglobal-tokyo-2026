@@ -366,6 +366,7 @@ namespace Tagtag.UI
                 QueueRender();
             }, false);
             stickSelectedArtworkButton.name = "STICK selected artwork";
+            ((PaperButton)stickSelectedArtworkButton).ShowDottedOutline = false;
             stickSelectedArtworkButton.tooltip = "Choose a different sticker";
             stickSelectedArtworkButton.style.position = Position.Absolute;
             stickSelectedArtworkButton.style.right = 16f;
@@ -463,7 +464,6 @@ namespace Tagtag.UI
             if (key == stickSelectedArtworkKey) return;
             stickSelectedArtworkKey = key;
             stickSelectedArtworkButton.Clear();
-            PaperDottedOutline.Decorate(stickSelectedArtworkButton);
             if (!selected) return;
             Image artwork;
             StickerDesign design = state.designs?.Find(item => item != null && item.id == state.selectedDesign);

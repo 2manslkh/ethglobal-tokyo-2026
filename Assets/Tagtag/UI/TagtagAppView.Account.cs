@@ -521,6 +521,7 @@ namespace Tagtag.UI
 
         private void StyleInventoryTile(VisualElement tile)
         {
+            if (tile is PaperSelection selection) selection.ShowDottedOutline = false;
             tile.style.width = Length.Percent(31.5f);
             tile.style.flexBasis = Length.Percent(31.5f);
             tile.style.flexGrow = 0f;

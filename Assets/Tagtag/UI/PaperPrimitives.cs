@@ -32,6 +32,7 @@ namespace Tagtag.UI
         private bool dieCutCircular;
         private bool dieCutCapsule;
         private float dieCutSpacing;
+        public bool ShowDottedOutline { get; set; } = true;
         public PaperButton(string label, Action activate, PaperButtonKind kind = PaperButtonKind.Secondary)
         {
             text = label;
@@ -68,8 +69,12 @@ namespace Tagtag.UI
             if (!dieCutRegistered)
             {
                 dieCutRegistered = true;
-                generateVisualContent += context => PaperDottedOutline.DrawOn(context, this,
-                    dieCutCircular, dieCutCapsule ? 1000f : 14f, dieCutSpacing);
+                generateVisualContent += context =>
+                {
+                    if (ShowDottedOutline)
+                        PaperDottedOutline.DrawOn(context, this,
+                            dieCutCircular, dieCutCapsule ? 1000f : 14f, dieCutSpacing);
+                };
             }
             AddToClassList("paper-die-cut");
             MarkDirtyRepaint();
