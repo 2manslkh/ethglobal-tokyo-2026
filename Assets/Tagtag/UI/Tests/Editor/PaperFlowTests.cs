@@ -49,25 +49,19 @@ namespace Tagtag.UI.Tests
         {
             Assert.IsFalse(PaperFlow.CanPresentPublish("Place", "Clue", "  ", false, false));
             Assert.IsFalse(PaperFlow.CanPresentPublish("Place", "Clue", "Note", true, true));
-            Assert.IsTrue(PaperFlow.CanPresentPublish("Place", "Clue", "Note", true, false));
+            Assert.IsTrue(PaperFlow.CanPresentPublish("", "", "Note", true, false));
             Assert.IsTrue(PaperFlow.CanPresentPublish("Place", "Clue", "Note", false, false, true));
         }
 
         [Test]
         public void PublishNoticeNamesThePrerequisiteThatKeepsTheButtonDisabled()
         {
-            Assert.AreEqual("Still needed: place, clue, and note.",
+            Assert.AreEqual("Add your note before publishing.",
                 PaperFlow.PublishNotice("", "", "", false, false, false, false, false, false));
-            Assert.AreEqual("Move slowly until AR tracking is stable.",
+            Assert.AreEqual("Capture this spot with STICK before publishing.",
                 PaperFlow.PublishNotice("Place", "Clue", "Note", false, true, false, false, false, false));
-            Assert.AreEqual("Place Taggi on a tracked surface before publishing.",
-                PaperFlow.PublishNotice("Place", "Clue", "Note", true, false, false, false, false, false));
-            Assert.AreEqual("Keep Taggi visible until its surface anchor is tracked.",
-                PaperFlow.PublishNotice("Place", "Clue", "Note", true, true, false, false, false, false));
-            Assert.AreEqual("Scan around Taggi from more angles until the spatial map is ready.",
-                PaperFlow.PublishNotice("Place", "Clue", "Note", true, true, true, false, false, false));
             Assert.AreEqual("Ready to publish. Location is checked after you tap.",
-                PaperFlow.PublishNotice("Place", "Clue", "Note", true, true, true, true, false, false));
+                PaperFlow.PublishNotice("", "", "Note", false, false, false, true, false, false));
         }
 
         [Test]

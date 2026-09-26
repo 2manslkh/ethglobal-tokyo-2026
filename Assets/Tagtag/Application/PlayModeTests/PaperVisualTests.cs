@@ -163,6 +163,8 @@ namespace Tagtag.Tests
             controller.State.user = new UserSession { uid = "review", displayName = "Aki" };
             controller.SelectPreset("taggi-1");
             controller.Camera.HasPlacementPreview = true;
+            controller.Camera.ScanState = PlacementScanState.Ready;
+            controller.Camera.CanPublish = true;
             controller.Navigate(AppPage.Stick);
             host = new GameObject("Location settings review");
             host.AddComponent<TagtagAppView>().Initialize(controller);
@@ -171,7 +173,7 @@ namespace Tagtag.Tests
             target.Create();
             document.panelSettings.targetTexture = target;
             yield return new WaitForSecondsRealtime(.4f);
-            Submit("STICK Write note");
+            Submit("STICK Inventory");
             yield return new WaitForSecondsRealtime(.4f);
             var note = document.rootVisualElement.Q<TextField>("Your note");
             note.value = "A quiet spot beside the river.";
@@ -378,8 +380,9 @@ namespace Tagtag.Tests
             yield return new WaitForSecondsRealtime(.4f);
             Assert.That(scanRecovery.resolvedStyle.display, Is.EqualTo(DisplayStyle.None));
             Assert.That(controller.Camera.PlaceCalls, Is.Zero, "Selecting inventory art must not place it automatically.");
-            var write = document.rootVisualElement.Q<Button>("STICK Write note");
-            Assert.That(write == null || !write.enabledSelf, Is.True, "Place a preview before writing its note.");
+            Assert.That(document.rootVisualElement.Q<Button>("STICK Write note"), Is.Null);
+            Assert.That(document.rootVisualElement.Q<Button>("Cancel placement"), Is.Null);
+            Assert.That(inventory.enabledInHierarchy, Is.False, "STICK waits for Scan ready and capture readiness.");
             controller.Camera.HasPlacementSurface = true;
             controller.Camera.ScanState = PlacementScanState.SurfaceReady;
             controller.Notify();
@@ -387,7 +390,7 @@ namespace Tagtag.Tests
             Assert.That(document.rootVisualElement.Q<Label>("STICK scan label").text, Is.EqualTo("Place sticker"));
             Assert.That(document.rootVisualElement.Q<PaperScanProgress>("STICK scan progress").Progress, Is.EqualTo(1f / 3f).Within(.001f));
             AssertCenteredStickControls();
-            Submit("STICK Inventory");
+            Submit("STICK selected artwork");
             yield return new WaitForSecondsRealtime(.4f);
             yield return TapCameraSurface();
             Assert.That(controller.Camera.PlaceCalls, Is.Zero, "Touches behind the inventory must not place a sticker.");
@@ -409,18 +412,41 @@ namespace Tagtag.Tests
             Assert.That(document.rootVisualElement.Q("STICK guidance scroll"), Is.Null);
             Assert.That(document.rootVisualElement.Q("STICK Placement Guidance"), Is.Null);
             controller.Camera.ScanState = PlacementScanState.Ready;
+            controller.Camera.CanPublish = true;
             controller.Notify();
             yield return Capture("camera-scan-ready");
             Assert.That(document.rootVisualElement.Q<Label>("STICK scan label").text, Is.EqualTo("Scan ready"));
             Assert.That(document.rootVisualElement.Q<PaperScanProgress>("STICK scan progress").Progress, Is.EqualTo(1f).Within(.001f));
             AssertCenteredStickControls();
-            Submit("STICK Write note");
+            Assert.That(inventory.enabledInHierarchy, Is.True);
+            Assert.That(inventory.Query<Label>().ToList().Any(label => label.text == "STICK"), Is.True,
+                "Capture mode keeps an explicit label inside the circle.");
+            controller.FailNextCapture = true;
+            Submit("STICK Inventory");
+            yield return null;
+            Assert.That(document.rootVisualElement.Q<PaperSheet>(), Is.Null);
+            Assert.That(document.rootVisualElement.Q("Discovery status").resolvedStyle.display, Is.EqualTo(DisplayStyle.Flex));
+            Assert.That(document.rootVisualElement.Query<Label>().ToList().Any(label => label.text == "Map failed"), Is.True);
+            Submit("STICK Inventory");
             yield return Capture("camera-note-after-placement");
             Assert.That(document.rootVisualElement.Q<TextField>("Your note"), Is.Not.Null);
+            Assert.That(document.rootVisualElement.Q<PaperField>("Place"), Is.Null);
+            Assert.That(document.rootVisualElement.Q<PaperField>("Clue"), Is.Null);
+            Assert.That(controller.CaptureCount, Is.EqualTo(2));
             Assert.That(controller.Camera.InteractionBlocked, Is.True);
             Submit("Close");
             yield return new WaitForSecondsRealtime(.4f);
-            Submit("Cancel placement");
+            controller.State.error = "Old publish failure";
+            controller.State.locationSettingsRequired = true;
+            controller.Notify();
+            Submit("STICK Inventory");
+            yield return new WaitForSecondsRealtime(.4f);
+            Assert.That(document.rootVisualElement.Q<TextField>("Your note"), Is.Not.Null,
+                "A stale publish error must not block reopening a valid captured note.");
+            Assert.That(controller.State.error, Is.Empty);
+            Submit("Close");
+            yield return new WaitForSecondsRealtime(.4f);
+            controller.CancelPlacement();
             yield return Capture("camera-placement-cancelled");
             AssertCenteredStickControls();
             Assert.That(document.rootVisualElement.Q("STICK scan progress").resolvedStyle.display, Is.EqualTo(DisplayStyle.None));
@@ -449,7 +475,7 @@ namespace Tagtag.Tests
                 Assert.That(ring.worldBound.width, Is.GreaterThan(button.worldBound.width));
                 Assert.That(root.Q<Label>("STICK scan label").worldBound.yMax, Is.LessThanOrEqualTo(ring.worldBound.yMin));
             }
-            foreach (var action in new[] { "STICK Write note", "STICK Retry AR search", "Cancel placement" })
+            foreach (var action in new[] { "STICK Retry AR search" })
             {
                 var control = root.Q<Button>(action);
                 if (control != null && control.resolvedStyle.display != DisplayStyle.None)
@@ -595,64 +621,59 @@ namespace Tagtag.Tests
             yield return new WaitForSecondsRealtime(.4f);
             controller.SelectPreset("taggi-2");
             controller.Camera.HasPlacementPreview = true;
+            controller.Camera.ScanState = PlacementScanState.Ready;
+            controller.Camera.CanPublish = true;
             controller.Notify();
             for (int frame = 0; frame < 5; frame++) yield return null;
-            Submit("Your Note");
+            Submit("STICK Inventory");
             yield return Capture("note-empty-disabled");
             var fields = document.rootVisualElement.Query<TextField>().ToList();
-            Assert.That(fields.Count, Is.EqualTo(3));
-            fields[0].value = "川沿いの小さなベンチ";
-            fields[1].value = "Look beside the little red bridge.";
-            fields[2].value = Sticker(0).note;
-            fields[2].Focus();
-            fields[2].SelectRange(5, 16);
+            Assert.That(fields.Count, Is.EqualTo(1));
+            Assert.That(document.rootVisualElement.Q<PaperField>("Place"), Is.Null);
+            Assert.That(document.rootVisualElement.Q<PaperField>("Clue"), Is.Null);
+            fields[0].value = Sticker(0).note;
+            fields[0].Focus();
+            fields[0].SelectRange(5, 16);
             yield return Capture("note-long-focused");
             var noteFocus = document.rootVisualElement.panel.focusController.focusedElement;
             var noteScroll = document.rootVisualElement.Q<PaperSheet>().Scroll.scrollOffset;
-            int cursor = fields[2].cursorIndex, selection = fields[2].selectIndex;
+            int cursor = fields[0].cursorIndex, selection = fields[0].selectIndex;
             controller.State.busy = true;
             controller.State.error = "The connection was interrupted. Your draft is still here.";
             controller.Notify();
             yield return Capture("note-busy-error");
-            Assert.That(document.rootVisualElement.Query<TextField>().ToList()[2], Is.SameAs(fields[2]), "Status updates must keep the mounted field.");
-            Assert.That(fields[2].value, Is.EqualTo(Sticker(0).note));
-            Assert.That(fields[2].enabledInHierarchy, Is.False, "Publication locks editing without replacing the draft field.");
+            Assert.That(document.rootVisualElement.Query<TextField>().ToList()[0], Is.SameAs(fields[0]), "Status updates must keep the mounted field.");
+            Assert.That(fields[0].value, Is.EqualTo(Sticker(0).note));
+            Assert.That(fields[0].enabledInHierarchy, Is.False, "Publication locks editing without replacing the draft field.");
             // Unity clears active selection when disabled; verify its restoration after the operation.
             Assert.That(document.rootVisualElement.Q<PaperSheet>().Scroll.scrollOffset, Is.EqualTo(noteScroll));
             controller.State.busy = false;
             controller.State.error = "";
             controller.Notify();
             yield return new WaitForSecondsRealtime(.1f);
-            Assert.That(fields[2].enabledInHierarchy, Is.True);
+            Assert.That(fields[0].enabledInHierarchy, Is.True);
             Assert.That(document.rootVisualElement.panel.focusController.focusedElement, Is.SameAs(noteFocus));
-            Assert.That(fields[2].cursorIndex, Is.EqualTo(cursor));
-            Assert.That(fields[2].selectIndex, Is.EqualTo(selection));
+            Assert.That(fields[0].cursorIndex, Is.EqualTo(cursor));
+            Assert.That(fields[0].selectIndex, Is.EqualTo(selection));
             controller.Camera.IsTracking = true;
             controller.Camera.HasPlacementPreview = true;
             controller.Camera.HasTrackedPlacement = true;
             controller.Camera.CanPublish = false;
+            controller.State.hasCapturedSpot = false;
             controller.Notify();
             yield return null;
             var publishButton = document.rootVisualElement.Q<Button>("Action Publish sticker");
-            var publishReadiness = document.rootVisualElement.Q<Label>("Publish readiness");
             Assert.That(publishButton.enabledInHierarchy, Is.False);
-            Assert.That(publishReadiness.text,
-                Is.EqualTo("Scan around Taggi from more angles until the spatial map is ready."));
-            var noteSheet = document.rootVisualElement.Q<PaperSheet>();
-            noteSheet.Scroll.ScrollTo(publishReadiness);
-            yield return null;
-            yield return null;
-            Assert.That(publishReadiness.worldBound.yMin, Is.GreaterThanOrEqualTo(noteSheet.Scroll.worldBound.yMin));
-            Assert.That(publishReadiness.worldBound.yMax, Is.LessThanOrEqualTo(noteSheet.Scroll.worldBound.yMax + 1f));
+            Assert.That(document.rootVisualElement.Q<Label>("Publish readiness"), Is.Null,
+                "The note sheet contains only the note field and its actions.");
             yield return Capture("publish-readiness-map-blocked");
             controller.Camera.CanPublish = true;
+            controller.State.hasCapturedSpot = true;
             controller.Notify();
             yield return null;
             yield return null;
             Assert.That(publishButton.enabledInHierarchy, Is.True,
-                "A completed draft with a publishable AR placement must enable Publish sticker.");
-            Assert.That(publishReadiness.text,
-                Is.EqualTo("Ready to publish. Location is checked after you tap."));
+                "A captured snapshot with a note must enable Publish sticker without live scan tracking.");
             Submit("Publish sticker");
             Submit("Publish sticker");
             Assert.That(controller.PublishCount, Is.EqualTo(1), "Repeated activation in one frame must publish once.");
@@ -662,16 +683,18 @@ namespace Tagtag.Tests
             yield return new WaitForSecondsRealtime(.4f);
             controller.SelectPreset("taggi-3");
             controller.Camera.HasPlacementPreview = true;
+            controller.Camera.ScanState = PlacementScanState.Ready;
+            controller.Camera.CanPublish = true;
             controller.Notify();
             yield return new WaitForSecondsRealtime(.4f);
-            if (document.rootVisualElement.Q<PaperSheet>() == null) Submit("Your Note");
+            if (document.rootVisualElement.Q<PaperSheet>() == null) Submit("STICK Inventory");
             yield return new WaitForSecondsRealtime(.4f);
             Assert.That(document.rootVisualElement.Q<TextField>("Your note").value, Is.Empty,
                 "A successful publication must clear the next placement draft.");
             Submit("Close");
             yield return new WaitForSecondsRealtime(.4f);
             Assert.That(document.rootVisualElement.panel.focusController.focusedElement,
-                Is.SameAs(document.rootVisualElement.Q<Button>("STICK Write note")), "Dismissal returns focus to the trigger.");
+                Is.SameAs(document.rootVisualElement.Q<Button>("STICK Inventory")), "Dismissal returns focus to the trigger.");
 
             controller.SignOut();
             yield return Capture("sign-out-login");
@@ -768,8 +791,13 @@ namespace Tagtag.Tests
             Assert.That(findButton.worldBound.yMin, Is.GreaterThanOrEqualTo(longClue.worldBound.yMax),
                 "A long clue must scroll above the action instead of painting through it.");
             controller.Navigate(AppPage.Stick);
+            controller.SelectPreset("taggi-1");
+            controller.Camera.CameraPresentation = CameraPresentationState.Live;
+            controller.Camera.ScanState = PlacementScanState.Ready;
+            controller.Camera.CanPublish = true;
+            controller.Notify();
             for (int frame = 0; frame < 10; frame++) yield return null;
-            Submit("Your Note");
+            Submit("STICK Inventory");
             yield return Capture("note-compact-fixed-defaults");
             Submit("Close");
             yield return new WaitForSecondsRealtime(.4f);
@@ -783,11 +811,11 @@ namespace Tagtag.Tests
             Assert.That(document.rootVisualElement.Q("STICK Adjustments"), Is.Null);
             Assert.That(document.rootVisualElement.Q("STICK camera dock").worldBound.yMin,
                 Is.GreaterThanOrEqualTo(document.rootVisualElement.Q("STICK camera header").worldBound.yMax));
-            Submit("STICK Inventory");
+            Submit("STICK selected artwork");
             yield return Capture("inventory-compact-fixed-defaults");
             Submit("Close");
             yield return new WaitForSecondsRealtime(.4f);
-            Submit("STICK Write note");
+            Submit("STICK Inventory");
             controller.State.error = "Turn on Precise Location for tagtag in Settings, then try again. Your draft is safe.";
             controller.State.locationSettingsRequired = true;
             controller.Notify();
@@ -1248,7 +1276,7 @@ namespace Tagtag.Tests
             public IMapExperience Map => null;
             public event Action Changed;
             public void Notify() { Changed?.Invoke(); }
-            public void Navigate(AppPage page) { State.page = page; if (page == AppPage.Stick) Camera.Enter(); Notify(); }
+            public void Navigate(AppPage page) { State.page = page; if (page == AppPage.Stick) Camera.Enter(); else State.hasCapturedSpot = false; Notify(); }
             public void SetAccountOpen(bool open) { State.accountOpen = open; Notify(); }
             public void SignIn(string provider) { State.user = new UserSession { uid = "review", displayName = "Aki" }; State.accountOpen = false; State.page = AppPage.Home; Notify(); }
             public void SignOut() { State.user = null; State.accountOpen = true; State.page = AppPage.Home; Notify(); }
@@ -1260,15 +1288,40 @@ namespace Tagtag.Tests
             public string CreatedSource { get; private set; }
             public void CreateSticker(string source) { CreatedSource = source; }
             public void RefreshDesigns() { }
-            public void SelectDesign(string id) { State.selectedDesign = id; State.selectedPreset = ""; State.creationOpen = false; State.page = AppPage.Stick; Notify(); }
+            public void SelectDesign(string id) { State.selectedDesign = id; State.selectedPreset = ""; State.hasCapturedSpot = false; State.creationOpen = false; State.page = AppPage.Stick; Notify(); }
             public void DeleteDesign(string id) { }
             public void RetryDesignSave() { }
             public void RefreshArtwork() { StickerArtwork.Retry(); }
-            public void SelectPreset(string id) { State.selectedPreset = id; State.selectedDesign = ""; State.creationOpen = false; State.page = AppPage.Stick; Camera.SelectPreset(id); Notify(); }
+            public void SelectPreset(string id) { State.selectedPreset = id; State.selectedDesign = ""; State.hasCapturedSpot = false; State.creationOpen = false; State.page = AppPage.Stick; Camera.SelectPreset(id); Notify(); }
             public void SetDraft(string place, string teaser, string note) { State.draftPlace = place; State.draftTeaser = teaser; State.draftNote = note; Notify(); }
+            public int CaptureCount { get; private set; }
+            public bool FailNextCapture;
+            public void CaptureSpot()
+            {
+                if (State.capturingSpot) return;
+                if (State.hasCapturedSpot)
+                {
+                    State.error = "";
+                    State.locationSettingsRequired = false;
+                    Notify();
+                    return;
+                }
+                if (Camera.ScanState != PlacementScanState.Ready || !Camera.CanPublish) return;
+                CaptureCount++;
+                if (FailNextCapture)
+                {
+                    FailNextCapture = false;
+                    State.error = "Map failed";
+                    Notify();
+                    return;
+                }
+                State.error = "";
+                State.hasCapturedSpot = true;
+                Notify();
+            }
             public int PublishCount { get; private set; }
             public void Publish() { PublishCount++; }
-            public void CancelPlacement() { State.selectedPreset = ""; Notify(); }
+            public void CancelPlacement() { State.selectedPreset = ""; State.hasCapturedSpot = false; Camera.CancelPlacement(); Notify(); }
             public void OpenCollected(string id) { State.detail = State.collection.Find(s => s.id == id); Notify(); }
             public void CloseDetail() { State.detail = null; Notify(); }
             public void Report(string id, string reason) { }

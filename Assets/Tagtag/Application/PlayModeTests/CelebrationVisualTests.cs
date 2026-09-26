@@ -333,6 +333,7 @@ namespace Tagtag.Tests
             public void RefreshArtwork() { StickerArtwork.Retry(); }
             public void SelectPreset(string id) { State.selectedPreset = id; State.selectedDesign = ""; State.creationOpen = false; State.page = AppPage.Stick; Camera.SelectPreset(id); Notify(); }
             public void SetDraft(string place, string teaser, string note) { State.draftPlace = place; State.draftTeaser = teaser; State.draftNote = note; Notify(); }
+            public void CaptureSpot() { State.hasCapturedSpot = true; Notify(); }
             public int PublishCount { get; private set; }
             public void Publish() { PublishCount++; }
             public void CancelPlacement() { State.selectedPreset = ""; Notify(); }

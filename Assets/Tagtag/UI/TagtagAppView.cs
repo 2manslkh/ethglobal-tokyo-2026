@@ -37,7 +37,6 @@ namespace Tagtag.UI
         private VisualElement overlayHost;
         private VisualElement cameraCover;
         private Button publishButton;
-        private Label publishReadinessLabel;
         private Button homeProfileButton;
         private PaperNavigationMotion navigationMotion = new PaperNavigationMotion();
         private string renderedIdentity;
@@ -86,6 +85,7 @@ namespace Tagtag.UI
         private string pressedStickerId;
         private string lastPresentedDiscoveryId;
         private bool publicationRequested;
+        private bool captureNoteRequested;
         private AppPage renderedPage;
         private bool renderedAccountOpen;
         private bool artworkSubscribed;
@@ -275,6 +275,17 @@ namespace Tagtag.UI
         private void OnControllerChanged()
         {
             AppState state = controller?.State;
+            if (captureNoteRequested && state != null)
+            {
+                if (state.page != AppPage.Stick || state.accountOpen || !string.IsNullOrEmpty(state.error))
+                    captureNoteRequested = false;
+                else if (state.hasCapturedSpot && !state.capturingSpot)
+                {
+                    captureNoteRequested = false;
+                    sheet = Sheet.Note;
+                }
+                else if (!state.capturingSpot) captureNoteRequested = false;
+            }
             if (PaperFlow.ShouldClearPublishedDraft(publicationRequested, state))
             {
                 publicationRequested = false;
@@ -381,7 +392,6 @@ namespace Tagtag.UI
                 activeDraftScroll = null;
                 cameraCover = null;
                 publishButton = null;
-                publishReadinessLabel = null;
                 homeProfileButton = null;
                 homeCreateButton = null;
                 homeBook = null;
@@ -407,8 +417,8 @@ namespace Tagtag.UI
                 exploreMapMessage = null;
                 exploreFindButton = null;
                 stickActions = null;
+                stickBookLabel = null;
                 cameraSurface = null;
-                stickWriteButton = null;
                 stickSelectedArtworkButton = null;
                 stickSelectedArtworkKey = null;
                 stickSelectedArtworkPointerHeld = false;
@@ -465,7 +475,6 @@ namespace Tagtag.UI
                     sheetDetailHost = null;
                     sheetSubmitButton = null;
                     publishButton = null;
-                    publishReadinessLabel = null;
                     reportChoices.Clear();
                     statusLabel = screenStatusLabel;
                     statusNotice = screenStatusNotice;

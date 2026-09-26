@@ -39,10 +39,17 @@ namespace Tagtag.Services
         private CancellationTokenSource discoveryCancellation;
         private readonly Func<string, LocationFix, CancellationToken, Task<RecoveryData>> loadRecovery;
         private PlacementDraft pendingDraft;
+        private SpatialSnapshot capturedSnapshot;
+        private int capturedPlacementRevision;
+        private int pendingPlacementRevision = -1;
+        private bool pendingPlacementStale;
+        private string capturedArtwork;
+        private int captureGeneration;
+        private const string DefaultPlace = "Sticker spot";
+        private const string DefaultTeaser = "Find this sticker to read its note";
         private int accountGeneration;
         private int publicationGeneration;
         private readonly CancellationTokenSource lifetimeCancellation = new CancellationTokenSource();
-        private CancellationTokenSource captureCancellation;
         private bool disposed;
         private bool loginGateActive;
         private bool suspended;
@@ -113,7 +120,7 @@ namespace Tagtag.Services
             RestorePublication();
             blockedAuthors = localBlocks.Read(State.user?.uid); ApplyBlocks();
             State.status = State.user == null ? "Your next little discovery is out there." : "Your sticker book is ready.";
-            ar.Changed += Notify;
+            ar.Changed += OnArChanged;
             ar.StickerTapped += Collect;
             map.StickerSelected += SelectSticker;
             if (map is IMapLoadingExperience loadingMap) loadingMap.Changed += Notify;
@@ -124,16 +131,16 @@ namespace Tagtag.Services
         {
             if (disposed) return;
             disposed = true; accountGeneration++; publicationGeneration++;
+            InvalidateCapture();
             CancelDiscovery();
             lifetimeCancellation.Cancel();
-            captureCancellation?.Cancel();
             if (wallet != null) { wallet.Changed -= WalletChanged; _ = wallet.Clear(); }
             CancelNearby();
             location.Dispose();
             locationConfirmation?.Cancel();
             creation?.Cancel();
             if (creationObject != null) StickerArtwork.Release(creationObject);
-            Ar.Changed -= Notify; Ar.StickerTapped -= Collect; Map.StickerSelected -= SelectSticker;
+            Ar.Changed -= OnArChanged; Ar.StickerTapped -= Collect; Map.StickerSelected -= SelectSticker;
             if (Map is IMapLoadingExperience loadingMap) loadingMap.Changed -= Notify;
             Ar.Exit(); Map.Hide();
         }
@@ -169,6 +176,7 @@ namespace Tagtag.Services
                     State.draftPlace = State.draftTeaser = State.draftNote = "";
                     State.hasPendingDesign = State.hasPendingPublication = false;
                     pendingDraft = null;
+                    InvalidateCapture();
                     recovery = null;
                     CancelDiscovery();
                     CancelNearby();
@@ -181,17 +189,49 @@ namespace Tagtag.Services
             State.celebrations.SetAccount(State.user?.uid);
             Changed?.Invoke();
         }
+        private int PlacementRevision => (Ar as IPlacementRevision)?.PlacementRevision ?? 0;
+        private string CaptureArtwork => !string.IsNullOrEmpty(State.selectedDesign) ?
+            "design:" + State.selectedDesign : "preset:" + State.selectedPreset;
+        private bool CurrentCapture => capturedSnapshot != null && capturedPlacementRevision == PlacementRevision &&
+            capturedArtwork == CaptureArtwork && State.page == AppPage.Stick && !State.accountOpen && State.user != null;
+        private void InvalidateCapture()
+        {
+            captureGeneration++;
+            capturedSnapshot = null;
+            State.hasCapturedSpot = false;
+            State.capturingSpot = false;
+        }
+        private void OnArChanged()
+        {
+            if (pendingDraft != null && pendingPlacementRevision >= 0 &&
+                pendingPlacementRevision != PlacementRevision)
+            {
+                if (!Ar.HasPlacementPreview) pendingPlacementRevision = PlacementRevision;
+                else
+                {
+                    pendingPlacementStale = true;
+                    publicationGeneration++;
+                    InvalidateCapture();
+                    locationConfirmation?.Cancel();
+                    if (!ClearPublication())
+                        State.error = "This placement changed, but its saved publication could not be cleared. Retry STICK before publishing.";
+                }
+            }
+            if ((State.hasCapturedSpot || State.capturingSpot) && capturedPlacementRevision != PlacementRevision)
+                InvalidateCapture();
+            Notify();
+        }
         public void SetSuspended(bool value)
         {
             if (disposed || suspended == value) return;
             suspended = value;
             if (suspended)
             {
+                InvalidateCapture();
                 publicationGeneration++;
                 CancelDiscovery();
                 Notify();
                 CancelNearby(true);
-                captureCancellation?.Cancel();
                 location.Suspend();
                 locationConfirmation?.Cancel();
             }
@@ -209,7 +249,7 @@ namespace Tagtag.Services
             if (State.page == AppPage.Stick && page != AppPage.Stick) CancelDiscovery();
             if (nativeCreationOpen || State.busy && !synchronizing) return;
             if (page != AppPage.Explore) CancelNearby();
-            if (State.page == AppPage.Stick && page != AppPage.Stick) Ar.Exit();
+            if (State.page == AppPage.Stick && page != AppPage.Stick) { InvalidateCapture(); Ar.Exit(); }
             State.creationOpen = false;
             if (page == AppPage.Home || State.page == AppPage.Stick && page != AppPage.Stick) location.Stop();
             Map.Hide(); State.page = page; State.error = ""; State.locationSettingsRequired = false;
@@ -234,6 +274,7 @@ namespace Tagtag.Services
         public void SetAccountOpen(bool open)
         {
             if (!RequireAccount()) return;
+            if (open) InvalidateCapture();
             if (open) { CancelNearby(true); if (State.page == AppPage.Stick) location.Stop(); }
             State.accountOpen = open; Map.Hide(); Notify();
             if (!open)
@@ -487,6 +528,7 @@ namespace Tagtag.Services
             if (!RequireAccount()) return;
             if (State.busy || !StickerPresets.Contains(presetId)) return;
             if (State.selectedPreset == presetId && pendingDraft != null) return;
+            InvalidateCapture();
             string previousDesign = State.selectedDesign; State.selectedDesign = "";
             if (!SaveEditableDraft(presetId, State.draftPlace, State.draftTeaser, State.draftNote)) { State.selectedDesign = previousDesign; Notify(); return; }
             if (pendingDraft != null && !ClearPublication()) { State.selectedDesign = previousDesign; Notify(); return; }
@@ -499,22 +541,110 @@ namespace Tagtag.Services
         public void SetDraft(string place, string teaser, string note)
         {
             if (disposed || State.busy) return;
+            place = string.IsNullOrWhiteSpace(place) ? DefaultPlace : place;
+            teaser = string.IsNullOrWhiteSpace(teaser) ? DefaultTeaser : teaser;
             // Preserve the operation ID only while the payload stays the same.
             if (State.draftPlace != place || State.draftTeaser != teaser || State.draftNote != note)
             {
                 if (!SaveEditableDraft(State.selectedPreset, place, teaser, note)) { draftEditRejected = true; Notify(); return; }
-                if (pendingDraft != null && !ClearPublication()) { draftEditRejected = true; Notify(); return; }
+                if (pendingDraft != null)
+                {
+                    SpatialSnapshot reusable = pendingPlacementRevision == PlacementRevision &&
+                        State.page == AppPage.Stick &&
+                        pendingDraft.presetId == State.selectedPreset &&
+                        (pendingDraft.designId ?? "") == State.selectedDesign ? pendingDraft.snapshot : null;
+                    if (!ClearPublication()) { draftEditRejected = true; Notify(); return; }
+                    if (reusable != null)
+                    {
+                        capturedSnapshot = reusable;
+                        capturedPlacementRevision = PlacementRevision;
+                        capturedArtwork = CaptureArtwork;
+                        State.hasCapturedSpot = true;
+                    }
+                }
             }
             draftEditRejected = false;
             State.draftPlace = place ?? ""; State.draftTeaser = teaser ?? ""; State.draftNote = note ?? "";
         }
+        public async void CaptureSpot()
+        {
+            if (!RequireAccount() || disposed || State.busy || State.capturingSpot || State.accountOpen ||
+                State.page != AppPage.Stick || string.IsNullOrEmpty(State.selectedPreset) &&
+                string.IsNullOrEmpty(State.selectedDesign)) return;
+            if (pendingDraft != null || CurrentCapture)
+            {
+                if (pendingPlacementStale)
+                {
+                    if (!ClearPublication()) { Notify(); return; }
+                }
+                else
+                {
+                    State.error = "";
+                    State.locationSettingsRequired = false;
+                    State.status = pendingDraft != null ? "Your saved spot is ready to retry." :
+                        "Spot captured. Write your note.";
+                    State.hasCapturedSpot = true;
+                    Notify();
+                    return;
+                }
+            }
+            if (Ar.ScanState != PlacementScanState.Ready || !Ar.CanPublish)
+            {
+                State.error = "Keep scanning until Scan ready, then tap STICK.";
+                Notify();
+                return;
+            }
+            int request = ++captureGeneration;
+            int account = accountGeneration;
+            int revision = PlacementRevision;
+            string artwork = CaptureArtwork;
+            capturedPlacementRevision = revision;
+            State.capturingSpot = true;
+            State.error = "";
+            State.status = "Capturing this spot…";
+            Notify();
+            var completion = new TaskCompletionSource<SpatialSnapshot>();
+            try
+            {
+                Ar.Capture(value => completion.TrySetResult(value), error =>
+                    completion.TrySetException(new ApiFailure(error)));
+                Task finished = await Task.WhenAny(completion.Task, Task.Delay(20000, lifetimeCancellation.Token));
+                if (disposed || request != captureGeneration || account != accountGeneration ||
+                    State.page != AppPage.Stick || State.accountOpen || revision != PlacementRevision ||
+                    artwork != CaptureArtwork) return;
+                if (finished != completion.Task)
+                    throw new ApiFailure("Mapping took too long. Keep scanning and tap STICK again.");
+                SpatialSnapshot snapshot = await completion.Task;
+                if (snapshot == null || string.IsNullOrEmpty(snapshot.worldMapBase64))
+                    throw new ApiFailure("This spot could not be captured. Tap STICK to retry.");
+                capturedSnapshot = snapshot;
+                capturedArtwork = artwork;
+                State.hasCapturedSpot = true;
+                State.status = "Spot captured. Write your note.";
+            }
+            catch (Exception error)
+            {
+                if (disposed || request != captureGeneration || account != accountGeneration) return;
+                State.error = error is ApiFailure ? error.Message : "This spot could not be captured. Tap STICK to retry.";
+            }
+            finally
+            {
+                if (!disposed && request == captureGeneration)
+                {
+                    State.capturingSpot = false;
+                    Notify();
+                }
+            }
+        }
         public void Publish()
         {
             if (!RequireAccount() || State.busy) return;
+            if (pendingPlacementStale)
+            { State.error = "This placement changed. Capture it again with STICK before publishing."; Notify(); return; }
             if (draftEditRejected) { State.error = "Your edit could not be saved. Retry the edit before publishing."; Notify(); return; }
-            if (pendingDraft == null && !Ar.CanPublish) { State.error = "Move slowly until the surface is mapped and Taggi is placed."; Notify(); return; }
-            if (string.IsNullOrWhiteSpace(State.draftTeaser) || string.IsNullOrWhiteSpace(State.draftNote))
-            { State.error = "Add a teaser and a note before publishing."; Notify(); return; }
+            if (pendingDraft == null && !CurrentCapture) { State.error = "Capture this spot with STICK before publishing."; Notify(); return; }
+            if (string.IsNullOrWhiteSpace(State.draftNote))
+            { State.error = "Add your note before publishing."; Notify(); return; }
             int operationGeneration = publicationGeneration;
             int operationAccount = accountGeneration;
             Run(async () =>
@@ -528,31 +658,13 @@ namespace Tagtag.Services
                     locationConfirmation == null ? 100 : 5000, preferredAccuracyMeters: 100);
                 if (pendingDraft == null)
                 {
-                    SetPublicationStage("map", "Saving this spot…");
-                    var completion = new TaskCompletionSource<SpatialSnapshot>();
-                    SpatialSnapshot snapshot;
-                    using (var capture = CancellationTokenSource.CreateLinkedTokenSource(lifetimeCancellation.Token))
-                    {
-                        captureCancellation = capture;
-                        try
-                        {
-                            Ar.Capture(value => completion.TrySetResult(value), error => completion.TrySetException(new ApiFailure(error)));
-                            Task finished = await Task.WhenAny(completion.Task, Task.Delay(20000, capture.Token));
-                            EnsurePublicationActive(operationGeneration, operationAccount);
-                            if (finished != completion.Task)
-                                throw new ApiFailure("Mapping took too long. Try again after looking around.");
-                            snapshot = await completion.Task;
-                            EnsurePublicationActive(operationGeneration, operationAccount);
-                        }
-                        finally
-                        {
-                            if (captureCancellation == capture) captureCancellation = null;
-                        }
-                    }
+                    SpatialSnapshot snapshot = capturedSnapshot;
                     pendingDraft = new PlacementDraft { operationId = Guid.NewGuid().ToString("N"), presetId = State.selectedPreset, designId = State.selectedDesign,
                         place = State.draftPlace.Trim(), teaser = State.draftTeaser.Trim(), note = State.draftNote.Trim(), snapshot = snapshot };
                     State.hasPendingPublication = true;
                     publications.Save(State.user.uid, pendingDraft);
+                    pendingPlacementRevision = PlacementRevision;
+                    InvalidateCapture();
                 }
                 EnsurePublicationActive(operationGeneration, operationAccount);
                 SetPublicationStage("location-prepare", "Finding a precise location…");
@@ -651,7 +763,9 @@ namespace Tagtag.Services
                 try { editablePublications.Remove(State.user.uid); }
                 catch { throw new ApiFailure("Published online. Local draft cleanup failed; retrying will not duplicate it."); }
                 if (!ClearPublication()) throw new ApiFailure("Published online. Local draft cleanup failed; retrying will not duplicate it.");
-                State.draftNote = State.draftTeaser = State.draftPlace = State.selectedPreset = State.selectedDesign = "";
+                State.draftNote = State.selectedPreset = State.selectedDesign = "";
+                ResetNewDraftMetadata();
+                InvalidateCapture();
                 location.Stop();
                 FinishPublicationStage(false);
                 Ar.CancelPlacement(); State.status = "Taggi is out there. Your sticker is published!";
@@ -661,12 +775,14 @@ namespace Tagtag.Services
         public void CancelPlacement()
         {
             if (State.busy) return;
+            InvalidateCapture();
             try { editablePublications.Remove(State.user?.uid); }
             catch { State.error = "This device could not remove the saved draft."; Notify(); return; }
             if (!ClearPublication()) { Notify(); return; }
             location.Stop();
             recovery = null; State.selectedPreset = State.selectedDesign = ""; State.selected = null;
-            State.draftPlace = State.draftTeaser = State.draftNote = "";
+            State.draftNote = "";
+            ResetNewDraftMetadata();
             Ar.CancelPlacement(); Notify();
         }
         private void Collect(string id)
@@ -884,21 +1000,29 @@ namespace Tagtag.Services
         private void RestorePublication()
         {
             pendingDraft = publications.Read(State.user?.uid);
+            pendingPlacementRevision = pendingDraft == null ? -1 : PlacementRevision;
+            pendingPlacementStale = false;
             State.hasPendingPublication = pendingDraft != null;
             if (pendingDraft != null)
             {
                 State.selectedPreset = pendingDraft.presetId;
                 State.selectedDesign = pendingDraft.designId ?? "";
                 State.draftPlace = pendingDraft.place; State.draftTeaser = pendingDraft.teaser; State.draftNote = pendingDraft.note;
+                FillMissingPublicMetadata();
                 return;
             }
             var editable = editablePublications.Read(State.user?.uid);
-            if (editable == null) return;
+            if (editable == null)
+            {
+                ResetNewDraftMetadata();
+                return;
+            }
             State.selectedPreset = editable.presetId ?? "";
             State.selectedDesign = editable.designId ?? "";
             State.draftPlace = editable.place ?? "";
             State.draftTeaser = editable.teaser ?? "";
             State.draftNote = editable.note ?? "";
+            FillMissingPublicMetadata();
         }
         private bool SaveEditableDraft(string presetId, string place, string teaser, string note, bool designOperation = false)
         {
@@ -916,6 +1040,16 @@ namespace Tagtag.Services
                 return false;
             }
         }
+        private void ResetNewDraftMetadata()
+        {
+            State.draftPlace = DefaultPlace;
+            State.draftTeaser = DefaultTeaser;
+        }
+        private void FillMissingPublicMetadata()
+        {
+            if (string.IsNullOrWhiteSpace(State.draftPlace)) State.draftPlace = DefaultPlace;
+            if (string.IsNullOrWhiteSpace(State.draftTeaser)) State.draftTeaser = DefaultTeaser;
+        }
         private bool ClearPublication(bool designOperation = false)
         {
             try { publications.Remove(State.user?.uid); }
@@ -925,7 +1059,8 @@ namespace Tagtag.Services
                 else State.error = "This device could not remove the saved draft.";
                 return false;
             }
-            pendingDraft = null; State.hasPendingPublication = false;
+            pendingDraft = null; pendingPlacementRevision = -1; pendingPlacementStale = false;
+            State.hasPendingPublication = false;
             return true;
         }
         private void SaveCollection()

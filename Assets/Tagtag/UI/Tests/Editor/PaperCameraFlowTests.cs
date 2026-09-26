@@ -39,7 +39,9 @@ namespace Tagtag.UI.Tests
             PaperStickState placed = PaperFlow.StickPlacement(state, true, true, true, false);
             Assert.AreEqual("Place Sticker", placed.Title);
             StringAssert.Contains("Pinch to resize. Twist to rotate.", placed.Guidance);
-            Assert.IsTrue(placed.CanWriteNote);
+            Assert.IsFalse(placed.CanWriteNote);
+            state.hasCapturedSpot = true;
+            Assert.IsTrue(PaperFlow.StickPlacement(state, true, true, true, false).CanWriteNote);
             Assert.AreEqual("Taggi pose 1", PaperFlow.PresetName("taggi-1"));
         }
 
@@ -65,10 +67,10 @@ namespace Tagtag.UI.Tests
             Assert.IsFalse(PaperFlow.ShowDiscoveryRetry(state));
             Assert.AreEqual("Surface found. Tap it to place your sticker.",
                 PaperFlow.StickPlacement(state, true, true, false, false).Guidance);
-            Assert.AreEqual("Place your sticker on a tracked surface before publishing.",
+            Assert.AreEqual("Capture this spot with STICK before publishing.",
                 PaperFlow.PublishNotice("Park", "By the gate", "A quiet place",
                     true, false, false, false, false, false, true));
-            Assert.IsTrue(PaperFlow.StickPlacement(state, true, true, true, false).CanWriteNote);
+            Assert.IsFalse(PaperFlow.StickPlacement(state, true, true, true, false).CanWriteNote);
             state.draftPlace = "Park";
             state.draftTeaser = "By the gate";
             state.draftNote = "A quiet place";

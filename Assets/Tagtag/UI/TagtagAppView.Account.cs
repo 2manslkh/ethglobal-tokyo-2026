@@ -350,7 +350,6 @@ namespace Tagtag.UI
             reportChoices.Clear();
             sheetSubmitButton = null;
             publishButton = null;
-            publishReadinessLabel = null;
             sheetDetailHost = null;
             inventoryChoices.Clear();
             creationImportButton = creationCameraButton = creationAiButton = null;
@@ -396,7 +395,7 @@ namespace Tagtag.UI
 
         private void FocusSheetTrigger(Sheet closed)
         {
-            string name = closed == Sheet.Privacy ? "Login Privacy Policy" : closed == Sheet.Terms ? "Login Terms & Conditions" : closed == Sheet.ReferencePhoto ? "Original spot preview" : closed == Sheet.Note ? "STICK Write note" :
+            string name = closed == Sheet.Privacy ? "Login Privacy Policy" : closed == Sheet.Terms ? "Login Terms & Conditions" : closed == Sheet.ReferencePhoto ? "Original spot preview" : closed == Sheet.Note ? "STICK Inventory" :
                 closed == Sheet.Picker || closed == Sheet.Creator ?
                     controller.State.page == AppPage.Home ? "Home Make sticker" : "STICK Inventory" : null;
             if (name == null) return;
@@ -637,17 +636,6 @@ namespace Tagtag.UI
 
         private void BuildNoteSheet(VisualElement content, AppState state)
         {
-            noteScanGuidance = Text(content, "Scan from more angles before publishing. Move slowly around the sticker until Scan ready.", 15, true);
-            noteScanGuidance.name = "Note scan guidance";
-            noteContinueScanning = Action(content, "Continue scanning", RequestCloseSheet, false);
-            noteContinueScanning.name = "Continue scanning";
-            noteContinueScanning.style.marginBottom = 12f;
-            Text(content, "Leave a clue, then the whole story.", 16, false, Muted);
-            Text(content, "A photo of this spot will help others find your sticker.", 13, false, Muted);
-            DraftField(content, "Place", draftPlace, 80, false, value => draftPlace = value,
-                "Name the place you are standing at.");
-            DraftField(content, "Clue", draftTeaser, 180, false, value => draftTeaser = value,
-                "Visitors see this before they find your sticker.");
             DraftField(content, "Your note", draftNote, 2000, true, value => draftNote = value,
                 "Unlocked only when someone taps your sticker in AR.");
             if (!SignedIn(state))
@@ -661,16 +649,13 @@ namespace Tagtag.UI
                 publishButton = Action(content, "Publish sticker", () =>
                 {
                     if (!PaperFlow.CanPresentPublish(draftPlace, draftTeaser, draftNote,
-                        controller.Ar?.CanPublish ?? false, controller.State.busy, controller.State.hasPendingPublication)) return;
+                        controller.State.hasCapturedSpot, controller.State.busy, controller.State.hasPendingPublication)) return;
                     publicationRequested = true;
                     controller.SetDraft(draftPlace, draftTeaser, draftNote);
                     controller.Publish();
                 });
                 PaperDottedOutline.Decorate(publishButton, capsule: true);
                 publishButton.style.marginTop = 14f;
-                publishReadinessLabel = Text(content, "", 13, false, Muted);
-                publishReadinessLabel.name = "Publish readiness";
-                publishReadinessLabel.style.marginTop = 8f;
                 RefreshPublish(state);
             }
         }
@@ -721,7 +706,7 @@ namespace Tagtag.UI
                 }
             }
 
-            foreach (string name in new[] { "Place", "Clue", "Your note" })
+            foreach (string name in new[] { "Your note" })
             {
                 PaperField field = sheetView.Q<PaperField>(name);
                 if (field != null && field.enabledSelf != !state.busy) field.SetEnabled(!state.busy);
@@ -908,7 +893,6 @@ namespace Tagtag.UI
             sheetAuthorId = null;
             sheetView = null;
             publishButton = null;
-            publishReadinessLabel = null;
             QueueRender();
         }
     }

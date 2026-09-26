@@ -174,6 +174,7 @@ namespace Tagtag.Services
                 EnsureDesignAccount(owner, version);
                 if (texture == null) throw new ApiFailure("Artwork could not load. Refresh My Stickers and try again.");
                 string previous = State.selectedDesign;
+                InvalidateCapture();
                 State.selectedDesign = design.id;
                 if (!SaveEditableDraft("", State.draftPlace, State.draftTeaser, State.draftNote, true))
                 { State.selectedDesign = previous; throw new ApiFailure(State.designError); }

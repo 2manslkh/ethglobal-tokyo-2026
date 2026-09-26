@@ -57,9 +57,221 @@ namespace Tagtag.Services.Tests
         }
 
         [Test]
-        public void ReducedPrecisionIsReportedBeforeCapturingTheArMap()
+        public async Task StickCaptureRequiresReadyScanAndReusesSnapshotWhileEditingNote()
         {
-            var camera = new Camera();
+            var camera = new Camera { Scan = PlacementScanState.Placed, SucceedCapture = true };
+            var identity = new Identity();
+            var controller = new TagtagController(new ServiceConfiguration(), camera, new Map(), identity,
+                deviceLocation: new DeviceLocation(new TrackingLocationRuntime()));
+            try
+            {
+                controller.Navigate(AppPage.Stick);
+                controller.SelectPreset("taggi-1");
+                controller.CaptureSpot();
+                Assert.That(camera.CaptureCount, Is.Zero, "A placed sticker still needs Scan ready.");
+
+                camera.Scan = PlacementScanState.Ready;
+                controller.CaptureSpot();
+                await Task.Yield();
+                Assert.That(camera.CaptureCount, Is.EqualTo(1));
+                Assert.That(controller.State.hasCapturedSpot, Is.True);
+                Assert.That(controller.State.hasPendingPublication, Is.False);
+                Assert.That(controller.State.draftPlace, Is.EqualTo("Sticker spot"));
+                Assert.That(controller.State.draftTeaser, Is.EqualTo("Find this sticker to read its note"));
+
+                controller.SetDraft(controller.State.draftPlace, controller.State.draftTeaser, "A private note");
+                Assert.That(controller.State.hasCapturedSpot, Is.True, "Editing text must retain the captured map and photo.");
+                controller.State.error = "Old publish failure";
+                controller.State.locationSettingsRequired = true;
+                controller.CaptureSpot();
+                Assert.That(camera.CaptureCount, Is.EqualTo(1), "Reopening the note must reuse the valid capture.");
+                Assert.That(controller.State.error, Is.Empty);
+                Assert.That(controller.State.locationSettingsRequired, Is.False);
+            }
+            finally { controller.Dispose(); RemoveEditable(identity.UserId); }
+        }
+
+        [Test]
+        public async Task CaptureFailureAndDuplicateTapStayInCamera()
+        {
+            var camera = new Camera { HoldCapture = true };
+            var identity = new Identity();
+            var controller = new TagtagController(new ServiceConfiguration(), camera, new Map(), identity,
+                deviceLocation: new DeviceLocation(new TrackingLocationRuntime()));
+            try
+            {
+                controller.Navigate(AppPage.Stick);
+                controller.SelectPreset("taggi-1");
+                controller.CaptureSpot();
+                controller.CaptureSpot();
+                Assert.That(camera.CaptureCount, Is.EqualTo(1));
+                camera.FailCapture("Map failed");
+                await Task.Yield();
+                Assert.That(controller.State.hasCapturedSpot, Is.False);
+                Assert.That(controller.State.page, Is.EqualTo(AppPage.Stick));
+                Assert.That(controller.State.error, Does.Contain("Map failed"));
+            }
+            finally { controller.Dispose(); RemoveEditable(identity.UserId); }
+        }
+
+        [Test]
+        public async Task LateCaptureAfterNavigationOrPlacementAdjustmentIsIgnored()
+        {
+            var camera = new Camera { HoldCapture = true };
+            var identity = new Identity();
+            var controller = new TagtagController(new ServiceConfiguration(), camera, new Map(), identity,
+                deviceLocation: new DeviceLocation(new TrackingLocationRuntime()));
+            try
+            {
+                controller.Navigate(AppPage.Stick);
+                controller.SelectPreset("taggi-1");
+                controller.CaptureSpot();
+                controller.Navigate(AppPage.Home);
+                camera.CompleteCapture();
+                await Task.Yield();
+                Assert.That(controller.State.hasCapturedSpot, Is.False);
+
+                controller.Navigate(AppPage.Stick);
+                controller.CaptureSpot();
+                camera.ChangePlacement();
+                camera.CompleteCapture();
+                await Task.Yield();
+                Assert.That(controller.State.hasCapturedSpot, Is.False);
+            }
+            finally { controller.Dispose(); RemoveEditable(identity.UserId); }
+        }
+
+        [Test]
+        public async Task CaptureCallbackAfterAccountSheetOrSuspensionIsIgnored()
+        {
+            var camera = new Camera { HoldCapture = true };
+            var identity = new Identity();
+            var controller = new TagtagController(new ServiceConfiguration(), camera, new Map(), identity,
+                deviceLocation: new DeviceLocation(new TrackingLocationRuntime()));
+            try
+            {
+                controller.SelectPreset("taggi-1");
+                controller.CaptureSpot();
+                controller.SetAccountOpen(true);
+                camera.CompleteCapture();
+                await Task.Yield();
+                Assert.That(controller.State.hasCapturedSpot, Is.False);
+
+                controller.SetAccountOpen(false);
+                controller.CaptureSpot();
+                controller.SetSuspended(true);
+                camera.CompleteCapture();
+                await Task.Yield();
+                Assert.That(controller.State.hasCapturedSpot, Is.False);
+                Assert.That(controller.State.capturingSpot, Is.False);
+            }
+            finally { controller.Dispose(); RemoveEditable(identity.UserId); }
+        }
+
+        [Test]
+        public void PublishUsesCapturedSnapshotAfterLiveScanDrops()
+        {
+            var camera = new Camera { SucceedCapture = true };
+            var identity = new Identity();
+            var controller = new TagtagController(new ServiceConfiguration(), camera, new Map(), identity,
+                deviceLocation: new DeviceLocation(new ReducedLocationRuntime()));
+            try
+            {
+                controller.SelectPreset("taggi-1");
+                controller.CaptureSpot();
+                controller.SetDraft(controller.State.draftPlace, controller.State.draftTeaser, "My note");
+                camera.CanPublishEnabled = false;
+                camera.Scan = PlacementScanState.Placed;
+                controller.Publish();
+                Assert.That(camera.CaptureCount, Is.EqualTo(1));
+                Assert.That(controller.State.locationSettingsRequired, Is.True,
+                    "Publishing advanced to location permission without fresh scan tracking.");
+            }
+            finally { controller.Dispose(); RemoveEditable(identity.UserId); }
+        }
+
+        [Test]
+        public void CancelledFirstPlacementStartsSecondDraftWithPublicDefaults()
+        {
+            var identity = new Identity();
+            var controller = new TagtagController(new ServiceConfiguration(), new Camera(), new Map(), identity,
+                deviceLocation: new DeviceLocation(new TrackingLocationRuntime()));
+            try
+            {
+                controller.SelectPreset("taggi-1");
+                controller.SetDraft("Old place", "Old teaser", "Private words");
+                controller.CancelPlacement();
+                controller.SelectPreset("taggi-2");
+                Assert.That(controller.State.draftPlace, Is.EqualTo("Sticker spot"));
+                Assert.That(controller.State.draftTeaser, Is.EqualTo("Find this sticker to read its note"));
+                Assert.That(controller.State.draftNote, Is.Empty);
+            }
+            finally { controller.Dispose(); RemoveEditable(identity.UserId); }
+        }
+
+        [Test]
+        public void RestoredPendingDraftCanEditNoteAndPublishFromItsSavedSnapshot()
+        {
+            var identity = new Identity();
+            var saved = new PendingPublication(System.IO.Path.Combine(Application.persistentDataPath, "publications"));
+            saved.Save(identity.UserId, new PlacementDraft { operationId = "legacy-note-edit", presetId = "taggi-1",
+                place = "Existing place", teaser = "Existing teaser", note = "Old private note",
+                snapshot = new SpatialSnapshot { worldMapBase64 = "AQ==", widthMeters = .2f } });
+            var camera = new Camera { CanPublishEnabled = false };
+            var controller = new TagtagController(new ServiceConfiguration(), camera, new Map(), identity,
+                deviceLocation: new DeviceLocation(new ReducedLocationRuntime()));
+            try
+            {
+                controller.Navigate(AppPage.Stick);
+                controller.SetDraft("Existing place", "Existing teaser", "Revised private note");
+                Assert.That(controller.State.hasPendingPublication, Is.False,
+                    "Changing the payload requires a new operation ID.");
+                Assert.That(controller.State.hasCapturedSpot, Is.True);
+                Assert.That(controller.State.draftPlace, Is.EqualTo("Existing place"));
+                Assert.That(controller.State.draftTeaser, Is.EqualTo("Existing teaser"));
+                controller.Publish();
+                Assert.That(camera.CaptureCount, Is.Zero, "The saved world map is reused after note editing.");
+                Assert.That(controller.State.locationSettingsRequired, Is.True,
+                    "Publish advanced to location permission without live AR tracking.");
+            }
+            finally { controller.Dispose(); saved.Remove(identity.UserId); RemoveEditable(identity.UserId); }
+        }
+
+        [Test]
+        public void PartialLegacyEditableDraftGetsOnlyMissingPublicDefaults()
+        {
+            var identity = new Identity();
+            var editable = new EditablePublication(System.IO.Path.Combine(Application.persistentDataPath, "editable-publications"));
+            editable.Save(identity.UserId, new EditablePublicationDraft { presetId = "taggi-1",
+                place = "   ", teaser = "Keep this public teaser", note = "Private note" });
+            var controller = new TagtagController(new ServiceConfiguration(), new Camera(), new Map(), identity,
+                deviceLocation: new DeviceLocation(new TrackingLocationRuntime()));
+            try
+            {
+                Assert.That(controller.State.draftPlace, Is.EqualTo("Sticker spot"));
+                Assert.That(controller.State.draftTeaser, Is.EqualTo("Keep this public teaser"));
+                Assert.That(controller.State.draftNote, Is.EqualTo("Private note"));
+            }
+            finally { controller.Dispose(); editable.Remove(identity.UserId); }
+
+            editable.Save(identity.UserId, new EditablePublicationDraft { presetId = "taggi-2",
+                place = "Existing place", teaser = "\t", note = "Another private note" });
+            var second = new TagtagController(new ServiceConfiguration(), new Camera(), new Map(), identity,
+                deviceLocation: new DeviceLocation(new TrackingLocationRuntime()));
+            try
+            {
+                Assert.That(second.State.draftPlace, Is.EqualTo("Existing place"));
+                Assert.That(second.State.draftTeaser, Is.EqualTo("Find this sticker to read its note"));
+                Assert.That(second.State.draftNote, Is.EqualTo("Another private note"));
+            }
+            finally { second.Dispose(); editable.Remove(identity.UserId); }
+        }
+
+
+        [Test]
+        public void ReducedPrecisionIsReportedAfterCaptureBeforeSubmittingPublication()
+        {
+            var camera = new Camera { SucceedCapture = true };
             var runtime = new ReducedLocationRuntime();
             var identity = new Identity();
             var controller = new TagtagController(new ServiceConfiguration(), camera, new Map(), identity,
@@ -68,11 +280,10 @@ namespace Tagtag.Services.Tests
             {
                 controller.SelectPreset("taggi-1");
                 controller.SetDraft("Park", "Find Taggi", "Under the tree");
-
+                controller.CaptureSpot();
                 controller.Publish();
 
-                Assert.That(camera.CaptureCount, Is.Zero,
-                    "A known precision permission failure must happen before expensive AR map capture.");
+                Assert.That(camera.CaptureCount, Is.EqualTo(1));
                 Assert.That(controller.State.locationSettingsRequired, Is.True);
                 Assert.That(controller.State.status, Does.Not.Contain("Checking location access"));
                 controller.Navigate(AppPage.Home);
@@ -159,7 +370,7 @@ namespace Tagtag.Services.Tests
                 controller.Navigate(AppPage.Stick);
                 controller.SelectPreset("taggi-1");
                 controller.SetDraft("Park", "Find Taggi", "Under the tree");
-                controller.Publish();
+                controller.CaptureSpot();
                 Assert.That(camera.CaptureCount, Is.EqualTo(1));
 
                 controller.Dispose();
@@ -184,13 +395,14 @@ namespace Tagtag.Services.Tests
         {
             string uid = "settings-draft-" + Guid.NewGuid().ToString("N");
             var identity = new Identity(uid);
-            var controller = new TagtagController(new ServiceConfiguration(), new Camera(), new Map(), identity,
+            var controller = new TagtagController(new ServiceConfiguration(), new Camera { SucceedCapture = true }, new Map(), identity,
                 deviceLocation: new DeviceLocation(new ReducedLocationRuntime()));
             try
             {
                 controller.Navigate(AppPage.Stick);
                 controller.SelectPreset("taggi-2");
                 controller.SetDraft("Garden", "Look by the gate", "The flowers are lovely.");
+                controller.CaptureSpot();
                 controller.Publish();
                 Assert.That(controller.State.locationSettingsRequired, Is.True);
                 Assert.That(controller.State.hasPendingPublication, Is.False);
@@ -236,6 +448,7 @@ namespace Tagtag.Services.Tests
                 controller.Navigate(AppPage.Stick);
                 controller.SelectPreset("taggi-1");
                 controller.SetDraft("Park", "Find Taggi", "Original note");
+                controller.CaptureSpot();
                 controller.Publish();
                 await Task.Yield();
                 Assert.That(controller.State.busy, Is.True);
@@ -258,7 +471,7 @@ namespace Tagtag.Services.Tests
         }
 
         [Test]
-        public async Task PausingPendingCaptureFinishesPromptlyAndKeepsEditableDraft()
+        public async Task PausingPendingCaptureDiscardsSnapshotAndKeepsEditableDraft()
         {
             string uid = "pause-capture-" + Guid.NewGuid().ToString("N");
             var camera = new Camera { HoldCapture = true };
@@ -269,15 +482,14 @@ namespace Tagtag.Services.Tests
                 controller.Navigate(AppPage.Stick);
                 controller.SelectPreset("taggi-1");
                 controller.SetDraft("Park", "Find Taggi", "Keep this note");
-                controller.Publish();
-                Assert.That(controller.State.busy, Is.True);
+                controller.CaptureSpot();
+                Assert.That(controller.State.capturingSpot, Is.True);
 
                 controller.SetSuspended(true);
                 await Task.Yield();
 
-                Assert.That(controller.State.busy, Is.False);
-                Assert.That(controller.State.error, Does.Contain("interrupted"));
-                Assert.That(controller.State.status, Does.Not.Contain("Saving this spot"));
+                Assert.That(controller.State.capturingSpot, Is.False);
+                Assert.That(controller.State.hasCapturedSpot, Is.False);
                 Assert.That(controller.State.draftNote, Is.EqualTo("Keep this note"));
             }
             finally
@@ -293,11 +505,12 @@ namespace Tagtag.Services.Tests
             string uid = "resume-settings-" + Guid.NewGuid().ToString("N");
             var controller = new TagtagController(new ServiceConfiguration
                 { apiBaseUrl = "http://invalid.test", firebaseApiKey = "test" },
-                new Camera(), new Map(), new Identity(uid), deviceLocation: new DeviceLocation(new ReducedLocationRuntime()));
+                new Camera { SucceedCapture = true }, new Map(), new Identity(uid), deviceLocation: new DeviceLocation(new ReducedLocationRuntime()));
             try
             {
                 controller.SelectPreset("taggi-1");
                 controller.SetDraft("Park", "Find Taggi", "Keep this note");
+                controller.CaptureSpot();
                 controller.Publish();
                 string error = controller.State.error;
                 Assert.That(controller.State.locationSettingsRequired, Is.True);
@@ -386,6 +599,7 @@ namespace Tagtag.Services.Tests
             {
                 controller.SelectPreset("taggi-1");
                 controller.SetDraft("Cafe", "By the door", "My note");
+                controller.CaptureSpot();
                 controller.Publish();
                 Assert.That(picker.OpenCount, Is.EqualTo(1));
                 Assert.That(picker.Measured.accuracyMeters, Is.EqualTo(2000.149f));
@@ -413,6 +627,109 @@ namespace Tagtag.Services.Tests
         }
 
         [Test]
+        public async Task EditingNoteAfterFailedLocationConfirmationReusesSnapshotWithNewOperation()
+        {
+            var runtime = new TrackingLocationRuntime { LastFix = new LocationFix
+                { latitude = 35.68, longitude = 139.76, accuracyMeters = 2000, measuredUnixSeconds = 100 } };
+            var picker = new LocationPicker();
+            var camera = new Camera { SucceedCapture = true };
+            var identity = new Identity();
+            var saved = new PendingPublication(System.IO.Path.Combine(Application.persistentDataPath, "publications"));
+            var controller = new TagtagController(new ServiceConfiguration(), camera, new Map(), identity,
+                deviceLocation: new DeviceLocation(runtime), locationConfirmation: picker);
+            try
+            {
+                controller.SelectPreset("taggi-1");
+                controller.CaptureSpot();
+                controller.SetDraft("Existing place", "Existing teaser", "First note");
+                controller.Publish();
+                string oldOperation = saved.Read(identity.UserId).operationId;
+                picker.Complete(null);
+                await Task.Yield();
+
+                controller.SetDraft("Existing place", "Existing teaser", "Edited note");
+                Assert.That(controller.State.hasCapturedSpot, Is.True);
+                Assert.That(controller.State.hasPendingPublication, Is.False);
+                controller.Publish();
+                Assert.That(camera.CaptureCount, Is.EqualTo(1));
+                Assert.That(saved.Read(identity.UserId).operationId, Is.Not.EqualTo(oldOperation));
+                Assert.That(saved.Read(identity.UserId).note, Is.EqualTo("Edited note"));
+            }
+            finally { controller.Dispose(); saved.Remove(identity.UserId); RemoveEditable(identity.UserId); }
+        }
+
+        [Test]
+        public async Task MovingPlacementAfterFailedPublicationRequiresFreshCaptureAndOperation()
+        {
+            var runtime = new TrackingLocationRuntime { LastFix = new LocationFix
+                { latitude = 35.68, longitude = 139.76, accuracyMeters = 2000, measuredUnixSeconds = 100 } };
+            var picker = new LocationPicker();
+            var camera = new Camera { SucceedCapture = true };
+            var identity = new Identity();
+            var saved = new PendingPublication(System.IO.Path.Combine(Application.persistentDataPath, "publications"));
+            var controller = new TagtagController(new ServiceConfiguration(), camera, new Map(), identity,
+                deviceLocation: new DeviceLocation(runtime), locationConfirmation: picker);
+            try
+            {
+                controller.SelectPreset("taggi-1");
+                controller.CaptureSpot();
+                controller.SetDraft(controller.State.draftPlace, controller.State.draftTeaser, "Keep this note");
+                controller.Publish();
+                string firstOperation = saved.Read(identity.UserId).operationId;
+                picker.Complete(null);
+                await Task.Yield();
+
+                camera.ChangePlacement();
+                Assert.That(controller.State.hasPendingPublication, Is.False);
+                Assert.That(controller.State.hasCapturedSpot, Is.False);
+                Assert.That(saved.Read(identity.UserId), Is.Null);
+                Assert.That(controller.State.draftNote, Is.EqualTo("Keep this note"));
+                controller.Publish();
+                Assert.That(saved.Read(identity.UserId), Is.Null,
+                    "The old operation cannot submit after a placement transform.");
+
+                controller.CaptureSpot();
+                controller.Publish();
+                Assert.That(camera.CaptureCount, Is.EqualTo(2));
+                Assert.That(saved.Read(identity.UserId).operationId, Is.Not.EqualTo(firstOperation));
+            }
+            finally { controller.Dispose(); saved.Remove(identity.UserId); RemoveEditable(identity.UserId); }
+        }
+
+        [Test]
+        public async Task CameraExitRevisionChangeKeepsSavedPublicationRetry()
+        {
+            var runtime = new TrackingLocationRuntime { LastFix = new LocationFix
+                { latitude = 35.68, longitude = 139.76, accuracyMeters = 2000, measuredUnixSeconds = 100 } };
+            var picker = new LocationPicker();
+            var camera = new Camera { SucceedCapture = true };
+            var identity = new Identity();
+            var saved = new PendingPublication(System.IO.Path.Combine(Application.persistentDataPath, "publications"));
+            var controller = new TagtagController(new ServiceConfiguration(), camera, new Map(), identity,
+                deviceLocation: new DeviceLocation(runtime), locationConfirmation: picker);
+            try
+            {
+                controller.SelectPreset("taggi-1");
+                controller.CaptureSpot();
+                controller.SetDraft(controller.State.draftPlace, controller.State.draftTeaser, "A note");
+                controller.Publish();
+                picker.Complete(null);
+                await Task.Yield();
+                string operation = saved.Read(identity.UserId).operationId;
+
+                controller.Navigate(AppPage.Home);
+                Assert.That(camera.HasPlacementPreview, Is.False);
+                Assert.That(controller.State.hasPendingPublication, Is.True);
+                Assert.That(saved.Read(identity.UserId).operationId, Is.EqualTo(operation));
+                controller.Navigate(AppPage.Stick);
+                controller.CaptureSpot();
+                Assert.That(controller.State.hasCapturedSpot, Is.True);
+                Assert.That(camera.CaptureCount, Is.EqualTo(1));
+            }
+            finally { controller.Dispose(); saved.Remove(identity.UserId); RemoveEditable(identity.UserId); }
+        }
+
+        [Test]
         public async Task PausingMapConfirmationCancelsPickerAndKeepsDraft()
         {
             var runtime = new TrackingLocationRuntime { LastFix = new LocationFix
@@ -424,6 +741,7 @@ namespace Tagtag.Services.Tests
             {
                 controller.SelectPreset("taggi-1");
                 controller.SetDraft("Cafe", "Door", "Keep this");
+                controller.CaptureSpot();
                 controller.Publish();
                 Assert.That(picker.OpenCount, Is.EqualTo(1));
                 controller.SetSuspended(true);
@@ -478,7 +796,7 @@ namespace Tagtag.Services.Tests
         }
 
         [Test]
-        public async Task FixThatExpiresDuringCaptureIsRefreshedBeforeOpeningConfirmation()
+        public async Task LocationIsRefreshedWhenPublishingAfterAnEarlierCapture()
         {
             var runtime = new TrackingLocationRuntime { LastFix = new LocationFix
                 { latitude = 35.68, longitude = 139.76, accuracyMeters = 2000, measuredUnixSeconds = 75 } };
@@ -490,12 +808,13 @@ namespace Tagtag.Services.Tests
             {
                 controller.SelectPreset("taggi-1");
                 controller.SetDraft("Cafe", "Door", "Note");
-                controller.Publish();
+                controller.CaptureSpot();
                 runtime.Advance(10);
                 runtime.LastFix = new LocationFix { latitude = 35.681, longitude = 139.761,
                     accuracyMeters = 1800, measuredUnixSeconds = runtime.UtcNow.ToUnixTimeSeconds() };
                 camera.CompleteCapture();
                 await Task.Yield();
+                controller.Publish();
                 Assert.That(picker.OpenCount, Is.EqualTo(1));
                 Assert.That(picker.Measured.latitude, Is.EqualTo(35.681));
                 Assert.That(picker.Measured.accuracyMeters, Is.EqualTo(1800));
@@ -587,7 +906,7 @@ namespace Tagtag.Services.Tests
             }
         }
 
-        private sealed class Camera : IArExperience, ICustomArtworkAr
+        private sealed class Camera : IArExperience, IPlacementRevision, ICustomArtworkAr
         {
             public string SelectedDesignId;
             public bool CreationSuspended;
@@ -598,39 +917,45 @@ namespace Tagtag.Services.Tests
             public bool HoldCapture;
             public bool SucceedCapture;
             public bool CanPublishEnabled = true;
+            public bool Preview = true;
+            public PlacementScanState Scan = PlacementScanState.Ready;
+            public int PlacementRevision { get; private set; }
             public string SelectedPresetId;
             private Action<SpatialSnapshot> captureSuccess;
-            public event Action Changed { add { } remove { } }
+            private Action<string> captureFailure;
+            public event Action Changed;
             public event Action<string> StickerTapped { add { } remove { } }
             public CameraPresentationState CameraPresentation => CameraPresentationState.Live;
-            public PlacementScanState ScanState => PlacementScanState.Ready;
+            public PlacementScanState ScanState => Scan;
             public bool IsTracking => true;
             public bool CanPublish => CanPublishEnabled;
             public bool CanCollect => false;
             public bool HasPlacementSurface => true;
-            public bool HasPlacementPreview => true;
+            public bool HasPlacementPreview => Preview;
             public bool HasTrackedPlacement => true;
             public bool PlacementBusy => false;
             public float PlacementWidthMeters => .2f;
             public float PlacementRotationDegrees => 0;
             public string Status => "";
             public void Enter() { }
-            public void Exit() { }
-            public void SelectPreset(string id) { SelectedPresetId = id; }
-            public void CancelPlacement() { }
+            public void Exit() { Preview = false; PlacementRevision++; Changed?.Invoke(); }
+            public void SelectPreset(string id) { SelectedPresetId = id; PlacementRevision++; }
+            public void CancelPlacement() { PlacementRevision++; }
             public void SetCameraInteraction(Rect rect, bool blocked) { }
             public void Place(Vector2 point) { }
-            public void AdjustPlacement(float width, float rotation, Vector2? point = null) { }
+            public void AdjustPlacement(float width, float rotation, Vector2? point = null) { PlacementRevision++; }
+            public void ChangePlacement() { PlacementRevision++; Changed?.Invoke(); }
             public void Capture(Action<SpatialSnapshot> success, Action<string> failure)
             {
                 CaptureCount++;
-                if (HoldCapture) captureSuccess = success;
+                if (HoldCapture) { captureSuccess = success; captureFailure = failure; }
                 else if (SucceedCapture) success(new SpatialSnapshot
                     { worldMapBase64 = Convert.ToBase64String(new byte[] { 1 }), widthMeters = .2f });
                 else failure("Intentional capture stop for sequencing test.");
             }
             public void CompleteCapture() => captureSuccess?.Invoke(new SpatialSnapshot
             { worldMapBase64 = Convert.ToBase64String(new byte[] { 1 }), widthMeters = .2f });
+            public void FailCapture(string error) => captureFailure?.Invoke(error);
             public void Recover(RecoveryData recovery) { }
         }
 

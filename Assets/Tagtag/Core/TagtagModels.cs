@@ -124,6 +124,7 @@ namespace Tagtag
         public CollectedSticker detail;
         public string status = "", error = "", designError = "", selectedPreset = "", draftPlace = "", draftTeaser = "", draftNote = "";
         public bool busy, discoveryLoading, nearbyLoading, accountOpen, servicesConfigured, hasPendingPublication;
+        public bool capturingSpot, hasCapturedSpot;
         public bool locationSettingsRequired;
         public bool nftEnabled;
         public string walletAddress = "", walletStatus = "";
@@ -155,6 +156,10 @@ namespace Tagtag
         void AdjustPlacement(float widthMeters, float rotationDegrees, Vector2? screenPoint = null);
         void Capture(Action<SpatialSnapshot> success, Action<string> failure);
         void Recover(RecoveryData recovery);
+    }
+    public interface IPlacementRevision
+    {
+        int PlacementRevision { get; }
     }
     public interface IMapExperience
     {
@@ -200,6 +205,7 @@ namespace Tagtag
         void StartDiscovery();
         void SelectPreset(string presetId);
         void SetDraft(string place, string teaser, string note);
+        void CaptureSpot();
         void Publish();
         void CancelPlacement();
         void OpenCollected(string id);
