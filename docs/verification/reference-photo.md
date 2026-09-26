@@ -29,3 +29,25 @@ Capture, map storage, AR matching and collection eligibility are unchanged.
   Captures use a synthetic magenta image, not a user's saved photo.
 - Physical discovery of a newly published sticker remains to be checked after
   installing the updated iPhone build.
+
+## Unloaded photo message
+
+The user clarified that the thumbnail said No reference photo. Production
+request logs contained no recent recovery calls, while recent publications
+recorded approximate location accuracy of roughly 1.4–2 km. Discovery requests
+require a fresh fix within 50 m accuracy before loading the private map; this
+is consistent with discovery stopping at location lookup, though the user's
+on-device error is still needed to confirm the exact failure.
+
+The UI also displayed No reference photo for the initial None state. A second
+regression reproduced this after a simulated location failure. None now reads
+Photo not loaded, Loading reads Loading photo, and the existing location error
+and retry action remain visible. This does not relax location authorization.
+
+The expanded mounted-view test also exposed a missing discovery status notice:
+STICK never mounted the normal status component, so location errors and the
+Open Settings action were absent. A discovery-only notice now shows progress,
+errors, and location settings recovery in the bottom controls. The focused
+regression passes (`/tmp/tagtag-photo-status-green.xml`).
+
+Final full mounted UI suite: 11/11 passed (`/tmp/tagtag-photo-final-play.xml`).

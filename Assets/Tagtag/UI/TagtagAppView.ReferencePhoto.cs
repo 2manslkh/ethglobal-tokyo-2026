@@ -64,7 +64,8 @@ namespace Tagtag.UI
             recoveryPhotoImage.image = ready ? photo : null;
             recoveryPhotoImage.style.display = ready ? DisplayStyle.Flex : DisplayStyle.None;
             recoveryPhotoPlaceholder.text = state.discoveryLoading || photos?.PhotoState == ReferencePhotoState.Loading
-                ? "Loading photo…" : "No reference photo";
+                ? "Loading photo…" : photos?.PhotoState == ReferencePhotoState.Unavailable
+                    ? "No reference photo" : "Photo not loaded";
             recoveryPhotoPlaceholder.style.display = ready ? DisplayStyle.None : DisplayStyle.Flex;
             SetDisabled(recoveryPhotoButton, !ready);
             if (referencePhotoFull != null && referencePhotoFull.panel != null)

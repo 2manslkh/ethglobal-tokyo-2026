@@ -171,6 +171,7 @@ namespace Tagtag.UI
         private VisualElement stickScanProgress;
         private readonly List<VisualElement> stickScanStages = new List<VisualElement>();
         private Label stickScanRecovery;
+        private VisualElement discoveryStatusHost;
         private Label noteScanGuidance;
         private Button noteContinueScanning;
         private readonly PaperSurfaceTap placementTap = new PaperSurfaceTap();
@@ -314,6 +315,9 @@ namespace Tagtag.UI
             stickScanRecovery.name = "STICK scan recovery";
             stickScanRecovery.style.unityTextAlign = TextAnchor.MiddleCenter;
             stickScanRecovery.style.marginBottom = 6f;
+            discoveryStatusHost = Column(dock);
+            discoveryStatusHost.name = "Discovery status";
+            AddStatus(discoveryStatusHost, state);
             stickActions = Row(dock);
             stickActions.style.alignItems = Align.Center;
             stickActions.style.justifyContent = Justify.SpaceBetween;
@@ -413,6 +417,9 @@ namespace Tagtag.UI
             if (stickActions == null) return;
             IArExperience ar = controller?.Ar;
             bool selected = PaperFlow.HasPlacementSelection(state);
+            discoveryStatusHost.style.display = !selected && state.selected != null &&
+                (state.discoveryLoading || !string.IsNullOrEmpty(state.error) || state.locationSettingsRequired)
+                ? DisplayStyle.Flex : DisplayStyle.None;
             RefreshRecoveryPreview(state);
             RefreshSelectedArtwork(state);
             PaperStickState placement = PaperFlow.StickPlacement(state, ar?.IsTracking ?? false,

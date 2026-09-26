@@ -51,6 +51,19 @@ namespace Tagtag.Tests
                 Assert.That(preview.Query<Label>().ToList().Any(label => label.text == "Loading photo…"), Is.True);
                 Assert.That(preview.enabledSelf, Is.False);
                 controller.State.discoveryLoading = false;
+                controller.State.error = "Turn on Precise Location for tagtag in Settings, then try again.";
+                controller.State.locationSettingsRequired = true;
+                controller.Notify();
+                yield return Capture("reference-photo-not-loaded");
+                Assert.That(preview.Query<Label>().ToList().Any(label => label.text == "Photo not loaded"), Is.True,
+                    "A failed recovery must not claim the sticker has no saved photo.");
+                Assert.That(document.rootVisualElement.Query<Label>().ToList().Any(label => label.text == controller.State.error), Is.True);
+                Assert.That(document.rootVisualElement.Q<Button>("Open location settings").resolvedStyle.display,
+                    Is.EqualTo(DisplayStyle.Flex));
+                Assert.That(document.rootVisualElement.Q("Discovery status").resolvedStyle.display,
+                    Is.EqualTo(DisplayStyle.Flex));
+                controller.State.error = "";
+                controller.State.locationSettingsRequired = false;
                 controller.Camera.ReferencePhoto = photo;
                 controller.Camera.PhotoState = ReferencePhotoState.Ready;
                 controller.Camera.CameraPresentation = CameraPresentationState.Live;
