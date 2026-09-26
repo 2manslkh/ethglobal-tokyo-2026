@@ -240,7 +240,7 @@ the feed. Collection gets a small confirmation after success.
 Camera mode fills the screen and hides the bottom tab bar. The native iOS status
 bar stays visible, with dark text on an opaque paper backing above safe-area
 controls. A 48-point circular paper-white Close sticker uses an inset charcoal
-dotted circle, centered X, subtle shadow, and “Close camera” accessible label. It
+dashed circle, centered X, subtle shadow, and “Close camera” accessible label. It
 returns to the destination that opened the camera. A
 circular 88-point STICK action opens **Your stickers**, the four-pose inventory.
 Keep the camera controls on readable paper backings rather than importing native
@@ -249,9 +249,9 @@ glass. This flow adapts `sticker-app`'s `DeviceApp.CameraScreen`, `SurfaceTap`,
 
 1. Open the inventory and choose a Taggi pose without placing a preview automatically.
    The top placement sticker is a sharp-cornered paper-white rectangle with an
-   inset dotted border and only **Place Sticker** centered inside. Keep tracking,
+   inset dashed border and only **Place Sticker** centered inside. Keep tracking,
    placement guidance, discovery clues, and recovery messages in a separate compact
-   scrollable paper notice below it. Dotted outlines do not intercept input.
+   scrollable paper notice below it. Dashed outlines do not intercept input.
 2. Distinguish finding tracking, finding a surface, and a surface ready for a tap.
    Outline tracked, unsubsumed plane boundaries in yellow while choosing a spot.
 3. A short tap inside a tracked polygon places the preview. Drag, long press,
@@ -300,6 +300,33 @@ alone does not satisfy them.
   [device verification](docs/DEVICE_VERIFICATION.md). Do not describe an untested
   camera transition or migrated component as verified.
 
-### Dotted stationery accents
+### Die-cut stationery accents
 
-Use inset charcoal dots on featured paper containers and key sticker actions. Rounded rectangles use wider spacing on containers; action capsules use tighter spacing. Avoid decorating both an enclosing container and its inner action. The camera inventory button pairs a 52-point Taggi holding an open sticker book with a live STICK label inside its 88-point circular target. Bottom navigation keeps its star-holding Taggi illustration. Dots and artwork ignore pointer input; existing focus and disabled treatments remain visible.
+Use inset charcoal dashes on featured paper containers and key sticker actions. Rounded rectangles use wider spacing on containers; action capsules use tighter spacing. Avoid decorating both an enclosing container and its inner action. The camera inventory button pairs a 52-point Taggi holding an open sticker book with a live STICK label inside its 88-point circular target. Bottom navigation keeps its star-holding Taggi illustration. Cut lines and artwork ignore pointer input; existing focus and disabled treatments remain visible.
+
+### Home library and camera selection
+
+Home has Collected, Your Designs, and Placed sections, each retaining its own
+scroll position. Make a sticker lives inside Your Designs above the saved designs.
+Placed lists active publications newest first, showing artwork, place, and date;
+opening one centers and selects its location in Explore. Withdrawn stickers remain
+available through existing account management, not the Placed section.
+
+Featured containers and primary/secondary actions use inset charcoal dashed
+cut lines. Quiet inline actions stay simple. Avoid decorating both a container
+and its nested controls. Press feedback changes the paper tone without moving
+or resizing controls; focus and disabled states remain distinct.
+
+While choosing or adjusting a camera placement, show its artwork in an 80-point
+paper thumbnail above the bottom dock, aligned to its right edge with a 12-point
+gap. Tapping opens the existing sticker picker. This control blocks camera
+placement input and is hidden during recovery, discovery, and modal presentation.
+
+### Explore loading
+
+Mount the map before GPS completes. Retain the viewport across visits and keep
+previous pins visible while refreshing. Distinguish map tile loading, finding
+location, and fetching nearby stickers; failures offer retry without blanking
+existing content. Nearby results, including empty results, are reused for 60
+seconds on automatic navigation; explicit refresh always requests fresh data.
+A location opened from Placed is a browsing target, never a device location fix.
