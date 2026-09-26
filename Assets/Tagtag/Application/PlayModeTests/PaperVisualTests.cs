@@ -532,9 +532,9 @@ namespace Tagtag.Tests
             Assert.That(brand.resolvedStyle.unityFont, Is.SameAs(Resources.Load<Font>("Tagtag/Fonts/ShadowsIntoLight")));
             foreach (var label in document.rootVisualElement.Query<Label>(className: "nav-label").ToList())
                 Assert.That(label.resolvedStyle.unityFont, Is.SameAs(Resources.Load<Font>("Tagtag/Fonts/InstrumentSemibold")));
-            foreach (var title in new[] { "Home", "STICK", "Explore" })
+            foreach (var tabTitle in new[] { "Home", "STICK", "Explore" })
             {
-                var tab = document.rootVisualElement.Q<Button>("Tab " + title);
+                var tab = document.rootVisualElement.Q<Button>("Tab " + tabTitle);
                 Assert.That(tab.Q<Image>().image, Is.Not.Null, "Taggi artwork must be included in the player.");
                 Assert.That(tab.layout.height, Is.GreaterThanOrEqualTo(44f));
             }
@@ -742,10 +742,10 @@ namespace Tagtag.Tests
             Assert.That(discoveryButton.enabledSelf, Is.True, "Nearby reads must not disable discovery.");
             controller.State.nearbyLoading = false;
             controller.Notify();
-            foreach (string title in new[] { "Report", "Block author" })
+            foreach (string moderationTitle in new[] { "Report", "Block author" })
             {
-                Button moderationButton = document.rootVisualElement.Query<Button>().ToList().First(button => button.text == title);
-                Assert.That(moderationButton.enabledSelf, Is.False, title + " must remain disabled.");
+                Button moderationButton = document.rootVisualElement.Query<Button>().ToList().First(button => button.text == moderationTitle);
+                Assert.That(moderationButton.enabledSelf, Is.False, moderationTitle + " must remain disabled.");
             }
             controller.State.selected = null;
             controller.State.error = "Nearby stickers could not load. Check your connection and try again.";
