@@ -602,14 +602,11 @@ namespace Tagtag.Tests
             Assert.That(discoveryButton.enabledSelf, Is.True, "Nearby reads must not disable discovery.");
             controller.State.nearbyLoading = false;
             controller.Notify();
-            Submit("Report");
-            yield return Capture("report-sheet");
-            Submit("Close");
-            yield return new WaitForSecondsRealtime(.4f);
-            Submit("Block author");
-            yield return Capture("block-sheet");
-            Submit("Close");
-            yield return new WaitForSecondsRealtime(.4f);
+            foreach (string title in new[] { "Report", "Block author" })
+            {
+                Button moderationButton = document.rootVisualElement.Query<Button>().ToList().First(button => button.text == title);
+                Assert.That(moderationButton.enabledSelf, Is.False, title + " must remain disabled.");
+            }
             controller.State.selected = null;
             controller.State.error = "Nearby stickers could not load. Check your connection and try again.";
             controller.Notify();

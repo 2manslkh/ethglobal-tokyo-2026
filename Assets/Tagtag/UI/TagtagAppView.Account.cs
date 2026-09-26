@@ -873,8 +873,8 @@ namespace Tagtag.UI
             Text(content, sticker.unavailable ? "This note is no longer available." : Safe(sticker.note, "No note available."), 17).style.marginTop = 7f;
             VisualElement actions = Row(content);
             actions.style.marginTop = 20f;
-            Action(actions, "Report", () => OpenReport(sticker.id), false);
-            if (!string.IsNullOrEmpty(sticker.authorId)) Action(actions, "Block author", () => OpenBlock(sticker.authorId), false);
+            SetDisabled(Action(actions, "Report", null, false), true);
+            if (!string.IsNullOrEmpty(sticker.authorId)) SetDisabled(Action(actions, "Block author", null, false), true);
         }
 
         private void BuildReportSheet(VisualElement content, AppState state)

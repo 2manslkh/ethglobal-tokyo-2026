@@ -127,8 +127,8 @@ namespace Tagtag.UI
                     exploreFindButton.style.marginTop = 10f;
                     VisualElement secondary = Row(explorePreview);
                     secondary.style.justifyContent = Justify.SpaceBetween;
-                    Action(secondary, "Report", () => OpenReport(selected.id), false, true);
-                    if (!string.IsNullOrEmpty(selected.authorId)) Action(secondary, "Block author", () => OpenBlock(selected.authorId), false, true);
+                    SetDisabled(Action(secondary, "Report", null, false, true), true);
+                    if (!string.IsNullOrEmpty(selected.authorId)) SetDisabled(Action(secondary, "Block author", null, false, true), true);
                 }
             }
             if (exploreFindButton != null) SetDisabled(exploreFindButton, state.busy);
