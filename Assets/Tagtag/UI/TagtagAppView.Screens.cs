@@ -362,10 +362,8 @@ namespace Tagtag.UI
             controller.Map.Show(screenRect, controller.State.location, controller.State.nearby);
         }
 
-        private VisualElement stickGuidance;
         private VisualElement stickActions;
         private VisualElement cameraSurface;
-        private Label stickPlacementGuidanceLabel;
         private Label stickModeTitle;
         private Button stickWriteButton;
         private Button stickInventoryButton;
@@ -459,17 +457,6 @@ namespace Tagtag.UI
             topCard.Add(new PaperDottedOutline(false));
             stickModeTitle = Text(topCard, "STICK", 23, true);
             stickModeTitle.style.unityTextAlign = TextAnchor.MiddleCenter;
-            ScrollView guidanceScroll = PaperScroll(topContent);
-            guidanceScroll.name = "STICK guidance scroll";
-            guidanceScroll.AddToClassList("camera-guidance-notice");
-            guidanceScroll.style.flexGrow = 0f;
-            guidanceScroll.style.maxHeight = 116f;
-            stickGuidance = guidanceScroll.contentContainer;
-            stickPlacementGuidanceLabel = Text(stickGuidance, "", 14, false, Ink);
-            stickPlacementGuidanceLabel.name = "STICK Placement Guidance";
-            cameraTrackingLabel = Text(stickGuidance, "", 12, false, Muted);
-            cameraTrackingLabel.style.marginTop = 2f;
-            AddStatus(stickGuidance, state);
             VisualElement dock = Column(page);
             dock.name = "STICK camera dock";
             dock.style.position = Position.Absolute;
@@ -549,9 +536,6 @@ namespace Tagtag.UI
                 ar?.HasPlacementSurface ?? false, ar?.HasPlacementPreview ?? false,
                 ar?.PlacementBusy ?? false);
             stickModeTitle.text = selected ? placement.Title : state.selected != null ? "Find sticker" : "STICK";
-            stickPlacementGuidanceLabel.text = selected ? placement.Guidance : state.selected != null ?
-                PaperFlow.DiscoveryGuidance(state.selected) :
-                "Open your stickers, choose one, then place it on a surface.";
             stickWriteButton.style.display = selected ? DisplayStyle.Flex : DisplayStyle.None;
             SetDisabled(stickWriteButton, !placement.CanWriteNote);
             stickRetryButton.style.display = PaperFlow.ShowDiscoveryRetry(state) ? DisplayStyle.Flex : DisplayStyle.None;
@@ -560,9 +544,6 @@ namespace Tagtag.UI
             SetDisabled(stickCancelButton, state.busy || (ar?.PlacementBusy ?? false));
             SetDisabled(stickInventoryButton, state.busy || (ar?.PlacementBusy ?? false));
             SetDisabled(stickCloseButton, state.busy);
-            if (cameraTrackingLabel != null)
-                cameraTrackingLabel.text = ar == null ? "AR is unavailable on this device." :
-                    Safe(ar.Status, ar.IsTracking ? "Look around for Taggi." : "Move slowly to scan your surroundings.");
             UpdateCameraInteraction();
         }
 

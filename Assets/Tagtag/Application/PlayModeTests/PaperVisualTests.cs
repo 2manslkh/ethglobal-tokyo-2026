@@ -289,8 +289,8 @@ namespace Tagtag.Tests
             var card = document.rootVisualElement.Q("STICK title sticker");
             Assert.That(card.Query<Label>().ToList().Select(label => label.text), Is.EqualTo(new[] { "Place Sticker" }));
             Assert.That(card.Query<Image>().ToList(), Is.Empty);
-            Assert.That(document.rootVisualElement.Q("STICK Placement Guidance").worldBound.yMin,
-                Is.GreaterThanOrEqualTo(card.worldBound.yMax));
+            Assert.That(document.rootVisualElement.Q("STICK guidance scroll"), Is.Null);
+            Assert.That(document.rootVisualElement.Q("STICK Placement Guidance"), Is.Null);
             Submit("STICK Write note");
             yield return Capture("camera-note-after-placement");
             Assert.That(document.rootVisualElement.Q<TextField>("Your note"), Is.Not.Null);
@@ -437,7 +437,7 @@ namespace Tagtag.Tests
             controller.State.selected = Sticker(0);
             controller.Notify();
             yield return Capture("camera-discovery");
-            StringAssert.Contains("Look beside the little red bridge.", document.rootVisualElement.Q<Label>("STICK Placement Guidance").text);
+            Assert.That(document.rootVisualElement.Q("STICK guidance scroll"), Is.Null);
             controller.State.selected = null;
             controller.Notify();
             Assert.That(document.rootVisualElement.Q("Opaque camera cover").resolvedStyle.display, Is.EqualTo(DisplayStyle.None));

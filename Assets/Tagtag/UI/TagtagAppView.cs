@@ -35,7 +35,6 @@ namespace Tagtag.UI
         private VisualElement navHost;
         private VisualElement overlayHost;
         private VisualElement cameraCover;
-        private Label cameraTrackingLabel;
         private Button publishButton;
         private Label publishReadinessLabel;
         private Button homeProfileButton;
@@ -343,7 +342,6 @@ namespace Tagtag.UI
                 mapRegion = null;
                 activeDraftScroll = null;
                 cameraCover = null;
-                cameraTrackingLabel = null;
                 publishButton = null;
                 publishReadinessLabel = null;
                 homeProfileButton = null;
@@ -355,7 +353,6 @@ namespace Tagtag.UI
                 exploreLocationNotice = null;
                 exploreMapMessage = null;
                 exploreFindButton = null;
-                stickGuidance = null;
                 stickActions = null;
                 cameraSurface = null;
                 stickWriteButton = null;
