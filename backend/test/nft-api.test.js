@@ -96,12 +96,12 @@ test('first collection atomically queues one private-free mint and exposes pendi
     } finally { await f.close(); }
 });
 
-test('all twelve preset collections keep their IDs and map to the four supported NFT variants', async () => {
+test('all thirteen preset collections keep their IDs and map to the four supported NFT variants', async () => {
     const f = await fixture();
     try {
-        const expectedVariants = [0, 1, 2, 3, 0, 0, 0, 0, 0, 0, 0, 0];
+        const expectedVariants = [0, 1, 2, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0];
         const expected = new Map();
-        for (let index = 1; index <= 12; index++) {
+        for (let index = 1; index <= 13; index++) {
             const presetId = `taggi-${index}`;
             const id = await f.publish({ operationId: `preset-${index}`, presetId, author: index <= 6 ? 'alice' : 'admin' });
             const result = await f.collect(id);
@@ -111,10 +111,10 @@ test('all twelve preset collections keep their IDs and map to the four supported
         }
         const collection = await f.call('GET', '/v1/collection');
         assert.equal(collection.status, 200);
-        assert.equal(collection.data.items.length, 12);
+        assert.equal(collection.data.items.length, 13);
         for (const item of collection.data.items) assert.equal(item.presetId, expected.get(item.id).presetId);
         const jobs = await f.adapter.query('nftMints');
-        assert.equal(jobs.length, 12);
+        assert.equal(jobs.length, 13);
         for (const job of jobs) assert.equal(job.preset, expected.get(job.stickerId).variant, job.stickerId);
     } finally { await f.close(); }
 });

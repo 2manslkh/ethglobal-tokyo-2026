@@ -941,9 +941,9 @@ namespace Tagtag.Tests
             var inventorySheet = document.rootVisualElement.Q<PaperSheet>();
             var inventoryGrid = inventorySheet.Q<VisualElement>("Sticker inventory grid");
             Assert.That(inventoryGrid, Is.Not.Null);
-            Assert.That(inventoryGrid.childCount, Is.EqualTo(14), "Saved designs, twelve originals, and Add Sticker appear in the inventory.");
+            Assert.That(inventoryGrid.childCount, Is.EqualTo(15), "Saved designs, thirteen originals, and Add Sticker appear in the inventory.");
             Assert.That(inventoryGrid[0].name, Is.EqualTo("Inventory Design creation-review-image"));
-            Assert.That(inventoryGrid[13].name, Is.EqualTo("Add Sticker"));
+            Assert.That(inventoryGrid[14].name, Is.EqualTo("Add Sticker"));
             Assert.That(inventorySheet.Query<Label>().ToList().Any(label => label.text == "An afternoon in Tokyo"), Is.False,
                 "Sticker names are hidden from the placement inventory.");
             Submit("Add Sticker");
@@ -1186,7 +1186,7 @@ namespace Tagtag.Tests
         }
 
         [UnityTest]
-        public IEnumerator CompactInventoryScrollsToTwelfthStickerAndAddSticker()
+        public IEnumerator CompactInventoryScrollsToThirteenthStickerAndAddSticker()
         {
             oldScale = PlayerPrefs.GetFloat("tagtag.textScale", 1f);
             oldMotion = PlayerPrefs.GetInt("tagtag.reducedMotion", 0);
@@ -1199,20 +1199,20 @@ namespace Tagtag.Tests
             target.Create();
             document.panelSettings.targetTexture = target;
             controller.OpenCreation();
-            yield return Capture("twelve-presets-compact-top");
+            yield return Capture("thirteen-presets-compact-top");
             var grid = document.rootVisualElement.Q<VisualElement>("Sticker inventory grid");
-            Assert.That(grid.childCount, Is.EqualTo(13));
+            Assert.That(grid.childCount, Is.EqualTo(14));
             var sheet = document.rootVisualElement.Q<PaperSheet>();
-            sheet.Scroll.ScrollTo(grid[12]);
-            yield return Capture("twelve-presets-compact-bottom");
+            sheet.Scroll.ScrollTo(grid[13]);
+            yield return Capture("thirteen-presets-compact-bottom");
             Assert.That(sheet.Scroll.scrollOffset.y, Is.GreaterThan(0f));
-            foreach (int index in new[] { 11, 12 })
+            foreach (int index in new[] { 12, 13 })
             {
                 Assert.That(grid[index].worldBound.yMin, Is.GreaterThanOrEqualTo(sheet.Scroll.contentViewport.worldBound.yMin - 1f));
                 Assert.That(grid[index].worldBound.yMax, Is.LessThanOrEqualTo(sheet.Scroll.contentViewport.worldBound.yMax + 1f));
             }
-            Submit("Inventory Thinking Taggi");
-            Assert.That(controller.State.selectedPreset, Is.EqualTo("taggi-12"));
+            Submit("Inventory Taggi holding ETHGlobal Tokyo sticker");
+            Assert.That(controller.State.selectedPreset, Is.EqualTo("taggi-13"));
         }
 
         private IEnumerator Capture(string name)

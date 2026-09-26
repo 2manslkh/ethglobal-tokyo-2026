@@ -77,7 +77,7 @@ namespace Tagtag.AR.PlayMode.Tests
                         Is.SameAs(Resources.Load<Texture2D>("Tagtag/Presets/" + id)));
                     yield return null;
                 }
-                experience.SelectPreset("taggi-13");
+                experience.SelectPreset("taggi-14");
                 Assert.That(selected.GetValue(experience), Is.Null);
                 yield return null;
             }

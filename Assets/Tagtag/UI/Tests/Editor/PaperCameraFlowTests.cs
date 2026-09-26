@@ -9,10 +9,10 @@ namespace Tagtag.UI.Tests
         public void NewDefaultStickersHaveDistinctAccessibleNames()
         {
             string[] names = { "Waving Taggi", "Heart-hugging Taggi", "Laughing Taggi", "Sleepy Taggi",
-                "Surprised Taggi", "Cheering Taggi", "Shy Taggi", "Thinking Taggi" };
+                "Surprised Taggi", "Cheering Taggi", "Shy Taggi", "Thinking Taggi", "Taggi holding ETHGlobal Tokyo sticker" };
             for (int index = 0; index < names.Length; index++)
                 Assert.That(PaperFlow.PresetName("taggi-" + (index + 5)), Is.EqualTo(names[index]));
-            Assert.That(PaperFlow.PresetName("taggi-13"), Is.EqualTo("Taggi"));
+            Assert.That(PaperFlow.PresetName("taggi-14"), Is.EqualTo("Taggi"));
         }
 
         [Test]

@@ -50,11 +50,11 @@ test('public nearby hides notes, map URLs and exact placement recovery fields', 
     } finally { await f.close(); }
 });
 
-test('all twelve presets retain their exact IDs through publication and collection', async () => {
+test('all thirteen presets retain their exact IDs through publication and collection', async () => {
     const f = await fixture();
     try {
         const expected = new Map();
-        for (let index = 1; index <= 12; index++) {
+        for (let index = 1; index <= 13; index++) {
             const presetId = `taggi-${index}`;
             const operationId = `preset-${index}`;
             const author = index <= 6 ? 'alice' : 'admin';
@@ -77,7 +77,7 @@ test('all twelve presets retain their exact IDs through publication and collecti
         }
         const collection = await f.call('GET', '/v1/collection', undefined, 'bob');
         assert.equal(collection.status, 200);
-        assert.equal(collection.data.items.length, 12);
+        assert.equal(collection.data.items.length, 13);
         for (const item of collection.data.items) assert.equal(item.presetId, expected.get(item.id));
     } finally { await f.close(); }
 });
@@ -85,7 +85,7 @@ test('all twelve presets retain their exact IDs through publication and collecti
 test('publication rejects malformed and unknown preset IDs', async () => {
     const f = await fixture();
     try {
-        for (const presetId of ['taggi-0', 'taggi-13', 'taggi-01', 'taggi--1', 'taggi-1x', 'taggi-12 ', 'Taggi-1', 12]) {
+        for (const presetId of ['taggi-0', 'taggi-14', 'taggi-01', 'taggi--1', 'taggi-1x', 'taggi-13 ', 'Taggi-1', 13]) {
             const result = await f.call('POST', '/v1/publications/prepare', { ...draft(), presetId });
             assert.equal(result.status, 400, String(presetId));
         }

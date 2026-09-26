@@ -2,6 +2,8 @@
 
 `taggi-1` through `taggi-4` retain the supplied artwork. `taggi-5` through `taggi-12` were generated with the built-in imagegen tool on 2026-09-26, using `Assets/Resources/Taggi.png` as the identity reference. PNGs retain their generated dimensions without resampling; Unity import settings match the existing presets. Following artwork review, the requested alpha-fringe cleanup sets alpha values below 16/255 to zero with Sharp. All RGB values and alpha values at or above 16/255 are unchanged. This removes faint detached specks while retaining the opaque artwork and waving motion marks.
 
+`taggi-13` was generated with the built-in imagegen tool on 2026-09-27. It uses `Assets/Resources/Taggi.png` for mascot identity, `taggi-12.png` for preset linework, and the user-supplied `IMG_1655.HEIC` as the reference for the round ETHGlobal Tokyo 2026 sticker. Only the generated transparent PNG is bundled in the app; the source photo stays outside the repository. Its NFT souvenir uses the generic Taggi variant.
+
 ## Prompts
 
 ### taggi-5
@@ -36,3 +38,7 @@ Correction: Edit this individual Taggi sticker. Correct anatomy: Taggi needs TWO
 ### taggi-12
 
 Create ONE individual game sticker PNG, square 512 by 512, genuine transparent alpha background, no checkerboard baked in. Use the provided original Taggi mascot as identity reference only. Taggi is a very simple handmade white rabbit-like blob creature, two long uneven ears continuous with the body, thick irregular smooth black ink contour, tiny black dot facial features, rounded mitten arms and big simple rounded feet, no fur, no clothes, no gradients. Preserve the exact recognizable creature style and proportions; do not turn into a conventional rabbit. New pose: thinking, one hand touching chin, head tilted. Full body centered, occupies about 85% of canvas, all extremities within frame. Solid white fill inside creature, narrow white die-cut outline outside black contour, transparent outside. Pure black and white, no text, no props except specified, no shadow or floor. Match the supplied reference's minimal drawing closely. Deliver only one sticker.
+
+### taggi-13
+
+Create one square transparent Unity AR sticker with Taggi holding the round ETHGlobal Tokyo 2026 sticker in front of their lower torso with both hands. Match the original Taggi identity and the existing die-cut linework: a white handmade rabbit-like blob, two long ears, three black facial dots, exactly two mitten arms, rounded feet, thick irregular black contour, and a narrow continuous white outer border. Reproduce the reference sticker's red outer ring, white curved ETHGLOBAL TOKYO lettering, 2026 on each side, ETHGLOBAL at bottom, dark center, yellow ring, and mountain/flame emblem. Keep everything inside the canvas on a genuinely transparent background. No other text, props, shadows, or stray pixels.

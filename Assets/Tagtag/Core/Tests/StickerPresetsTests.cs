@@ -7,10 +7,10 @@ namespace Tagtag.Tests
     public sealed class StickerPresetsTests
     {
         [Test]
-        public void TwelveOrderedDefaultStickersHaveArtworkAndUniqueNames()
+        public void ThirteenOrderedDefaultStickersHaveArtworkAndUniqueNames()
         {
-            Assert.That(StickerPresets.Ids, Is.EqualTo(Enumerable.Range(1, 12).Select(index => "taggi-" + index)));
-            Assert.That(StickerPresets.Ids.Select(StickerPresets.DisplayName).Distinct().Count(), Is.EqualTo(12));
+            Assert.That(StickerPresets.Ids, Is.EqualTo(Enumerable.Range(1, 13).Select(index => "taggi-" + index)));
+            Assert.That(StickerPresets.Ids.Select(StickerPresets.DisplayName).Distinct().Count(), Is.EqualTo(13));
             foreach (string id in StickerPresets.Ids)
             {
                 Assert.That(StickerPresets.Contains(id), Is.True);
@@ -23,10 +23,10 @@ namespace Tagtag.Tests
         [TestCase(null)]
         [TestCase("")]
         [TestCase("taggi-0")]
-        [TestCase("taggi-13")]
+        [TestCase("taggi-14")]
         [TestCase("taggi-01")]
         [TestCase("TAGGI-1")]
-        [TestCase("taggi-12-extra")]
+        [TestCase("taggi-13-extra")]
         public void UnknownDefaultStickerIdsAreRejected(string id)
         {
             Assert.That(StickerPresets.Contains(id), Is.False);

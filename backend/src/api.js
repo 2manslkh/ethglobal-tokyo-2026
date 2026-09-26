@@ -8,7 +8,8 @@ const MAX_MAP = 16 * 1024 * 1024;
 const PRESET_NFT_VARIANTS = new Map([
     ['taggi-1', 0], ['taggi-2', 1], ['taggi-3', 2], ['taggi-4', 3],
     ['taggi-5', 0], ['taggi-6', 0], ['taggi-7', 0], ['taggi-8', 0],
-    ['taggi-9', 0], ['taggi-10', 0], ['taggi-11', 0], ['taggi-12', 0]
+    ['taggi-9', 0], ['taggi-10', 0], ['taggi-11', 0], ['taggi-12', 0],
+    ['taggi-13', 0]
 ]);
 const MAX_BODY = 32768;
 const DISCOVERY_SECONDS = 300;

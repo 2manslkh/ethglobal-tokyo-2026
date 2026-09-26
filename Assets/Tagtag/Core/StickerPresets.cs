@@ -8,14 +8,16 @@ namespace Tagtag
         public static IReadOnlyList<string> Ids { get; } = Array.AsReadOnly(new[]
         {
             "taggi-1", "taggi-2", "taggi-3", "taggi-4", "taggi-5", "taggi-6",
-            "taggi-7", "taggi-8", "taggi-9", "taggi-10", "taggi-11", "taggi-12"
+            "taggi-7", "taggi-8", "taggi-9", "taggi-10", "taggi-11", "taggi-12",
+            "taggi-13"
         });
 
         private static readonly string[] names =
         {
             "Taggi pose 1", "Taggi pose 2", "Taggi pose 3", "Taggi pose 4",
             "Waving Taggi", "Heart-hugging Taggi", "Laughing Taggi", "Sleepy Taggi",
-            "Surprised Taggi", "Cheering Taggi", "Shy Taggi", "Thinking Taggi"
+            "Surprised Taggi", "Cheering Taggi", "Shy Taggi", "Thinking Taggi",
+            "Taggi holding ETHGlobal Tokyo sticker"
         };
 
         public static bool Contains(string id) => IndexOf(id) >= 0;

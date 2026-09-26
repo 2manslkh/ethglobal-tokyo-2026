@@ -23,7 +23,7 @@ namespace Tagtag.Services.Tests
         }
 
         [Test]
-        public void AllTwelveDefaultStickersCanBeSelectedAndUnknownIdsAreIgnored()
+        public void AllThirteenDefaultStickersCanBeSelectedAndUnknownIdsAreIgnored()
         {
             var camera = new Camera();
             var identity = new Identity();
@@ -31,18 +31,18 @@ namespace Tagtag.Services.Tests
                 deviceLocation: new DeviceLocation(new TrackingLocationRuntime()));
             try
             {
-                for (int index = 1; index <= 12; index++)
+                for (int index = 1; index <= 13; index++)
                 {
                     string id = "taggi-" + index;
                     controller.SelectPreset(id);
                     Assert.That(controller.State.selectedPreset, Is.EqualTo(id));
                     Assert.That(camera.SelectedPresetId, Is.EqualTo(id));
                 }
-                foreach (string invalid in new[] { null, "", "taggi-0", "taggi-13", "taggi-01", "TAGGI-1", "taggi-12-extra" })
+                foreach (string invalid in new[] { null, "", "taggi-0", "taggi-14", "taggi-01", "TAGGI-1", "taggi-13-extra" })
                 {
                     controller.SelectPreset(invalid);
-                    Assert.That(controller.State.selectedPreset, Is.EqualTo("taggi-12"));
-                    Assert.That(camera.SelectedPresetId, Is.EqualTo("taggi-12"));
+                    Assert.That(controller.State.selectedPreset, Is.EqualTo("taggi-13"));
+                    Assert.That(camera.SelectedPresetId, Is.EqualTo("taggi-13"));
                 }
             }
             finally { controller.Dispose(); RemoveEditable(identity.UserId); }
