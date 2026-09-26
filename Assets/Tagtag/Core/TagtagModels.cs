@@ -14,6 +14,15 @@ namespace Tagtag
         public float accuracyMeters;
         public long measuredUnixSeconds;
     }
+    [Serializable] public sealed class ConfirmedLocation
+    {
+        public double latitude, longitude;
+    }
+    public interface ILocationConfirmation
+    {
+        void Open(LocationFix measured, Action<ConfirmedLocation> completed, ConfirmedLocation fixedSpot = null);
+        void Cancel();
+    }
     [Serializable] public class StickerSummary
     {
         public string id, presetId, authorId, authorName, place, teaser;
@@ -59,6 +68,8 @@ namespace Tagtag
         public string operationId, presetId, designId, place, teaser, note;
         public LocationFix location;
         public SpatialSnapshot snapshot;
+        public ConfirmedLocation confirmedLocation;
+        public bool locationConfirmed, hasPublicationLocation;
     }
     [Serializable] public sealed class IdentityCredential
     {

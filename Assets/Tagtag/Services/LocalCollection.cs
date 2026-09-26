@@ -139,7 +139,7 @@ namespace Tagtag.Services
         private int lifecycleVersion;
         public DeviceLocation(ILocationRuntime runtime = null) { this.runtime = runtime ?? new UnityLocationRuntime(); }
 
-        public void CheckPermission()
+        public void CheckPermission(bool requirePrecise = true)
         {
             if (disposed) throw new OperationCanceledException("Location request ended.");
             LocationAuthorization authorization = runtime.Authorization;
@@ -149,7 +149,7 @@ namespace Tagtag.Services
                 StopRuntime();
                 throw new ApiFailure("Allow Location in Settings to find and place stickers.", locationSettingsRequired: true);
             }
-            if (authorization == LocationAuthorization.ReducedAccuracy)
+            if (requirePrecise && authorization == LocationAuthorization.ReducedAccuracy)
             {
                 prewarmed = false;
                 StopRuntime();
@@ -221,7 +221,7 @@ namespace Tagtag.Services
                 throw new ApiFailure("Location paused. Return to tagtag and try again.");
         }
 
-        public async Task<LocationFix> Current(CancellationToken cancellation = default, float maxAccuracyMeters = 50)
+        public async Task<LocationFix> Current(CancellationToken cancellation = default, float maxAccuracyMeters = 50, float preferredAccuracyMeters = 0)
         {
             cancellation.ThrowIfCancellationRequested();
             int requestVersion = lifecycleVersion;
@@ -229,29 +229,32 @@ namespace Tagtag.Services
             activeRequests++;
             try
             {
-                CheckPermission();
+                CheckPermission(requirePrecise: maxAccuracyMeters <= 100);
                 if (activeRequests == 1 && stationaryUpdates && runtime.Status == LocationServiceStatus.Running &&
                     !CollectionBook.FreshLocationTimestamp(runtime.LastFix, runtime.UtcNow.ToUnixTimeSeconds()))
                     StopRuntime();
                 EnsureStarted();
+                var preferenceDeadline = runtime.UtcNow.AddSeconds(3);
                 var deadline = runtime.UtcNow.AddSeconds(20);
                 LocationFix lastFix = null;
                 while (runtime.UtcNow < deadline)
                 {
                     cancellation.ThrowIfCancellationRequested();
                     CheckLifecycle(requestVersion);
-                    CheckPermission();
+                    CheckPermission(requirePrecise: maxAccuracyMeters <= 100);
                     if (runtime.Status == LocationServiceStatus.Failed)
                         throw new ApiFailure("Location is unavailable. Try again outdoors.");
                     if (runtime.Status == LocationServiceStatus.Running)
                     {
                         lastFix = runtime.LastFix;
-                        if (CollectionBook.FreshLocation(lastFix, runtime.UtcNow.ToUnixTimeSeconds(), maxAccuracyMeters)) return lastFix;
+                        if (CollectionBook.FreshLocation(lastFix, runtime.UtcNow.ToUnixTimeSeconds(), maxAccuracyMeters) &&
+                            (preferredAccuracyMeters <= 0 || lastFix.accuracyMeters <= preferredAccuracyMeters ||
+                                runtime.UtcNow >= preferenceDeadline)) return lastFix;
                     }
                     await runtime.Delay(cancellation);
                 }
                 CheckLifecycle(requestVersion);
-                CheckPermission();
+                CheckPermission(requirePrecise: maxAccuracyMeters <= 100);
                 if (lastFix != null)
                     Debug.LogWarning("[Tagtag location] outcome=timeout authorization=" + runtime.Authorization +
                         " accuracyMeters=" + lastFix.accuracyMeters +

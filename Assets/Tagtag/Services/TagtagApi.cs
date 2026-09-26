@@ -316,6 +316,8 @@ namespace Tagtag.Services
     [Serializable] public sealed class OkResult { public bool ok; }
     [Serializable] public sealed class PrepareRequest
     {
+        public ConfirmedLocation confirmedLocation;
+        public bool locationConfirmed, hasPublicationLocation;
         public string operationId, presetId, designId, place, teaser, note;
         public LocationFix location;
         public Vector3 position;
@@ -323,13 +325,19 @@ namespace Tagtag.Services
         public float widthMeters;
         public int mapBytes;
     }
+    [Serializable] public sealed class PublicationLocationResult
+    {
+        public bool found, locationConfirmed;
+        public ConfirmedLocation publicationLocation;
+    }
     [Serializable] public sealed class PrepareResult
     {
         public string id, uploadUrl;
+        public ConfirmedLocation publicationLocation;
         [NonSerialized] public SignedUploadHeader[] uploadHeaders;
     }
     [Serializable] public sealed class SignedUploadHeader { public string name, value; }
-    [Serializable] public sealed class FinalizeRequest { public string operationId; public LocationFix location; }
+    [Serializable] public sealed class FinalizeRequest { public string operationId; public LocationFix location; public ConfirmedLocation confirmedLocation; public bool locationConfirmed, hasPublicationLocation; }
     [Serializable] public sealed class RecoverResult
     {
         public StickerSummary sticker;

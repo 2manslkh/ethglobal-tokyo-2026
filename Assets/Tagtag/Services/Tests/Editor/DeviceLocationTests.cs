@@ -292,6 +292,38 @@ namespace Tagtag.Services.Tests
             Assert.That(runtime.StopCount, Is.EqualTo(1));
         }
 
+        [Test]
+        public async Task PublicationFallsBackToMeasuredApproximateFixAfterThreeSeconds()
+        {
+            var runtime = new LocationRuntime { Authorization = LocationAuthorization.FullAccuracy,
+                LastFix = Fix(2000.149f, 100) };
+            LocationFix fix = await new DeviceLocation(runtime).Current(maxAccuracyMeters: 5000, preferredAccuracyMeters: 100);
+            Assert.That(runtime.DelayCount, Is.EqualTo(3));
+            Assert.That(fix.accuracyMeters, Is.EqualTo(2000.149f));
+            Assert.That(fix.measuredUnixSeconds, Is.EqualTo(100));
+        }
+
+        [Test]
+        public async Task PublicationUsesPreciseFixWhenItArrivesDuringShortWait()
+        {
+            var runtime = new LocationRuntime { Authorization = LocationAuthorization.FullAccuracy,
+                LastFix = Fix(2000, 100) };
+            runtime.AfterDelay = () => runtime.LastFix = Fix(20, 101);
+            LocationFix fix = await new DeviceLocation(runtime).Current(maxAccuracyMeters: 5000, preferredAccuracyMeters: 100);
+            Assert.That(runtime.DelayCount, Is.EqualTo(1));
+            Assert.That(fix.accuracyMeters, Is.EqualTo(20));
+        }
+
+        [Test]
+        public async Task ApproximatePublicationCanUseReducedAccuracyPermission()
+        {
+            var runtime = new LocationRuntime { Authorization = LocationAuthorization.ReducedAccuracy,
+                LastFix = Fix(2000, 100) };
+            LocationFix fix = await new DeviceLocation(runtime).Current(maxAccuracyMeters: 5000, preferredAccuracyMeters: 100);
+            Assert.That(fix.accuracyMeters, Is.EqualTo(2000));
+            Assert.That(runtime.DelayCount, Is.EqualTo(3));
+        }
+
         private static LocationFix Fix(float accuracy, long measuredAt) => new LocationFix
         { latitude = 35.68, longitude = 139.76, accuracyMeters = accuracy, measuredUnixSeconds = measuredAt };
 

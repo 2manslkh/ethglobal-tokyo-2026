@@ -26,6 +26,8 @@ namespace Tagtag.Services
         private readonly LocalBlocks localBlocks = new LocalBlocks();
         private HashSet<string> blockedAuthors = new HashSet<string>();
         private readonly DeviceLocation location;
+        private readonly ILocationConfirmation locationConfirmation;
+        private readonly Func<string, Task<PublicationLocationResult>> loadPublicationLocation;
         private readonly Func<CancellationToken, Task<LocationFix>> locateNearby;
         private readonly Func<LocationFix, Task<StickerSummary[]>> loadNearby;
         private CancellationTokenSource nearbyCancellation;
@@ -59,14 +61,20 @@ namespace Tagtag.Services
             Func<string, string, Task<string>> nftOwner = null,
             Func<string, string, string, Task<string>> transferNft = null,
             Func<string, Task<string>> transferStatus = null,
-            Func<string, Task<PlacementPage>> loadPlacements = null)
+            Func<string, Task<PlacementPage>> loadPlacements = null,
+            ILocationConfirmation locationConfirmation = null,
+            Func<string, Task<PublicationLocationResult>> loadPublicationLocation = null)
         {
+            this.locationConfirmation = locationConfirmation;
             this.configuration = configuration;
             this.identity = identity;
             location = deviceLocation ?? new DeviceLocation();
             Ar = ar; Map = map;
             api = new TagtagApi(configuration);
             session = new FirebaseSession(configuration, identity);
+            this.loadPublicationLocation = loadPublicationLocation ?? (async operationId =>
+                await api.Call<PublicationLocationResult>("GET", "/v1/publications/operations/" + Uri.EscapeDataString(operationId),
+                    null, await session.Token()));
             State.nftEnabled = configuration.nftEnabled;
             if (configuration.nftEnabled && connectWallet != null && signWalletMessage != null && disconnectWallet != null)
             {
@@ -117,6 +125,7 @@ namespace Tagtag.Services
             if (wallet != null) { wallet.Changed -= WalletChanged; _ = wallet.Clear(); }
             CancelNearby();
             location.Dispose();
+            locationConfirmation?.Cancel();
             creation?.Cancel();
             if (creationObject != null) StickerArtwork.Release(creationObject);
             Ar.Changed -= Notify; Ar.StickerTapped -= Collect; Map.StickerSelected -= SelectSticker;
@@ -175,6 +184,7 @@ namespace Tagtag.Services
                 CancelNearby(true);
                 captureCancellation?.Cancel();
                 location.Suspend();
+                locationConfirmation?.Cancel();
             }
             else
             {
@@ -433,8 +443,9 @@ namespace Tagtag.Services
                 SetPublicationStage("permission", "Checking location access…");
                 if (!SaveEditableDraft(State.selectedPreset, State.draftPlace, State.draftTeaser, State.draftNote))
                     throw new ApiFailure(State.error);
-                location.CheckPermission();
-                Task<LocationFix> prepareFixTask = location.Current(lifetimeCancellation.Token, 100);
+                location.CheckPermission(requirePrecise: locationConfirmation == null);
+                Task<LocationFix> prepareFixTask = location.Current(lifetimeCancellation.Token,
+                    locationConfirmation == null ? 100 : 5000, preferredAccuracyMeters: 100);
                 if (pendingDraft == null)
                 {
                     SetPublicationStage("map", "Saving this spot…");
@@ -467,6 +478,56 @@ namespace Tagtag.Services
                 SetPublicationStage("location-prepare", "Finding a precise location…");
                 var prepareFix = await prepareFixTask;
                 EnsurePublicationActive(operationGeneration, operationAccount);
+                // Migrate legacy drafts before either precision branch so retries retain their original target.
+                if (!pendingDraft.hasPublicationLocation && pendingDraft.location?.measuredUnixSeconds > 0)
+                {
+                    var savedLocation = await loadPublicationLocation(pendingDraft.operationId);
+                    EnsurePublicationActive(operationGeneration, operationAccount);
+                    if (savedLocation.found)
+                    {
+                        pendingDraft.confirmedLocation = savedLocation.publicationLocation;
+                        pendingDraft.locationConfirmed = savedLocation.locationConfirmed;
+                    }
+                    else if (!pendingDraft.locationConfirmed)
+                        pendingDraft.confirmedLocation = new ConfirmedLocation
+                            { latitude = pendingDraft.location.latitude, longitude = pendingDraft.location.longitude };
+                    pendingDraft.hasPublicationLocation = true;
+                    publications.Save(State.user.uid, pendingDraft);
+                }
+                float prepareAccuracy = locationConfirmation == null ? 100 : 5000;
+                if (!location.IsFresh(prepareFix, prepareAccuracy))
+                {
+                    prepareFix = await location.Current(lifetimeCancellation.Token, prepareAccuracy, preferredAccuracyMeters: 100);
+                    EnsurePublicationActive(operationGeneration, operationAccount);
+                }
+                if (!pendingDraft.locationConfirmed && prepareFix.accuracyMeters > 100)
+                {
+                    SetPublicationStage("confirm-location", "Confirm your sticker’s spot on the map.");
+                    var confirmation = new TaskCompletionSource<ConfirmedLocation>();
+                    ConfirmedLocation fixedSpot = pendingDraft.hasPublicationLocation ? pendingDraft.confirmedLocation : null;
+                    // Older saved drafts did not record a separate immutable publication pin.
+                    if (fixedSpot == null && pendingDraft.location?.measuredUnixSeconds > 0)
+                        fixedSpot = new ConfirmedLocation { latitude = pendingDraft.location.latitude,
+                            longitude = pendingDraft.location.longitude };
+                    locationConfirmation.Open(prepareFix, value => confirmation.TrySetResult(value), fixedSpot);
+                    var confirmed = await confirmation.Task;
+                    EnsurePublicationActive(operationGeneration, operationAccount);
+                    if (confirmed == null)
+                        throw new ApiFailure("Your sticker and note are saved. Publish when you’re ready to confirm the spot.");
+                    pendingDraft.confirmedLocation = confirmed;
+                    pendingDraft.locationConfirmed = true;
+                    publications.Save(State.user.uid, pendingDraft);
+                    if (!location.IsFresh(prepareFix, 5000))
+                        prepareFix = await location.Current(lifetimeCancellation.Token, 5000);
+                    EnsurePublicationActive(operationGeneration, operationAccount);
+                }
+                if (!pendingDraft.hasPublicationLocation)
+                {
+                    if (!pendingDraft.locationConfirmed)
+                        pendingDraft.confirmedLocation = new ConfirmedLocation
+                            { latitude = prepareFix.latitude, longitude = prepareFix.longitude };
+                    pendingDraft.hasPublicationLocation = true;
+                }
                 pendingDraft.location = State.location = prepareFix;
                 publications.Save(State.user.uid, pendingDraft);
                 State.hasPendingPublication = true;
@@ -477,9 +538,15 @@ namespace Tagtag.Services
                 EnsurePublicationActive(operationGeneration, operationAccount);
                 var result = await api.Call<PrepareResult>("POST", "/v1/publications/prepare", new PrepareRequest {
                     operationId = draft.operationId, presetId = draft.presetId, designId = draft.designId, place = draft.place, teaser = draft.teaser, note = draft.note,
-                    location = draft.location, position = draft.snapshot.position, rotation = draft.snapshot.rotation,
+                    location = draft.location, confirmedLocation = draft.confirmedLocation, locationConfirmed = draft.locationConfirmed, hasPublicationLocation = draft.hasPublicationLocation, position = draft.snapshot.position, rotation = draft.snapshot.rotation,
                     widthMeters = draft.snapshot.widthMeters, mapBytes = bytes.Length }, prepareToken);
                 EnsurePublicationActive(operationGeneration, operationAccount);
+                if (result.publicationLocation != null)
+                {
+                    draft.confirmedLocation = result.publicationLocation;
+                    draft.hasPublicationLocation = true;
+                    publications.Save(State.user.uid, draft);
+                }
                 if (!string.IsNullOrEmpty(result.uploadUrl))
                 {
                     SetPublicationStage("upload", "Sending your sticker…");
@@ -487,15 +554,16 @@ namespace Tagtag.Services
                     EnsurePublicationActive(operationGeneration, operationAccount);
                 }
                 SetPublicationStage("location-finalize", "Checking your location again…");
-                var finalizeFix = location.IsFresh(prepareFix, 100)
-                    ? prepareFix : await location.Current(lifetimeCancellation.Token, 100);
+                float finalAccuracy = !draft.locationConfirmed ? 100 : 5000;
+                var finalizeFix = location.IsFresh(prepareFix, finalAccuracy)
+                    ? prepareFix : await location.Current(lifetimeCancellation.Token, finalAccuracy);
                 EnsurePublicationActive(operationGeneration, operationAccount);
                 State.location = finalizeFix;
                 SetPublicationStage("finalize", "Publishing your sticker…");
                 string finalizeToken = await session.Token();
                 EnsurePublicationActive(operationGeneration, operationAccount);
                 var published = await api.Call<StickerResult>("POST", "/v1/publications/" + Uri.EscapeDataString(result.id) + "/finalize",
-                    new FinalizeRequest { operationId = draft.operationId, location = State.location }, finalizeToken);
+                    new FinalizeRequest { operationId = draft.operationId, location = State.location, confirmedLocation = draft.confirmedLocation, locationConfirmed = draft.locationConfirmed, hasPublicationLocation = draft.hasPublicationLocation }, finalizeToken);
                 EnsurePublicationActive(operationGeneration, operationAccount);
                 State.authored.RemoveAll(item => item.id == published.sticker.id); State.authored.Add(published.sticker);
                 State.nearby.RemoveAll(item => item.id == published.sticker.id); State.nearby.Add(published.sticker);

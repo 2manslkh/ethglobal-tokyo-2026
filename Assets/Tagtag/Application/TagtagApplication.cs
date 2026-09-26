@@ -30,6 +30,7 @@ namespace Tagtag
             {
                 var wallet = new ThirdwebEmbeddedWallet(configuration.thirdwebClientId);
                 controller = new TagtagController(configuration, ar, map, identity,
+                    locationConfirmation: gameObject.AddComponent<NativeLocationConfirmation>(),
                     connectWallet: wallet.Connect, signWalletMessage: wallet.SignMessage, disconnectWallet: wallet.Disconnect,
                     nftOwner: wallet.GetNftOwner,
                     transferNft: async (contract, token, recipient) =>
@@ -38,7 +39,8 @@ namespace Tagtag
                         catch (WalletTransferException error) { throw new NftTransferFailure(error.Code); }
                     }, transferStatus: wallet.GetTransferStatus);
             }
-            else controller = new TagtagController(configuration, ar, map, identity);
+            else controller = new TagtagController(configuration, ar, map, identity,
+                locationConfirmation: gameObject.AddComponent<NativeLocationConfirmation>());
             gameObject.AddComponent<TagtagAppView>().Initialize(controller);
             controller.Start();
         }

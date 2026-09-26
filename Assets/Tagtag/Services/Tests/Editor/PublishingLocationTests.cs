@@ -23,6 +23,14 @@ namespace Tagtag.Services.Tests
         }
 
         [Test]
+        public void PrecisePublicationDoesNotSerializeAnUnconfirmedMapPin()
+        {
+            string encoded = JsonUtility.ToJson(new PrepareRequest { location = new LocationFix
+                { latitude = 35.68, longitude = 139.76, accuracyMeters = 20, measuredUnixSeconds = 100 } });
+            Assert.That(encoded, Does.Contain("\"locationConfirmed\":false"));
+        }
+
+        [Test]
         public void ReducedPrecisionIsReportedBeforeCapturingTheArMap()
         {
             var camera = new Camera();
@@ -337,6 +345,152 @@ namespace Tagtag.Services.Tests
             }
             finally { controller.Dispose(); }
         }
+        [Test]
+        public async Task CancelingMapConfirmationPreservesCapturedPlacementAndRetryDoesNotRecapture()
+        {
+            var runtime = new TrackingLocationRuntime { LastFix = new LocationFix
+                { latitude = 35.68, longitude = 139.76, accuracyMeters = 2000.149f, measuredUnixSeconds = 100 } };
+            var picker = new LocationPicker();
+            var camera = new Camera { SucceedCapture = true };
+            var identity = new Identity();
+            var saved = new PendingPublication(System.IO.Path.Combine(Application.persistentDataPath, "publications"));
+            var controller = new TagtagController(new ServiceConfiguration(), camera, new Map(), identity,
+                deviceLocation: new DeviceLocation(runtime), locationConfirmation: picker);
+            try
+            {
+                controller.SelectPreset("taggi-1");
+                controller.SetDraft("Cafe", "By the door", "My note");
+                controller.Publish();
+                Assert.That(picker.OpenCount, Is.EqualTo(1));
+                Assert.That(picker.Measured.accuracyMeters, Is.EqualTo(2000.149f));
+                Assert.That(saved.Read(identity.UserId).locationConfirmed, Is.False);
+                string operation = saved.Read(identity.UserId).operationId;
+                picker.Complete(null);
+                await Task.Yield();
+                Assert.That(controller.State.busy, Is.False);
+                Assert.That(controller.State.draftNote, Is.EqualTo("My note"));
+                Assert.That(controller.State.hasPendingPublication, Is.True);
+                controller.Publish();
+                Assert.That(picker.OpenCount, Is.EqualTo(2));
+                Assert.That(camera.CaptureCount, Is.EqualTo(1));
+                Assert.That(saved.Read(identity.UserId).operationId, Is.EqualTo(operation));
+                picker.Complete(new ConfirmedLocation { latitude = 35.681, longitude = 139.761 });
+                await Task.Yield();
+                var draft = saved.Read(identity.UserId);
+                Assert.That(draft.locationConfirmed, Is.True);
+                Assert.That(draft.confirmedLocation.latitude, Is.EqualTo(35.681));
+                Assert.That(draft.location.accuracyMeters, Is.EqualTo(2000.149f));
+                Assert.That(draft.location.latitude, Is.EqualTo(35.68));
+                Assert.That(draft.location.measuredUnixSeconds, Is.EqualTo(100));
+            }
+            finally { controller.Dispose(); }
+        }
+
+        [Test]
+        public async Task PausingMapConfirmationCancelsPickerAndKeepsDraft()
+        {
+            var runtime = new TrackingLocationRuntime { LastFix = new LocationFix
+                { latitude = 35.68, longitude = 139.76, accuracyMeters = 2000, measuredUnixSeconds = 100 } };
+            var picker = new LocationPicker();
+            var controller = new TagtagController(new ServiceConfiguration(), new Camera { SucceedCapture = true },
+                new Map(), new Identity(), deviceLocation: new DeviceLocation(runtime), locationConfirmation: picker);
+            try
+            {
+                controller.SelectPreset("taggi-1");
+                controller.SetDraft("Cafe", "Door", "Keep this");
+                controller.Publish();
+                Assert.That(picker.OpenCount, Is.EqualTo(1));
+                controller.SetSuspended(true);
+                await Task.Yield();
+                Assert.That(picker.CancelCount, Is.EqualTo(1));
+                Assert.That(controller.State.busy, Is.False);
+                Assert.That(controller.State.hasPendingPublication, Is.True);
+                Assert.That(controller.State.draftNote, Is.EqualTo("Keep this"));
+                Assert.That(controller.State.error, Does.Contain("interrupted"));
+            }
+            finally { controller.Dispose(); }
+        }
+
+        [TestCase(true)]
+        [TestCase(false)]
+        public async Task ApproximateRetryConfirmsOriginalPreparedPinEvenAfterDraftReload(bool modernDraft)
+        {
+            var identity = new Identity();
+            var original = new ConfirmedLocation { latitude = 35.681, longitude = 139.761 };
+            var saved = new PendingPublication(System.IO.Path.Combine(Application.persistentDataPath, "publications"));
+            saved.Save(identity.UserId, new PlacementDraft { operationId = "saved-precise", presetId = "taggi-1",
+                place = "Cafe", teaser = "Door", note = "Keep me", hasPublicationLocation = modernDraft,
+                confirmedLocation = modernDraft ? original : null, locationConfirmed = false,
+                location = new LocationFix { latitude = modernDraft ? original.latitude : 35.6808, longitude = original.longitude,
+                    accuracyMeters = 20, measuredUnixSeconds = 90 },
+                snapshot = new SpatialSnapshot { worldMapBase64 = "AQ==", widthMeters = .2f } });
+            var runtime = new TrackingLocationRuntime { LastFix = new LocationFix
+                { latitude = 35.68, longitude = 139.76, accuracyMeters = 2000, measuredUnixSeconds = 100 } };
+            var picker = new LocationPicker();
+            var camera = new Camera { SucceedCapture = true };
+            var controller = new TagtagController(new ServiceConfiguration(), camera, new Map(), identity,
+                deviceLocation: new DeviceLocation(runtime), locationConfirmation: picker,
+                loadPublicationLocation: _ => Task.FromResult(new PublicationLocationResult
+                    { found = true, publicationLocation = original }));
+            try
+            {
+                // A precise retry must not replace the saved target with the new measurement.
+                runtime.LastFix = new LocationFix { latitude = 35.6808, longitude = 139.7608,
+                    accuracyMeters = 20, measuredUnixSeconds = 100 };
+                controller.Publish();
+                await Task.Yield();
+                Assert.That(saved.Read(identity.UserId).confirmedLocation.latitude, Is.EqualTo(original.latitude));
+                runtime.LastFix = new LocationFix { latitude = 35.68, longitude = 139.76,
+                    accuracyMeters = 2000, measuredUnixSeconds = 100 };
+                controller.Publish();
+                Assert.That(picker.OpenCount, Is.EqualTo(1));
+                Assert.That(picker.FixedSpot.latitude, Is.EqualTo(original.latitude));
+                Assert.That(picker.FixedSpot.longitude, Is.EqualTo(original.longitude));
+                Assert.That(camera.CaptureCount, Is.Zero);
+            }
+            finally { controller.Dispose(); }
+        }
+
+        [Test]
+        public async Task FixThatExpiresDuringCaptureIsRefreshedBeforeOpeningConfirmation()
+        {
+            var runtime = new TrackingLocationRuntime { LastFix = new LocationFix
+                { latitude = 35.68, longitude = 139.76, accuracyMeters = 2000, measuredUnixSeconds = 75 } };
+            var picker = new LocationPicker();
+            var camera = new Camera { HoldCapture = true };
+            var controller = new TagtagController(new ServiceConfiguration(), camera, new Map(), new Identity(),
+                deviceLocation: new DeviceLocation(runtime), locationConfirmation: picker);
+            try
+            {
+                controller.SelectPreset("taggi-1");
+                controller.SetDraft("Cafe", "Door", "Note");
+                controller.Publish();
+                runtime.Advance(10);
+                runtime.LastFix = new LocationFix { latitude = 35.681, longitude = 139.761,
+                    accuracyMeters = 1800, measuredUnixSeconds = runtime.UtcNow.ToUnixTimeSeconds() };
+                camera.CompleteCapture();
+                await Task.Yield();
+                Assert.That(picker.OpenCount, Is.EqualTo(1));
+                Assert.That(picker.Measured.latitude, Is.EqualTo(35.681));
+                Assert.That(picker.Measured.accuracyMeters, Is.EqualTo(1800));
+                Assert.That(picker.Measured.measuredUnixSeconds, Is.GreaterThan(100));
+            }
+            finally { controller.Dispose(); }
+        }
+
+        private sealed class LocationPicker : ILocationConfirmation
+        {
+            public int OpenCount, CancelCount;
+            public LocationFix Measured;
+            public ConfirmedLocation FixedSpot;
+            private Action<ConfirmedLocation> callback;
+            public void Open(LocationFix measured, Action<ConfirmedLocation> completed, ConfirmedLocation fixedSpot = null)
+            { OpenCount++; Measured = measured; FixedSpot = fixedSpot; callback = completed; }
+            public void Cancel() { CancelCount++; Complete(null); }
+            public void Complete(ConfirmedLocation result)
+            { var pending = callback; callback = null; pending?.Invoke(result); }
+        }
+
         private sealed class CancellingCreator : IStickerCreation
         {
             public int Capabilities => 1;
@@ -358,7 +512,7 @@ namespace Tagtag.Services.Tests
             public LocationAuthorization Authorization => LocationAuthorization.FullAccuracy;
             public bool ServicesEnabled => true;
             public LocationServiceStatus Status { get; private set; } = LocationServiceStatus.Stopped;
-            public LocationFix LastFix => null;
+            public LocationFix LastFix { get; set; }
             public DateTimeOffset UtcNow { get; private set; } = DateTimeOffset.FromUnixTimeSeconds(100);
             public int StartCount { get; private set; }
             public int StopCount { get; private set; }
@@ -381,6 +535,7 @@ namespace Tagtag.Services.Tests
                 UtcNow = UtcNow.AddSeconds(1);
                 return Task.CompletedTask;
             }
+            public void Advance(int seconds) { UtcNow = UtcNow.AddSeconds(seconds); }
             public void ReleaseDelay()
             {
                 HoldDelay = false;
