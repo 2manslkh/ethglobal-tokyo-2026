@@ -11,7 +11,7 @@ namespace Tagtag.AR
         {
             public string id;
             public string presetId, thumbnailUrl;
-            public string place;
+            public string place, teaser;
             public double latitude;
             public double longitude;
         }
@@ -54,7 +54,7 @@ namespace Tagtag.AR
                 var item = stickers[i];
                 pins.items[i] = new MapPin
                 {
-                    id = item.id, presetId = item.presetId, thumbnailUrl = item.thumbnailUrl, place = item.place,
+                    id = item.id, presetId = item.presetId, thumbnailUrl = item.thumbnailUrl, place = item.place, teaser = item.teaser,
                     latitude = item.latitude, longitude = item.longitude
                 };
             }
