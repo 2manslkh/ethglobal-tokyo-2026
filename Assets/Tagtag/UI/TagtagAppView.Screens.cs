@@ -354,7 +354,7 @@ namespace Tagtag.UI
             VisualElement actions = Column(stickActions);
             actions.style.flexGrow = 1f;
             actions.style.marginLeft = 10f;
-            stickWriteButton = Action(actions, "Write note", () => { sheet = Sheet.Note; QueueRender(); });
+            stickWriteButton = Action(actions, "Your Note", () => { sheet = Sheet.Note; QueueRender(); });
             stickWriteButton.name = "STICK Write note";
             PaperDottedOutline.Decorate(stickWriteButton, capsule: true);
             stickRetryButton = Action(actions, "Retry AR search", controller.StartDiscovery, false);

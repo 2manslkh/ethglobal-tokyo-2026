@@ -365,7 +365,7 @@ namespace Tagtag.UI
             scrim.RegisterCallback<PointerDownEvent>(_ => RequestCloseSheet());
             overlayHost.Add(scrim);
             string title = sheet == Sheet.Privacy ? "Privacy Policy" : sheet == Sheet.Terms ? "Terms & Conditions" : sheet == Sheet.ReferencePhoto ? "Original spot" : sheet == Sheet.Picker ? "My Stickers" : sheet == Sheet.Creator ? "Add Sticker" :
-                sheet == Sheet.HomeDesignPreview ? "Your design" : sheet == Sheet.DeleteDesign ? "Remove design" : sheet == Sheet.Note ? "Write note" :
+                sheet == Sheet.HomeDesignPreview ? "Your design" : sheet == Sheet.DeleteDesign ? "Remove design" : sheet == Sheet.Note ? "Your Note" :
                 sheet == Sheet.Collected ? "Collected sticker" : sheet == Sheet.Report ? "Report sticker" :
                 sheet == Sheet.Withdraw ? "Withdraw sticker" : "Block author";
             Sheet openedSheet = sheet;

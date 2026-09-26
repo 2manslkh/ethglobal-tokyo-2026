@@ -554,7 +554,7 @@ namespace Tagtag.Tests
             controller.Camera.HasPlacementPreview = true;
             controller.Notify();
             for (int frame = 0; frame < 5; frame++) yield return null;
-            Submit("Write note");
+            Submit("Your Note");
             yield return Capture("note-empty-disabled");
             var fields = document.rootVisualElement.Query<TextField>().ToList();
             Assert.That(fields.Count, Is.EqualTo(3));
@@ -621,7 +621,7 @@ namespace Tagtag.Tests
             controller.Camera.HasPlacementPreview = true;
             controller.Notify();
             yield return new WaitForSecondsRealtime(.4f);
-            if (document.rootVisualElement.Q<PaperSheet>() == null) Submit("Write note");
+            if (document.rootVisualElement.Q<PaperSheet>() == null) Submit("Your Note");
             yield return new WaitForSecondsRealtime(.4f);
             Assert.That(document.rootVisualElement.Q<TextField>("Your note").value, Is.Empty,
                 "A successful publication must clear the next placement draft.");
@@ -723,7 +723,7 @@ namespace Tagtag.Tests
                 "A long clue must scroll above the action instead of painting through it.");
             controller.Navigate(AppPage.Stick);
             for (int frame = 0; frame < 10; frame++) yield return null;
-            Submit("Write note");
+            Submit("Your Note");
             yield return Capture("note-compact-largest-reduced-motion");
             Submit("Close");
             yield return new WaitForSecondsRealtime(.4f);
