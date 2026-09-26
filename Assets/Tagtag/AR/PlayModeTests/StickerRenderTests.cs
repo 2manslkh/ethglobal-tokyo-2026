@@ -146,6 +146,11 @@ namespace Tagtag.AR.PlayMode.Tests
                 Assert.That(updateCue, Is.Not.Null);
                 updateCue.Invoke(experience, new object[] { true });
                 Assert.That(visual.transform.GetChild(0).gameObject.activeSelf, Is.True);
+                var particleSystem = visual.GetComponentInChildren<ParticleSystem>();
+                Assert.That(particleSystem, Is.Not.Null);
+                sparkleType.GetMethod("Update", BindingFlags.Instance | BindingFlags.NonPublic)
+                    .Invoke(sparkles, null);
+                Assert.That(particleSystem.particleCount, Is.GreaterThan(0));
             }
             finally
             {
@@ -182,6 +187,42 @@ namespace Tagtag.AR.PlayMode.Tests
             {
                 if (visual != null) Object.DestroyImmediate(visual);
                 Object.DestroyImmediate(blocker);
+                Object.DestroyImmediate(host);
+            }
+        }
+
+        [Test]
+        public void RecoveredStickerTapGivesFeedbackWhenCollectionIsNotReady()
+        {
+            var host = new GameObject("Recovered tap feedback test");
+            var cameraObject = new GameObject("Tap camera");
+            GameObject visual = null;
+            try
+            {
+                var experience = host.AddComponent<ArExperience>();
+                var camera = cameraObject.AddComponent<Camera>();
+                cameraObject.transform.position = new Vector3(0f, 0f, -1f);
+                typeof(ArExperience).GetField("camera", BindingFlags.Instance | BindingFlags.NonPublic)
+                    .SetValue(experience, camera);
+                var create = typeof(ArExperience).GetMethod("CreateVisual", BindingFlags.Instance | BindingFlags.NonPublic);
+                Assert.That(create.Invoke(experience, new object[] { "taggi-1" }), Is.True);
+                visual = GameObject.Find("Tracked tagtag sticker");
+                visual.transform.position = Vector3.zero;
+                visual.transform.localScale = Vector3.one * 0.2f;
+                typeof(ArExperience).GetField("recovered", BindingFlags.Instance | BindingFlags.NonPublic)
+                    .SetValue(experience, true);
+                typeof(ArExperience).GetField("active", BindingFlags.Instance | BindingFlags.NonPublic)
+                    .SetValue(experience, true);
+                experience.SetCameraInteraction(new Rect(0f, 0f, Screen.width, Screen.height), false);
+                Physics.SyncTransforms();
+
+                Assert.That(experience.TryCollectAt(new Vector2(Screen.width * 0.5f, Screen.height * 0.5f)), Is.True);
+                Assert.That(experience.Status, Does.Contain("within three metres"));
+            }
+            finally
+            {
+                if (visual != null) Object.DestroyImmediate(visual);
+                Object.DestroyImmediate(cameraObject);
                 Object.DestroyImmediate(host);
             }
         }

@@ -424,6 +424,8 @@ namespace Tagtag.UI
             stickScanRecovery.text = trackingPaused ? "Tracking paused. Move slowly to resume." : "";
             if (!trackingPaused && selected && ar?.ScanState == PlacementScanState.Placed)
                 stickScanRecovery.text = "Move slowly around your sticker. Scan the surface from several angles until Scan ready.";
+            if (!selected && state.selected != null && ar != null)
+                stickScanRecovery.text = ar.Status ?? "";
             stickScanRecovery.style.display = string.IsNullOrEmpty(stickScanRecovery.text) ? DisplayStyle.None : DisplayStyle.Flex;
             if (selected)
             {

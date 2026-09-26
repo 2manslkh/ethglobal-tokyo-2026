@@ -157,6 +157,10 @@ namespace Tagtag
         void Capture(Action<SpatialSnapshot> success, Action<string> failure);
         void Recover(RecoveryData recovery);
     }
+    public interface IRecoveredStickerTap
+    {
+        bool TryCollectAt(Vector2 screenPoint);
+    }
     public interface IPlacementRevision
     {
         int PlacementRevision { get; }

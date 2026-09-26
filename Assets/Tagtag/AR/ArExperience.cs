@@ -17,7 +17,7 @@ using UnityEngine.XR.ARKit;
 
 namespace Tagtag.AR
 {
-    public sealed class ArExperience : MonoBehaviour, IArExperience, IPlacementRevision, ICustomArtworkAr, IReferencePhotoAr
+    public sealed class ArExperience : MonoBehaviour, IArExperience, IRecoveredStickerTap, IPlacementRevision, ICustomArtworkAr, IReferencePhotoAr
     {
 #if UNITY_IOS && !UNITY_EDITOR
         [DllImport("__Internal")] private static extern int TagtagCameraAuthorizationStatus();
@@ -374,7 +374,7 @@ namespace Tagtag.AR
                     recovered = false;
                     SetStatus("Tracking was lost. Reopen this sticker and scan again.");
                 }
-                else HandleRecoveredTap();
+                // The camera UI delivers recovered sticker taps through TryCollectAt.
             }
         }
 
@@ -544,26 +544,31 @@ namespace Tagtag.AR
             return false;
         }
 
-        private void HandleRecoveredTap()
+        public bool TryCollectAt(Vector2 screenPoint)
         {
-            if (Input.touchCount != 1) return;
-            var touch = Input.GetTouch(0);
-            if (touch.phase != UnityEngine.TouchPhase.Ended || !placementFlow.Allows(touch.position) ||
-                TouchOnUi(touch.position)) return;
-            var ray = camera.ScreenPointToRay(touch.position);
-            if (!TryHitSticker(ray, out var hit)) return;
+            if (!recovered) return false;
+            if (!active || paused || camera == null || !placementFlow.Allows(screenPoint) || TouchOnUi(screenPoint))
+                return true;
+            var ray = camera.ScreenPointToRay(screenPoint);
+            if (!TryHitSticker(ray, out var hit))
+            {
+                SetStatus("Tap the sticker itself to collect it.");
+                return true;
+            }
             if (!CanCollect)
             {
                 SetStatus("Move within three metres of the sticker to collect it.");
-                return;
+                return true;
             }
             if (!ArGates.CanCollect(IsTracking, recovered, anchor.trackingState == TrackingState.Tracking,
                 Vector3.Distance(camera.transform.position, hit.point), true))
             {
                 SetStatus("Move within three metres of the sticker to collect it.");
-                return;
+                return true;
             }
+            SetStatus("Collecting your sticker…");
             StickerTapped?.Invoke(recoveredStickerId);
+            return true;
         }
 
         private bool TryHitSticker(Ray ray, out RaycastHit hit)

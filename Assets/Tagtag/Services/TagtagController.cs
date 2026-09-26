@@ -787,7 +787,15 @@ namespace Tagtag.Services
         }
         private void Collect(string id)
         {
-            if (State.busy || !CollectionBook.CanUnlock(recovery, id, Ar.CanCollect, Now)) return;
+            if (State.busy) return;
+            if (!CollectionBook.CanUnlock(recovery, id, Ar.CanCollect, Now))
+            {
+                State.error = recovery != null && recovery.expiresAt <= Now ?
+                    "This sticker search expired. Retry AR search to collect it." :
+                    "Move closer and tap the tracked sticker again.";
+                Notify();
+                return;
+            }
             if (!RequireAccount()) return;
             var discovered = recovery;
             int collectionAccount = accountGeneration;

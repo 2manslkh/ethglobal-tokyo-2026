@@ -89,6 +89,14 @@ namespace Tagtag.UI
             }
             else if (adjusted) evt.StopPropagation();
             IArExperience ar = controller?.Ar;
+            if (ar is IRecoveredStickerTap recoveredTap && CameraInputReady(ar) &&
+                cameraSurface.worldBound.Contains(evt.position) &&
+                recoveredTap.TryCollectAt(PaperCameraBounds.ToScreenPoint(evt.position, root.worldBound,
+                    Screen.width, Screen.height)))
+            {
+                evt.StopPropagation();
+                return;
+            }
             if (!tapped || !CameraInputReady(ar) || !ar.IsTracking || !ar.HasPlacementSurface ||
                 ar.HasPlacementPreview || !PaperFlow.HasPlacementSelection(controller.State) ||
                 !cameraSurface.worldBound.Contains(evt.position)) return;
