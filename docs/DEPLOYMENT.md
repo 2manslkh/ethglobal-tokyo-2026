@@ -64,3 +64,13 @@ The public app URL passed health, operation authentication and approximate
 nearby checks after promotion. No synthetic production posts were created.
 This API remains compatible with TestFlight build 1. The installed development
 client is `90398c8`; TestFlight build 1 remains the earlier `01857d3` snapshot.
+
+## Publication quota rollout
+
+On 2026-09-26, commit `412c5c2` raised the per-user daily publication quota
+from five to ten. Cloud Build `53e31721-5a5e-42d3-9b01-a87f9189ad7b`
+succeeded and revision `tagtag-api-00013-bed` was promoted to 100% traffic
+after health (200) and unauthenticated collection (401) checks. Both checks
+passed again at the public app URL. The backend suite passed 79 tests with
+one emulator-only test skipped; the quota test accepts ten publications and
+rejects the eleventh. Existing app builds receive this server-side change.
