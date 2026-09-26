@@ -36,5 +36,29 @@ namespace Tagtag.Tests
             }
             finally { Object.DestroyImmediate(original); if (decoded != null) Object.DestroyImmediate(decoded); }
         }
+        [Test]
+        public void CachedMapArtworkUsesAuthorizedAccountScopedImage()
+        {
+            var original = new Texture2D(2, 2, TextureFormat.RGBA32, false);
+            const string designId = "map-artwork-fixture";
+            try
+            {
+                original.SetPixels(new[] { Color.red, Color.red, Color.red, Color.red });
+                original.Apply();
+                StickerArtwork.SetAccount("map-artwork-test");
+                StickerArtwork.Store(designId, original.EncodeToPNG());
+                Assert.That(StickerArtwork.CachedPath(designId), Is.Not.Empty);
+                StickerArtwork.SetAccount("other-map-artwork-test");
+                Assert.That(StickerArtwork.CachedPath(designId), Is.Null);
+                StickerArtwork.SetAccount("map-artwork-test");
+                StickerArtwork.Forget(designId);
+                Assert.That(StickerArtwork.CachedPath(designId), Is.Null);
+            }
+            finally
+            {
+                StickerArtwork.SetAccount("guest");
+                Object.DestroyImmediate(original);
+            }
+        }
     }
 }

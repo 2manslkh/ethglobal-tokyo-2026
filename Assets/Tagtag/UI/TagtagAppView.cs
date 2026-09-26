@@ -859,6 +859,7 @@ namespace Tagtag.UI
         private void OnArtworkChanged()
         {
             if (root == null) return;
+            mapDirty = true;
             root.Query<Image>().ForEach(art =>
             {
                 if (art.userData is ArtworkRequest request)

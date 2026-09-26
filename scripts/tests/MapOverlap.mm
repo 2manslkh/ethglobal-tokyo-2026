@@ -48,6 +48,39 @@ static void SelectRow(UITableViewController *picker, NSInteger row) {
     NSIndexPath *index = [NSIndexPath indexPathForRow:row inSection:0];
     [picker.tableView.delegate tableView:picker.tableView didSelectRowAtIndexPath:index];
 }
+static void RunStep(NSUInteger stage, NSUInteger attempts);
+static void CheckLocalArtworkPin(NSUInteger attempts = 0) {
+    @try {
+        static MKAnnotationView *artworkView;
+        static UIImage *placeholder;
+        if (attempts == 0) {
+            UIGraphicsImageRenderer *renderer = [[UIGraphicsImageRenderer alloc] initWithSize:CGSizeMake(8, 8)];
+            UIImage *art = [renderer imageWithActions:^(UIGraphicsImageRendererContext *context) {
+                [UIColor.magentaColor setFill];
+                UIRectFill(CGRectMake(0, 0, 8, 8));
+            }];
+            NSString *path = [NSHomeDirectory() stringByAppendingPathComponent:@"Documents/map-artwork.png"];
+            Check([UIImagePNGRepresentation(art) writeToFile:path atomically:YES], @"Fixture artwork must be readable from app storage.");
+            NSDictionary *pin = @{@"id": @"local-artwork", @"place": @"Artwork fixture",
+                @"thumbnailPath": path, @"latitude": @35.68, @"longitude": @139.76};
+            NSData *data = [NSJSONSerialization dataWithJSONObject:@{@"items": @[pin]} options:0 error:nil];
+            NSString *json = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
+            CGSize size = testHost.bounds.size;
+            Check(TagtagMapShow(0, 0, size.width, size.height, size.width, size.height, 1, 35.68, 139.76, json.UTF8String) == 1,
+                @"Local artwork fixture must mount on the map.");
+            artworkView = [tagtagDelegate mapView:tagtagMap viewForAnnotation:tagtagPins[@"local-artwork"]];
+            placeholder = artworkView.image;
+        }
+        if (artworkView.image != placeholder) {
+            RunStep(0, 0);
+            return;
+        }
+        Check(attempts < 100, @"Map pin must display cached local sticker artwork instead of the photo fallback.");
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 50 * NSEC_PER_MSEC), dispatch_get_main_queue(), ^{
+            CheckLocalArtworkPin(attempts + 1);
+        });
+    } @catch (NSException *exception) { Record(NO, exception.reason); }
+}
 static UITableViewController *stalePicker;
 static void RunStep(NSUInteger stage, NSUInteger attempts = 0) {
     @try {
@@ -103,7 +136,7 @@ static void RunStep(NSUInteger stage, NSUInteger attempts = 0) {
                     [tagtagDelegate mapView:tagtagMap viewForAnnotation:tagtagPins[@"sticker-00"]]];
                 ExpectSelection(@"sticker-00");
                 TagtagMapDispose();
-                Record(YES, @"Coincident pin selection, repeated selection, close, map hiding, dense groups and refresh passed.");
+                Record(YES, @"Cached sticker artwork, coincident pin selection, repeated selection, close, map hiding, dense groups and refresh passed.");
                 return;
         }
         dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 250 * NSEC_PER_MSEC), dispatch_get_main_queue(), ^{ RunStep(stage + 1); });
@@ -123,7 +156,7 @@ static void RunStep(NSUInteger stage, NSUInteger attempts = 0) {
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 250 * NSEC_PER_MSEC), dispatch_get_main_queue(), ^{
         if ([NSProcessInfo.processInfo.arguments containsObject:@"--review"]) {
             ShowPins(2); TapCluster(); Record(YES, @"Review ready");
-        } else RunStep(0);
+        } else CheckLocalArtworkPin();
     });
     return YES;
 }

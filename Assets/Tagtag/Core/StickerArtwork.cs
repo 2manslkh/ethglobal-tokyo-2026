@@ -138,6 +138,15 @@ namespace Tagtag
             using (var hash = SHA256.Create())
                 return System.IO.Path.Combine(Application.persistentDataPath, "sticker-artwork", BitConverter.ToString(hash.ComputeHash(Encoding.UTF8.GetBytes(key))).Replace("-", "") + ".png");
         }
+        public static string CachedPath(string designId)
+        {
+            if (string.IsNullOrEmpty(designId) || revoked.Contains(Key(designId, true)) || revoked.Contains(Key(designId, false)))
+                return null;
+            string thumbnail = CachePath(Key(designId, true));
+            if (File.Exists(thumbnail)) return thumbnail;
+            string full = CachePath(Key(designId, false));
+            return File.Exists(full) ? full : null;
+        }
         // Call only after a fresh server response permits access to this immutable design.
         public static void Authorize(string id)
         {

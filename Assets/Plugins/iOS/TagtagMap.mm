@@ -9,6 +9,7 @@
 @property(nonatomic, copy) NSString *stickerId;
 @property(nonatomic, copy) NSString *presetId;
 @property(nonatomic, copy) NSString *thumbnailUrl;
+@property(nonatomic, copy) NSString *thumbnailPath;
 @property(nonatomic, copy) NSString *teaser;
 @property(nonatomic, copy) NSString *title;
 @property(nonatomic) CLLocationCoordinate2D coordinate;
@@ -57,11 +58,10 @@ static void TagtagLoadThumbnail(NSURL *url, void (^completion)(UIImage *)) {
     NSMutableArray *waiting = tagtagThumbnailRequests[key];
     if (waiting) { [waiting addObject:[completion copy]]; return; }
     tagtagThumbnailRequests[key] = [NSMutableArray arrayWithObject:[completion copy]];
-    NSURLRequest *request = [NSURLRequest requestWithURL:url cachePolicy:NSURLRequestUseProtocolCachePolicy timeoutInterval:20];
-    [[[NSURLSession sharedSession] dataTaskWithRequest:request completionHandler:^(NSData *data, NSURLResponse *response, NSError *error) {
+    void (^finish)(NSData *, NSURLResponse *, NSError *) = ^(NSData *data, NSURLResponse *response, NSError *error) {
         UIImage *art = nil;
         if (!error && data.length > 0 && data.length <= 5 * 1024 * 1024 &&
-            [response isKindOfClass:NSHTTPURLResponse.class] && ((NSHTTPURLResponse *)response).statusCode == 200) {
+            (url.isFileURL || ([response isKindOfClass:NSHTTPURLResponse.class] && ((NSHTTPURLResponse *)response).statusCode == 200))) {
             art = [UIImage imageWithData:data];
             if (art.size.width > 1024 || art.size.height > 1024) art = nil;
         }
@@ -71,7 +71,30 @@ static void TagtagLoadThumbnail(NSURL *url, void (^completion)(UIImage *)) {
             [tagtagThumbnailRequests removeObjectForKey:key];
             for (id callback in callbacks) ((void (^)(UIImage *))callback)(art);
         });
-    }] resume];
+    };
+    if (url.isFileURL) {
+        dispatch_async(dispatch_get_global_queue(QOS_CLASS_UTILITY, 0), ^{
+            NSError *error = nil;
+            NSData *data = [NSData dataWithContentsOfURL:url options:NSDataReadingMappedIfSafe error:&error];
+            finish(data, nil, error);
+        });
+    } else {
+        NSURLRequest *request = [NSURLRequest requestWithURL:url cachePolicy:NSURLRequestUseProtocolCachePolicy timeoutInterval:20];
+        [[[NSURLSession sharedSession] dataTaskWithRequest:request completionHandler:finish] resume];
+    }
+}
+
+static void TagtagLoadPinArtwork(TagtagPin *pin, void (^completion)(UIImage *)) {
+    NSURL *remote = pin.thumbnailUrl.length ? [NSURL URLWithString:pin.thumbnailUrl] : nil;
+    BOOL validRemote = [remote.scheme isEqualToString:@"https"];
+    if (pin.thumbnailPath.length) {
+        TagtagLoadThumbnail([NSURL fileURLWithPath:pin.thumbnailPath], ^(UIImage *art) {
+            if (art || !validRemote) completion(art);
+            else TagtagLoadThumbnail(remote, completion);
+        });
+    } else if (validRemote) {
+        TagtagLoadThumbnail(remote, completion);
+    }
 }
 
 static UIImage *TagtagPinImage(NSString *presetId, NSUInteger count, UIImage *customArt) {
@@ -155,16 +178,13 @@ static UIImage *TagtagPinImage(NSString *presetId, NSUInteger count, UIImage *cu
     cell.accessibilityIdentifier = pin.stickerId;
     cell.accessibilityLabel = [NSString stringWithFormat:@"%@, %@, sticker %ld of %lu",
         cell.textLabel.text, cell.detailTextLabel.text, (long)indexPath.row + 1, (unsigned long)self.pins.count];
-    NSURL *url = pin.thumbnailUrl.length ? [NSURL URLWithString:pin.thumbnailUrl] : nil;
-    if ([url.scheme isEqualToString:@"https"]) {
-        __weak UITableViewCell *weakCell = cell;
-        TagtagLoadThumbnail(url, ^(UIImage *art) {
-            if (art && [weakCell.accessibilityIdentifier isEqualToString:pin.stickerId]) {
-                weakCell.imageView.image = TagtagPinImage(nil, 0, art);
-                [weakCell setNeedsLayout];
-            }
-        });
-    }
+    __weak UITableViewCell *weakCell = cell;
+    TagtagLoadPinArtwork(pin, ^(UIImage *art) {
+        if (art && [weakCell.accessibilityIdentifier isEqualToString:pin.stickerId]) {
+            weakCell.imageView.image = TagtagPinImage(nil, 0, art);
+            [weakCell setNeedsLayout];
+        }
+    });
     return cell;
 }
 - (void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath {
@@ -193,16 +213,13 @@ static void TagtagDismissClusterPicker(BOOL animated) {
     view.image = TagtagPinImage(cluster ? nil : ((TagtagPin *)annotation).presetId, count, nil);
     if (!cluster) {
         TagtagPin *pin = (TagtagPin *)annotation;
-        NSURL *url = pin.thumbnailUrl.length ? [NSURL URLWithString:pin.thumbnailUrl] : nil;
-        if ([url.scheme isEqualToString:@"https"]) {
-            __weak MKAnnotationView *weakView = view;
-            TagtagLoadThumbnail(url, ^(UIImage *art) {
-                if (art && weakView.annotation == pin) {
-                    weakView.image = TagtagPinImage(nil, 0, art);
-                    weakView.centerOffset = CGPointMake(0, -weakView.image.size.height / 2);
-                }
-            });
-        }
+        __weak MKAnnotationView *weakView = view;
+        TagtagLoadPinArtwork(pin, ^(UIImage *art) {
+            if (art && weakView.annotation == pin) {
+                weakView.image = TagtagPinImage(nil, 0, art);
+                weakView.centerOffset = CGPointMake(0, -weakView.image.size.height / 2);
+            }
+        });
     }
     view.centerOffset = CGPointMake(0, -view.image.size.height / 2);
     view.accessibilityLabel = cluster ? [NSString stringWithFormat:@"%lu stickers", (unsigned long)count] : annotation.title;
@@ -323,12 +340,14 @@ extern "C" int TagtagMapShow(float x, float y, float width, float height,
         [seen addObject:stickerId];
         NSString *preset = [item[@"presetId"] isKindOfClass:NSString.class] ? item[@"presetId"] : nil;
         NSString *thumbnail = [item[@"thumbnailUrl"] isKindOfClass:NSString.class] ? item[@"thumbnailUrl"] : nil;
+        NSString *thumbnailPath = [item[@"thumbnailPath"] isKindOfClass:NSString.class] ? item[@"thumbnailPath"] : nil;
         NSString *title = [item[@"place"] isKindOfClass:NSString.class] ? item[@"place"] : @"Sticker";
         NSString *teaser = [item[@"teaser"] isKindOfClass:NSString.class] ? item[@"teaser"] : nil;
         TagtagPin *old = tagtagPins[stickerId];
         if (old && old.coordinate.latitude == lat && old.coordinate.longitude == lon &&
             [(old.presetId ?: @"") isEqualToString:(preset ?: @"")] &&
             [(old.thumbnailUrl ?: @"") isEqualToString:(thumbnail ?: @"")] &&
+            [(old.thumbnailPath ?: @"") isEqualToString:(thumbnailPath ?: @"")] &&
             [(old.title ?: @"") isEqualToString:title] &&
             [(old.teaser ?: @"") isEqualToString:(teaser ?: @"")]) continue;
         if (old) [tagtagMap removeAnnotation:old];
@@ -336,6 +355,7 @@ extern "C" int TagtagMapShow(float x, float y, float width, float height,
         pin.stickerId = stickerId;
         pin.presetId = preset;
         pin.thumbnailUrl = thumbnail;
+        pin.thumbnailPath = thumbnailPath;
         pin.title = title;
         pin.teaser = teaser;
         pin.coordinate = point;
