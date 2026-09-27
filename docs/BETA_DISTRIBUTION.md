@@ -1,5 +1,34 @@
 # Beta distribution
 
+## v0.2.0 (2) — 2026-09-27
+
+Uploaded successfully to App Store Connect at 09:00 JST from release commit
+`6522602`. Apple reported that the uploaded package was processing. Assignment
+to the existing internal and external beta groups and any required external
+review remain unverified: computer-use failed with `Sky Computer Use native
+pipe startup failed`, including after reconnect and reset attempts.
+
+Release changes include thirteen Taggi presets, map-confirmed publishing with
+approximate GPS, updated AR recovery, a capture gate based on a validated spatial
+map, and the Sepolia NFT souvenir integration. Backend support is recorded in
+[deployment](DEPLOYMENT.md) and the [NFT rollout](NFT_TOKYO_ROLLOUT.md).
+
+Verification: Unity Edit Mode **273/273 passed**; backend **86 passed, 1
+emulator-only skipped**; separate ARKit preparation and Unity export succeeded;
+Xcode Release archive and system-trust code-signature verification passed.
+Fresh physical-device interaction testing was not performed for this release.
+
+Archive: `Build/Beta/tagtag-0.2.0-2.xcarchive`. Logs:
+`/tmp/tagtag-v020-{prepare,edit,export,archive,upload,backend-tests}.log`;
+test results: `/tmp/tagtag-v020-edit.xml`. Upload retained the non-blocking
+Vision Pro/ARKit compatibility and missing UnityRuntime dSYM warnings from the
+previous release. Missing runtime symbols limit Unity runtime crash symbolication.
+
+Before this upload, App Store Connect showed **0.1.0 (1) Approved** in the
+`tagtag Public Beta` group, superseding its older Waiting for Review record below.
+The public invitation remains https://testflight.apple.com/join/cUnAbdSY;
+availability of v0.2.0 through that link is not yet confirmed.
+
 ## Build
 
 - App: tagtag, bundle `com.kenk.tagtag`, Apple team `5Y6QUA9GA6`.
