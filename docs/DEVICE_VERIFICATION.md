@@ -965,3 +965,13 @@ Installed and launched on Dawg., iPhone 15 Pro Max. Evidence:
 `/tmp/tagtag-map-readiness-install.json`, and
 `/tmp/tagtag-map-readiness-launch.json`. Physical low-detail scanning, successful
 capture, readiness invalidation, and refresh responsiveness await user verification.
+
+## v0.2.0 installation — 2026-09-27
+
+Installed the development-signed Release archive for **v0.2.0 (2)**, source
+`6522602`, on **Ame, iPhone 17 Pro Max**, using `xcrun devicectl device install
+app`. CoreDevice confirmed installation of `com.kenk.tagtag`; the subsequent
+`device process launch` command confirmed launch. The package was
+`Build/Beta/tagtag-0.2.0-2.xcarchive/Products/Applications/tagtag.app`, from the
+same archive uploaded to TestFlight. No uninstall was performed. This verifies
+installation and process launch only; interactive AR and sign-in were not tested.
