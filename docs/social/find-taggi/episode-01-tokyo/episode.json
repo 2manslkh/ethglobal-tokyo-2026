@@ -1,0 +1,15 @@
+{
+  "title": "Find Taggi — Tokyo",
+  "width": 1080,
+  "height": 1920,
+  "fps": 30,
+  "duration": 20,
+  "source_size": [916, 1717],
+  "source_crop": [0, 200, 916, 1367],
+  "scene_rect": [60, 220, 960, 1432],
+  "targets": [
+    {"pose": "waving", "source_box": [181, 858, 247, 941], "reveal_at": 14},
+    {"pose": "heart-hugging", "source_box": [641, 863, 708, 943], "reveal_at": 15},
+    {"pose": "sleeping", "source_box": [302, 1301, 368, 1397], "reveal_at": 16}
+  ]
+}
