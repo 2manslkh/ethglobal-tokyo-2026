@@ -1,0 +1,246 @@
+{
+  "title": "Find Taggi \u2014 Tokyo / Continuous loop draft 3",
+  "width": 1080,
+  "height": 1920,
+  "fps": 30,
+  "duration": 20,
+  "source_size": [
+    916,
+    1717
+  ],
+  "source_crop": [
+    0,
+    200,
+    916,
+    1367
+  ],
+  "scene_rect": [
+    60,
+    220,
+    960,
+    1432
+  ],
+  "targets": [
+    {
+      "id": 1,
+      "preset": 5,
+      "pose": "waving",
+      "crop": [
+        189,
+        48,
+        884,
+        1152
+      ],
+      "center": [
+        285,
+        960
+      ],
+      "height": 72,
+      "phase": 0.3,
+      "dx": 1.5,
+      "dy": 3.5,
+      "angle": 0.12,
+      "breathe": 0,
+      "cycles_per_loop": 8
+    },
+    {
+      "id": 2,
+      "preset": 6,
+      "pose": "heart-hugging",
+      "crop": [
+        171,
+        49,
+        909,
+        1147
+      ],
+      "center": [
+        768,
+        967
+      ],
+      "height": 60,
+      "phase": 1.4,
+      "dx": 1,
+      "dy": 1.5,
+      "angle": 0.055,
+      "breathe": 0.04,
+      "cycles_per_loop": 6
+    },
+    {
+      "id": 3,
+      "preset": 8,
+      "pose": "sleeping",
+      "crop": [
+        292,
+        70,
+        795,
+        1130
+      ],
+      "center": [
+        412,
+        1424
+      ],
+      "height": 48,
+      "phase": 0.5,
+      "dx": 0,
+      "dy": 0.5,
+      "angle": 0.025,
+      "breathe": 0.065,
+      "cycles_per_loop": 5
+    },
+    {
+      "id": 4,
+      "preset": 10,
+      "pose": "cheering",
+      "crop": [
+        218,
+        41,
+        850,
+        1175
+      ],
+      "center": [
+        376,
+        479
+      ],
+      "height": 40,
+      "phase": 2.1,
+      "dx": 0.5,
+      "dy": 4,
+      "angle": 0.08,
+      "breathe": 0,
+      "cycles_per_loop": 9
+    },
+    {
+      "id": 5,
+      "preset": 7,
+      "pose": "laughing",
+      "crop": [
+        178,
+        42,
+        913,
+        1158
+      ],
+      "center": [
+        580,
+        646
+      ],
+      "height": 32,
+      "phase": 2.8,
+      "dx": 1.5,
+      "dy": 1.5,
+      "angle": 0.1,
+      "breathe": 0,
+      "cycles_per_loop": 7
+    },
+    {
+      "id": 6,
+      "preset": 9,
+      "pose": "surprised",
+      "crop": [
+        162,
+        46,
+        930,
+        1146
+      ],
+      "center": [
+        823,
+        760
+      ],
+      "height": 26,
+      "phase": 1.0,
+      "dx": 1,
+      "dy": 2.5,
+      "angle": 0.07,
+      "breathe": 0,
+      "cycles_per_loop": 6
+    },
+    {
+      "id": 7,
+      "preset": 11,
+      "pose": "shy",
+      "crop": [
+        289,
+        48,
+        849,
+        1166
+      ],
+      "center": [
+        173,
+        1275
+      ],
+      "height": 24,
+      "phase": 2.5,
+      "dx": 1.5,
+      "dy": 0.5,
+      "angle": 0.09,
+      "breathe": 0,
+      "cycles_per_loop": 5
+    },
+    {
+      "id": 8,
+      "preset": 12,
+      "pose": "thinking",
+      "crop": [
+        210,
+        53,
+        875,
+        1153
+      ],
+      "center": [
+        885,
+        1460
+      ],
+      "height": 24,
+      "phase": 1.7,
+      "dx": 1,
+      "dy": 1,
+      "angle": 0.12,
+      "breathe": 0,
+      "cycles_per_loop": 7
+    },
+    {
+      "id": 9,
+      "preset": 5,
+      "pose": "waving",
+      "crop": [
+        189,
+        48,
+        884,
+        1152
+      ],
+      "center": [
+        585,
+        526
+      ],
+      "height": 24,
+      "phase": 0.8,
+      "dx": 1,
+      "dy": 1,
+      "angle": 0,
+      "breathe": 0,
+      "cycles_per_loop": 8
+    },
+    {
+      "id": 10,
+      "preset": 8,
+      "pose": "sleeping",
+      "crop": [
+        292,
+        70,
+        795,
+        1130
+      ],
+      "center": [
+        205,
+        367
+      ],
+      "height": 24,
+      "phase": 2.2,
+      "dx": 1,
+      "dy": 1,
+      "angle": 0,
+      "breathe": 0,
+      "cycles_per_loop": 5
+    }
+  ],
+  "min_target_side": 24
+}
