@@ -1,0 +1,41 @@
+[Script Info]
+ScriptType: v4.00+
+PlayResX: 1080
+PlayResY: 1920
+WrapStyle: 2
+ScaledBorderAndShadow: yes
+
+[V4+ Styles]
+Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
+Style: Display,Shadows Into Light,86,&H0034332F,&H0034332F,&H0034332F,&H00000000,0,0,0,0,100,100,0,0,1,0,0,7,0,0,0,1
+Style: Body,Instrument Sans,34,&H0034332F,&H0034332F,&H0034332F,&H00000000,0,0,0,0,100,100,0,0,1,0,0,7,0,0,0,1
+
+[Events]
+Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
+Dialogue: 1,0:00:00.00,0:00:20.00,Display,,0,0,0,,{\an7\pos(76,55)\fs88\1c&H2F3334&}Find Taggi
+Dialogue: 1,0:00:00.00,0:00:20.00,Body,,0,0,0,,{\an7\pos(78,25)\fs21\1c&H2F3334&}THAILAND
+Dialogue: 1,0:00:00.00,0:00:20.00,Body,,0,0,0,,{\an7\pos(78,174)\fs34\1c&H2F3334&}Can you find all 10 Taggis?
+Dialogue: 1,0:00:00.00,0:00:20.00,Body,,0,0,0,,{\an8\pos(623,137)\fs22\1c&H2F3334&}SECONDS LEFT
+Dialogue: 1,0:00:00.00,0:00:20.00,Body,,0,0,0,,{\an8\pos(834,158)\fs22\1c&H2F3334&}EXAMPLE
+Dialogue: 1,0:00:00.00,0:00:20.00,Body,,0,0,0,,{\an8\pos(540,1718)\fs32\1c&H2F3334&}How many have you found?
+Dialogue: 1,0:00:00.00,0:00:20.00,Display,,0,0,0,,{\an8\pos(540,1780)\fs49\1c&H2F3334&}tagtag
+Dialogue: 1,0:00:00.00,0:00:01.00,Body,,0,0,0,,{\an8\pos(623,52)\fs76\1c&H2F3334&}20
+Dialogue: 1,0:00:01.00,0:00:02.00,Body,,0,0,0,,{\an8\pos(623,52)\fs76\1c&H2F3334&}19
+Dialogue: 1,0:00:02.00,0:00:03.00,Body,,0,0,0,,{\an8\pos(623,52)\fs76\1c&H2F3334&}18
+Dialogue: 1,0:00:03.00,0:00:04.00,Body,,0,0,0,,{\an8\pos(623,52)\fs76\1c&H2F3334&}17
+Dialogue: 1,0:00:04.00,0:00:05.00,Body,,0,0,0,,{\an8\pos(623,52)\fs76\1c&H2F3334&}16
+Dialogue: 1,0:00:05.00,0:00:06.00,Body,,0,0,0,,{\an8\pos(623,52)\fs76\1c&H2F3334&}15
+Dialogue: 1,0:00:06.00,0:00:07.00,Body,,0,0,0,,{\an8\pos(623,52)\fs76\1c&H2F3334&}14
+Dialogue: 1,0:00:07.00,0:00:08.00,Body,,0,0,0,,{\an8\pos(623,52)\fs76\1c&H2F3334&}13
+Dialogue: 1,0:00:08.00,0:00:09.00,Body,,0,0,0,,{\an8\pos(623,52)\fs76\1c&H2F3334&}12
+Dialogue: 1,0:00:09.00,0:00:10.00,Body,,0,0,0,,{\an8\pos(623,52)\fs76\1c&H2F3334&}11
+Dialogue: 1,0:00:10.00,0:00:11.00,Body,,0,0,0,,{\an8\pos(623,52)\fs76\1c&H2F3334&}10
+Dialogue: 1,0:00:11.00,0:00:12.00,Body,,0,0,0,,{\an8\pos(623,52)\fs76\1c&H2F3334&}09
+Dialogue: 1,0:00:12.00,0:00:13.00,Body,,0,0,0,,{\an8\pos(623,52)\fs76\1c&H2F3334&}08
+Dialogue: 1,0:00:13.00,0:00:14.00,Body,,0,0,0,,{\an8\pos(623,52)\fs76\1c&H2F3334&}07
+Dialogue: 1,0:00:14.00,0:00:15.00,Body,,0,0,0,,{\an8\pos(623,52)\fs76\1c&H2F3334&}06
+Dialogue: 1,0:00:15.00,0:00:16.00,Body,,0,0,0,,{\an8\pos(623,52)\fs76\1c&H2F3334&}05
+Dialogue: 1,0:00:16.00,0:00:17.00,Body,,0,0,0,,{\an8\pos(623,52)\fs76\1c&H2F3334&}04
+Dialogue: 1,0:00:17.00,0:00:18.00,Body,,0,0,0,,{\an8\pos(623,52)\fs76\1c&H2F3334&}03
+Dialogue: 1,0:00:18.00,0:00:19.00,Body,,0,0,0,,{\an8\pos(623,52)\fs76\1c&H2F3334&}02
+Dialogue: 1,0:00:19.00,0:00:20.00,Body,,0,0,0,,{\an8\pos(623,52)\fs76\1c&H2F3334&}01
