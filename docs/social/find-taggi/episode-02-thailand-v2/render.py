@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Thailand A/B variant: unchanged puzzle, 20-second timer and Taggi example."""
+"""Thailand popup variant: two-second introduction, then an 18-second search."""
 
 import importlib.util
 import io
@@ -12,7 +12,7 @@ import subprocess
 import tempfile
 from xml.sax.saxutils import escape
 
-from PIL import Image
+from PIL import Image, ImageDraw
 
 HERE = Path(__file__).resolve().parent
 module_spec = importlib.util.spec_from_file_location("pilot_render", HERE.parent / "episode-01-tokyo/render.py")
@@ -35,20 +35,29 @@ def dimensions(target):
 def make_ass():
     header = pilot.make_ass().split("Dialogue:", 1)[0]
     events = []
-    for style, text, x, y, size, align in [
+    start = SPEC["intro_duration"]
+    duration = SPEC["duration"]
+
+    def text(begin, end, style, content, x, y, size, align=7, extra=""):
+        tags = f"\\an{align}\\pos({x},{y})\\fs{size}\\1c{pilot.ass_color(INK)}{extra}"
+        events.append(f"Dialogue: 1,{pilot.timestamp(begin)},{pilot.timestamp(end)},{style},,0,0,0,,{{{tags}}}{content}")
+
+    for style, content, x, y, size, align in [
         ("Display", "Find Taggi", 76, 55, 88, 7),
-        ("Body", "THAILAND", 78, 25, 21, 7),
-        ("Body", "Can you find all 10 Taggis?", 78, 174, 34, 7),
-        ("Body", "SECONDS LEFT", 623, 137, 22, 8),
-        ("Body", "EXAMPLE", 834, 158, 22, 8),
+        ("Body", "02  /  THAILAND", 900, 112, 25, 9),
         ("Body", "How many have you found?", 540, 1718, 32, 8),
         ("Display", "tagtag", 540, 1780, 49, 8),
     ]:
-        tags = f"\\an{align}\\pos({x},{y})\\fs{size}\\1c{pilot.ass_color(INK)}"
-        events.append(f"Dialogue: 1,0:00:00.00,0:00:20.00,{style},,0,0,0,,{{{tags}}}{text}")
-    for second in range(SPEC["duration"]):
-        tags = f"\\an8\\pos(623,52)\\fs76\\1c{pilot.ass_color(INK)}"
-        events.append(f"Dialogue: 1,0:00:{second:02d}.00,0:00:{second+1:02d}.00,Body,,0,0,0,,{{{tags}}}{SPEC['duration']-second:02d}")
+        text(0, duration, style, content, x, y, size, align)
+    text(0, start, "Body", "A little discovery in Thailand.", 78, 174, 32)
+    text(start, duration, "Body", "Can you find all 10 Taggis?", 78, 174, 34)
+    fade_in, fade_out = (round(value*1000) for value in SPEC["popup_fade"])
+    fade = f"\\fad({fade_in},{fade_out})"
+    text(0, start, "Display", "Can you find", 540, 555, 79, 8, fade)
+    text(0, start, "Display", "all 10 Taggis?", 540, 650, 104, 8, fade)
+    text(0, start, "Body", f"{duration-start} seconds. Look closely.", 540, 1220, 32, 8, fade)
+    for second in range(start, duration):
+        text(second, second+1, "Body", f"{duration-second:02d}s", 900, 169, 38, 9)
     return header + "\n".join(events) + "\n"
 
 
@@ -60,12 +69,6 @@ def prepare_scene():
         "-vf", f"crop={w}:{h}:{x}:{y},scale={dw}:{dh}:flags=lanczos,pad=1080:1920:{dx}:{dy}:color=0x{PAPER},setsar=1",
         "-frames:v", "1", "-f", "image2pipe", "-c:v", "png", "pipe:1"])
     base = Image.open(io.BytesIO(data)).convert("RGBA")
-    example = SPEC["example"]
-    x, y, w, h = example["crop"]
-    with Image.open(pilot.PRESETS / f"taggi-{example['preset']}.png") as source:
-        reference = source.convert("RGBA").crop((x, y, x+w, y+h)).resize(
-            (round(w*example["height"]/h), example["height"]), Image.Resampling.LANCZOS)
-    base.alpha_composite(reference, tuple(example["position"]))
     sprites = []
     for target in SPEC["targets"]:
         x, y, w, h = target["crop"]
@@ -73,6 +76,28 @@ def prepare_scene():
             sprites.append(source.convert("RGBA").crop((x, y, x+w, y+h)).resize(
                 dimensions(target), Image.Resampling.LANCZOS))
     return base, sprites
+
+
+def prepare_popup():
+    popup = Image.new("RGBA", (SPEC["width"], SPEC["height"]), (0,0,0,0))
+    drawing = ImageDraw.Draw(popup)
+    x,y,w,h = SPEC["popup_rect"]
+    drawing.rounded_rectangle((x+5,y+8,x+w+5,y+h+8), radius=22, fill=(52,51,47,52))
+    drawing.rounded_rectangle((x,y,x+w,y+h), radius=22, fill=f"#{PAPER}", outline=f"#{INK}", width=2)
+    example = SPEC["example"]
+    x,y,w,h = example["crop"]
+    with Image.open(pilot.PRESETS / f"taggi-{example['preset']}.png") as source:
+        reference = source.convert("RGBA").crop((x,y,x+w,y+h)).resize(
+            (round(w*example["height"]/h), example["height"]), Image.Resampling.LANCZOS)
+    popup.alpha_composite(reference, tuple(example["position"]))
+    return popup
+
+
+def popup_alpha(at):
+    if not 0 <= at < SPEC["intro_duration"]:
+        return 0
+    fade_in, fade_out = SPEC["popup_fade"]
+    return min(1, at/fade_in, (SPEC["intro_duration"]-at)/fade_out)
 
 
 def phase_at(target, at):
@@ -101,9 +126,21 @@ def scene_frame(at, base, sprites):
     return frame.convert("RGB")
 
 
+def video_frame(at, base, sprites, popup):
+    frame = scene_frame(at, base, sprites)
+    opacity = popup_alpha(at)
+    if opacity:
+        layer = popup.copy()
+        layer.putalpha(popup.getchannel("A").point(lambda value: round(value*opacity)))
+        frame = frame.convert("RGBA")
+        frame.alpha_composite(layer)
+    return frame.convert("RGB")
+
+
 def run():
     (HERE / "edit.ass").write_text(make_ass())
     base, sprites = prepare_scene()
+    popup = prepare_popup()
     with tempfile.TemporaryDirectory(prefix="find-taggi-thailand-v2-") as scratch:
         scratch = Path(scratch)
         fonts = scratch / "fonts"
@@ -127,7 +164,7 @@ def run():
         process = subprocess.Popen(command, stdin=subprocess.PIPE, env=env)
         try:
             for index in range(SPEC["duration"]*SPEC["fps"]):
-                process.stdin.write(scene_frame(index/SPEC["fps"], base, sprites).tobytes())
+                process.stdin.write(video_frame(index/SPEC["fps"], base, sprites, popup).tobytes())
             process.stdin.close()
             if process.wait() != 0:
                 raise RuntimeError("FFmpeg did not complete the export")
@@ -135,8 +172,9 @@ def run():
             if process.poll() is None:
                 process.terminate()
                 process.wait()
-    subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", str(VIDEO),
-                    "-frames:v", "1", "-q:v", "2", str(HERE / "cover.jpg")], check=True)
+    for filename, at in [("cover.jpg", .9), ("search-preview.jpg", 3)]:
+        subprocess.run(["ffmpeg", "-v", "error", "-y", "-ss", str(at), "-i", str(VIDEO),
+                        "-frames:v", "1", "-q:v", "2", str(HERE / filename)], check=True)
     print(f"Rendered {VIDEO}")
 
 

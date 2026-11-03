@@ -1,5 +1,5 @@
 {
-  "title": "Find Taggi — Thailand / Countdown variant 2",
+  "title": "Find Taggi — Thailand / Popup countdown variant 2",
   "width": 1080,
   "height": 1920,
   "fps": 30,
@@ -263,9 +263,20 @@
       1152
     ],
     "position": [
-      788,
-      30
+      390,
+      805
     ],
-    "height": 120
-  }
+    "height": 391
+  },
+  "intro_duration": 2,
+  "popup_rect": [
+    150,
+    510,
+    780,
+    800
+  ],
+  "popup_fade": [
+    0.16,
+    0.14
+  ]
 }

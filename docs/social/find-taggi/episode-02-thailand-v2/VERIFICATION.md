@@ -1,56 +1,64 @@
-# Thailand v2 verification
+# Thailand v2 popup verification
 
-Verified on 2026-11-03 using FFmpeg 7.1, Python 3.12 and Pillow 12.3.0.
-The complete `verify.py` check passed on the delivered MP4.
+Verified on 2026-11-03 with FFmpeg 7.1, Python 3.12 and Pillow 12.3.0.
+The complete `verify.py` run passed on the delivered popup revision.
 
 ## Export
 
-- 20.000 seconds; 600 frames; 1080 × 1920; 30 fps.
+- 20.000 seconds, 600 frames, 1080 × 1920, 30 fps.
 - H.264/yuv420p with BT.709 color metadata and stereo AAC.
-- The decoded audio is silent, matching the v1 treatment.
+- Silent decoded audio, matching v1.
 - Full video/audio decode completed without errors.
-- Libass selected Shadows Into Light and Instrument Sans correctly.
+- Shadows Into Light and Instrument Sans loaded correctly.
 
-## A/B comparison
+## Popup and search timing
 
-The background path resolves to the original v1 image. Source dimensions,
-crop, scene rectangle, every target's placement/size/motion setting, duration,
-frame rate and caption match v1 exactly. Source puzzle pixels also match v1
-at 0, 7.25, 13.5 and 19.966667 seconds.
+The cream card and large waving example are present during the 0–2-second
+introduction. The card uses the supplied reference's centered layout, rounded
+corners, thin outline and subtle shadow. The text reads “Can you find / all 10
+Taggis?” and “18 seconds. Look closely.” The example measures 300 × 391 pixels.
 
-Exactly ten animated targets remain inside the scene, each at least 24 pixels
-on both sprite dimensions throughout all 600 frames. All stay within the
-established target-safe margins. Encoded frame comparisons confirm that all ten
-move during both the first and final five seconds.
+The card, image and text share a 160 ms entrance fade and 140 ms exit fade.
+The solid card and mascot were checked in the encoded frame at 1 second; its
+last fading frame was checked at 1.966667 seconds. A plain card patch differs
+from the uncovered artwork by 85.0697/255, confirming that it covers the scene.
+Its encoded cream differs from the source by 2/255, consistent with RGB/YUV
+quantization. The mascot-region encoding difference is 1.8339/255.
 
-The separate 92 × 120-pixel waving example stays in the header, outside the
-puzzle, with an EXAMPLE label. Its appearance was checked against the encoded
-first frame and remains constant at the end. The instruction reads exactly
-“Can you find all 10 Taggis?”. No answer markers or answer segment are added.
+The popup is completely absent at frame 60 (2 seconds). All 540 source frames
+from there through the end match the unobstructed puzzle exactly. Encoded scene
+samples at 2, 14, 16, 18, 19 and 19.966667 seconds confirm no remaining popup,
+example or answer panel. The initially transparent entrance frame at time zero
+was also checked; maximum scene encoding difference across samples is
+3.7804/255.
 
-## Countdown
+The countdown is absent throughout the introductory 60 frames. It then shows
+18s through 01s, each for exactly 30 frames. All 600 encoded timer-region frames
+were inspected. Maximum mean variation within a held number is 0.2504/255;
+minimum transition difference is 3.3014/255. The ASS event schedule independently
+confirms the 2-second start and uninterrupted 18-second countdown.
 
-The ASS schedule contains twenty consecutive one-second events, displaying
-20 through 01, plus seven constant text elements. All 600 encoded timer frames
-were decoded and compared. Every number holds for 30 frames, and all nineteen
-number changes occur at the expected second boundaries.
+## Puzzle and comparison
 
-Maximum mean variation during a held number is 0.2302/255; the smallest
-number-change difference is 3.9384/255. The timer resets from 01 to 20 on replay.
-There is no displayed zero frame or end-card interruption.
+Background, source crop, scene rectangle, ten target positions, sprite sizes,
+animation settings, total duration and caption match v1. The clean base has no
+permanent header example. Source puzzle frames match v1 at 0, 7.25, 13.5 and
+19.966667 seconds.
 
-## Visual review and loop
+All ten underlying sprite bounding boxes stay at least 24 pixels in both
+dimensions and within target-safe margins across 600 frames. Targets covered by
+the introductory card become visible when it clears. Decoded comparisons
+confirm that every target animates during both the early and late search.
 
-The full cover and frames at 0, 10 and 19.966667 seconds were reviewed at
-360 × 640 per frame. The countdown, full prompt and example are readable and
-remain above the puzzle, leaving the scene unobstructed.
+Underlying character motion at 20 seconds equals time zero exactly. The full
+presentation intentionally restarts the popup on replay, so this revision is
+not assessed as an uninterrupted full-composition loop. V1 offers 20 seconds of
+unobstructed searching; this variant offers 18 seconds after its introduction.
 
-The underlying character animation at 20 seconds equals time zero exactly.
-The encoded puzzle's last-to-first difference is 1.2383/255, within the expected
-source motion step of 0.0556/255 plus measured stationary compression variation
-of 1.1663/255. The maximum mean difference between encoded and source puzzle
-frames is 3.4898/255. The scene stays present throughout the 20 seconds.
+The full cover and a 360 × 640-per-frame triptych at 0.9, 2 and 19.966667 seconds
+were visually reviewed. The popup matches the reference style, its copy and
+mascot are readable, and the search scene is clear after dismissal. The cover
+uses the complete popup at 0.9 seconds; the search preview uses 3 seconds.
 
-The countdown makes the full composition's replay boundary visible by design;
-the puzzle animation itself remains continuous. These are local file and
-desktop phone-size checks, not an Instagram upload or physical-device test.
+These are local file and desktop phone-size checks. Physical-device playback,
+Instagram upload and audience performance have not been tested.
